@@ -106,9 +106,9 @@
                                                     <input type="hidden" name="products[{{ $prod->id }}][quantity]" value="1">
                                                     <label class="form-check-label small" for="prod_{{ $prod->id }}">
                                                         <strong class="text-dark">{{ $prod->name }}</strong>
-                                                        <span class="text-muted">&bull; {{ $prod->farmer->name }}</span>
+                                                        <span class="text-muted">&bull; {{ $prod->farmer?->name ?? 'Local Farmer' }}</span>
                                                         <span class="text-muted d-block d-md-inline" style="font-size: 11px;">
-                                                            <i class="bi bi-geo-alt-fill text-danger"></i> {{ $prod->farmer->address }}
+                                                            <i class="bi bi-geo-alt-fill text-danger"></i> {{ $prod->farmer?->address ?? 'Local Farm' }}
                                                         </span>
                                                     </label>
                                                 </div>

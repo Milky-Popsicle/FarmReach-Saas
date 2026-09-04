@@ -16,7 +16,8 @@ class FarmerProductController extends Controller
         $farmer = Auth::user();
 
         $query = Product::with(['farmer', 'category'])
-            ->where('is_active', true);
+            ->where('is_active', true)
+            ->whereHas('farmer');
 
         if ($request->filled('search')) {
             $search = trim($request->search);
@@ -31,6 +32,7 @@ class FarmerProductController extends Controller
 
         $featuredProducts = Product::with('farmer')
             ->where('is_active', true)
+            ->whereHas('farmer')
             ->inRandomOrder()
             ->take(6)
             ->get();

@@ -101,8 +101,8 @@
                             <div class="row align-items-center g-3">
                                 <div class="col-md-7">
                                     <div class="text-muted small mb-1">
-                                        <i class="bi bi-person-fill text-success"></i> Farmer: <strong>{{ $ord->farmer->name }}</strong>
-                                        <span class="d-block text-truncate" style="font-size: 11px;"><i class="bi bi-geo-alt"></i> {{ $ord->farmer->address }}</span>
+                                        <i class="bi bi-person-fill text-success"></i> Farmer: <strong>{{ $ord->farmer?->name ?? 'Local Farmer' }}</strong>
+                                        <span class="d-block text-truncate" style="font-size: 11px;"><i class="bi bi-geo-alt"></i> {{ $ord->farmer?->address ?? 'Surigao del Norte' }}</span>
                                     </div>
                                     <div class="my-2">
                                         @foreach($ord->items as $it)
@@ -179,8 +179,8 @@
                                             @endforeach
                                         </td>
                                         <td>
-                                            <div class="small">{{ $ord->farmer->name }}</div>
-                                            <div class="text-muted" style="font-size: 10px;">{{ $ord->farmer->address }}</div>
+                                            <div class="small">{{ $ord->farmer?->name ?? 'Local Farmer' }}</div>
+                                            <div class="text-muted" style="font-size: 10px;">{{ $ord->farmer?->address ?? 'Surigao del Norte' }}</div>
                                         </td>
                                         <td class="small">{{ $ord->items->sum('quantity') }}</td>
                                         <td>
@@ -272,7 +272,7 @@
                     <div class="farm-card h-100 p-3 farm-card-interactive d-flex flex-column">
                         <img src="{{ $rec->image_path }}" class="rounded-3 mb-2" alt="{{ $rec->name }}" style="height: 120px; object-fit: cover;">
                         <h6 class="fw-bold mb-1 text-truncate">{{ $rec->name }}</h6>
-                        <small class="text-muted d-block mb-2">{{ $rec->farmer->name }}</small>
+                        <small class="text-muted d-block mb-2">{{ $rec->farmer?->name ?? 'Local Farm' }}</small>
                         <div class="mt-auto d-flex justify-content-between align-items-center">
                             <strong class="text-farm-primary">₱{{ number_format($rec->price, 2) }}</strong>
                             <form action="{{ route('cart.add') }}" method="POST" class="form-add-to-cart m-0">

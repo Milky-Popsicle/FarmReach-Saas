@@ -12,7 +12,8 @@ class MarketplaceController extends Controller
     public function index(Request $request)
     {
         $query = Product::with(['farmer', 'category'])
-            ->where('is_active', true);
+            ->where('is_active', true)
+            ->whereHas('farmer');
 
         // Search by product name or farmer name
         if ($request->filled('search')) {
@@ -54,6 +55,7 @@ class MarketplaceController extends Controller
         $featuredProducts = Product::with(['farmer', 'category'])
             ->where('is_active', true)
             ->where('quantity', '>', 0)
+            ->whereHas('farmer')
             ->inRandomOrder()
             ->take(6)
             ->get();
@@ -80,6 +82,7 @@ class MarketplaceController extends Controller
         $moreFromFarmer = Product::where('user_id', $product->user_id)
             ->where('id', '!=', $product->id)
             ->where('is_active', true)
+            ->whereHas('farmer')
             ->take(4)
             ->get();
 
@@ -88,6 +91,7 @@ class MarketplaceController extends Controller
             ->where('id', '!=', $product->id)
             ->where('category_id', $product->category_id)
             ->where('is_active', true)
+            ->whereHas('farmer')
             ->take(4)
             ->get();
 
@@ -101,6 +105,7 @@ class MarketplaceController extends Controller
 
         $comparisonProducts = Product::with(['farmer', 'category'])
             ->where('is_active', true)
+            ->whereHas('farmer')
             ->when($selectedCategory, fn($q) => $q->where('category_id', $selectedCategory))
             ->orderBy('price', 'asc')
             ->get();

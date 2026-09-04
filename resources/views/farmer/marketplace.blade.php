@@ -87,7 +87,7 @@
                             <img src="{{ $p->image_path }}" class="rounded-2" alt="{{ $p->name }}" style="width: 40px; height: 40px; object-fit: cover;">
                             <div>
                                 <h6 class="mb-0 fw-bold small text-truncate" style="max-width: 150px;">{{ $p->name }}</h6>
-                                <small class="text-muted">{{ $p->farmer->name }}</small>
+                                <small class="text-muted">{{ $p->farmer?->name ?? 'Local Farmer' }}</small>
                             </div>
                         </div>
                         <div class="d-flex justify-content-between align-items-center">

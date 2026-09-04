@@ -40,6 +40,13 @@ class User extends Authenticatable
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::deleting(function (User $user) {
+            $user->products()->delete();
+        });
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === 'admin';

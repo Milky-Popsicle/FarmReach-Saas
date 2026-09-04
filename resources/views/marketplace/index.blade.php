@@ -100,7 +100,7 @@
                                     <a href="{{ route('marketplace.show', $item) }}" class="text-decoration-none text-dark">{{ $item->name }}</a>
                                 </h6>
                                 <div class="text-muted small text-truncate mb-1">
-                                    <i class="bi bi-geo-alt"></i> {{ $item->farmer->name }}
+                                    <i class="bi bi-geo-alt"></i> {{ $item->farmer?->name ?? 'Local Farmer' }}
                                 </div>
                                 <div class="mt-auto pt-2 border-top d-flex justify-content-between align-items-center">
                                     <span class="fw-bold text-farm-primary">₱{{ number_format($item->price, 2) }}</span>
@@ -206,10 +206,10 @@
                             <!-- Farmer Location Badge (as required by specifications) -->
                             <div class="p-2 rounded bg-light border small mb-3">
                                 <div class="fw-semibold text-dark text-truncate">
-                                    <i class="bi bi-person-fill text-success"></i> {{ $product->farmer->name }}
+                                    <i class="bi bi-person-fill text-success"></i> {{ $product->farmer?->name ?? 'Local Farm' }}
                                 </div>
                                 <div class="text-muted text-truncate" style="font-size: 11px;">
-                                    <i class="bi bi-geo-alt-fill text-danger"></i> {{ $product->farmer->address ?? 'Surigao del Norte' }}
+                                    <i class="bi bi-geo-alt-fill text-danger"></i> {{ $product->farmer?->address ?? 'Surigao del Norte' }}
                                 </div>
                             </div>
 

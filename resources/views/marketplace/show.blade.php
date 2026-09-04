@@ -25,17 +25,17 @@
                 <h5 class="fw-bold mb-3 text-farm-primary"><i class="bi bi-person-badge-fill me-2"></i>Produced by Local Farmer</h5>
                 <div class="d-flex align-items-center gap-3 mb-3">
                     <div class="rounded-circle bg-farm-primary text-warning d-flex align-items-center justify-content-center fw-bold fs-4" style="width: 56px; height: 56px;">
-                        {{ substr($product->farmer->name, 0, 1) }}
+                        {{ substr($product->farmer?->name ?? 'F', 0, 1) }}
                     </div>
                     <div>
-                        <h5 class="fw-bold mb-0">{{ $product->farmer->name }}</h5>
+                        <h5 class="fw-bold mb-0">{{ $product->farmer?->name ?? 'Local Farmer' }}</h5>
                         <div class="text-muted small">
-                            <i class="bi bi-geo-alt-fill text-danger"></i> {{ $product->farmer->address ?? 'Surigao del Norte' }}
+                            <i class="bi bi-geo-alt-fill text-danger"></i> {{ $product->farmer?->address ?? 'Surigao del Norte' }}
                         </div>
                     </div>
                 </div>
 
-                @if($product->farmer->bio)
+                @if($product->farmer?->bio)
                     <p class="text-muted small fst-italic mb-3">
                         "{{ $product->farmer->bio }}"
                     </p>
@@ -44,12 +44,14 @@
                 <div class="row g-2 pt-2 border-top">
                     <div class="col-6">
                         <span class="text-muted small d-block">Direct Contact</span>
-                        <strong class="small">{{ $product->farmer->phone_number ?? 'Inquiry via app' }}</strong>
+                        <strong class="small">{{ $product->farmer?->phone_number ?? 'Inquiry via app' }}</strong>
                     </div>
                     <div class="col-6 text-end">
-                        <a href="{{ route('marketplace', ['farmer_id' => $product->farmer->id]) }}" class="btn btn-sm btn-farm-outline">
-                            View Farmer's Farm Stand
-                        </a>
+                        @if($product->farmer)
+                            <a href="{{ route('marketplace', ['farmer_id' => $product->farmer->id]) }}" class="btn btn-sm btn-farm-outline">
+                                View Farmer's Farm Stand
+                            </a>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -141,8 +143,8 @@
                                     <tr>
                                         <td class="fw-bold text-dark">{{ $comp->name }}</td>
                                         <td>
-                                            <div>{{ $comp->farmer->name }}</div>
-                                            <div class="text-muted" style="font-size: 11px;"><i class="bi bi-geo-alt"></i> {{ $comp->farmer->address }}</div>
+                                            <div>{{ $comp->farmer?->name ?? 'Local Farmer' }}</div>
+                                            <div class="text-muted" style="font-size: 11px;"><i class="bi bi-geo-alt"></i> {{ $comp->farmer?->address ?? 'Surigao del Norte' }}</div>
                                         </td>
                                         <td class="fw-bold text-success">₱{{ number_format($comp->price, 2) }}</td>
                                         <td>

@@ -140,4 +140,14 @@ class FarmReachTest extends TestCase
         $farmerResponse->assertStatus(200);
         $farmerResponse->assertJson(['status' => 'success']);
     }
+
+    public function test_marketplace_product_detail_page_loads_successfully()
+    {
+        $product = Product::where('is_active', true)->first();
+        if ($product) {
+            $response = $this->get(route('marketplace.show', $product));
+            $response->assertStatus(200);
+            $response->assertSee($product->name);
+        }
+    }
 }

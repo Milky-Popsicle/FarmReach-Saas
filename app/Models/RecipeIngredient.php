@@ -34,6 +34,7 @@ class RecipeIngredient extends Model
     {
         $query = Product::with('farmer')
             ->where('is_active', true)
+            ->whereHas('farmer')
             ->where('quantity', '>', 0);
 
         $name = trim($this->name);
