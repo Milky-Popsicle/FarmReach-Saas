@@ -190,8 +190,8 @@ class ApiController extends Controller
                     'kilograms' => (float) $p->kilograms,
                     'unit' => $p->unit,
                     'quantity_in_stock' => $p->quantity,
-                    'farmer_name' => $p->farmer->name,
-                    'farmer_address' => $p->farmer->address,
+                    'farmer_name' => $p->farmer?->name ?? 'Local Farmer',
+                    'farmer_address' => $p->farmer?->address ?? 'Surigao del Norte',
                     'farmer_id' => $p->user_id,
                 ]),
             ];
