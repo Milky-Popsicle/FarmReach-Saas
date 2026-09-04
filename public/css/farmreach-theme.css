@@ -1,4 +1,15 @@
 :root {
+    /* Bootstrap 5 Native Color Overrides */
+    --bs-primary: #1B4332;
+    --bs-primary-rgb: 27, 67, 50;
+    --bs-success: #2D6A4F;
+    --bs-success-rgb: 45, 106, 79;
+    --bs-warning: #DAA520;
+    --bs-warning-rgb: 218, 165, 32;
+    --bs-dark: #212529;
+    --bs-dark-rgb: 33, 37, 41;
+
+    /* FarmReach Specific Tokens */
     --farm-primary: #1B4332;
     --farm-primary-dark: #122d22;
     --farm-primary-light: #245741;
@@ -22,6 +33,30 @@
 
     --font-headline: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Bootstrap 5 Native Button Overrides */
+.btn-primary {
+    --bs-btn-bg: #1B4332;
+    --bs-btn-border-color: #1B4332;
+    --bs-btn-hover-bg: #122d22;
+    --bs-btn-hover-border-color: #122d22;
+    --bs-btn-active-bg: #0d2118;
+    --bs-btn-active-border-color: #0d2118;
+}
+
+.btn-outline-primary {
+    --bs-btn-color: #1B4332;
+    --bs-btn-border-color: #1B4332;
+    --bs-btn-hover-bg: #1B4332;
+    --bs-btn-hover-border-color: #1B4332;
+}
+
+.btn-success {
+    --bs-btn-bg: #2D6A4F;
+    --bs-btn-border-color: #2D6A4F;
+    --bs-btn-hover-bg: #22533e;
+    --bs-btn-hover-border-color: #22533e;
 }
 
 body {

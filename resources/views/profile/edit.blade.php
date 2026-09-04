@@ -1,6 +1,7 @@
-@extends('layouts.app')
+@extends(Auth::user() && Auth::user()->isAdmin() ? 'layouts.admin' : 'layouts.app')
 
 @section('title', 'My Profile - FarmReach Cloud')
+@section('header_title', 'Admin My Profile')
 
 @section('content')
 <div class="container py-4">

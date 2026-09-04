@@ -1,9 +1,10 @@
-@extends('layouts.app')
+@extends('layouts.admin')
 
 @section('title', 'Admin Dashboard - FarmReach Cloud')
+@section('header_title', 'Administrator Dashboard')
 
 @section('content')
-<div class="container-fluid py-4 px-md-5">
+<div class="admin-dashboard-view">
     <!-- Header -->
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 pb-3 border-bottom">
         <div>

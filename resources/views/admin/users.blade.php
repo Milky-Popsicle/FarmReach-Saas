@@ -1,9 +1,10 @@
-@extends('layouts.app')
+@extends('layouts.admin')
 
 @section('title', 'Manage Users - Admin Panel')
+@section('header_title', 'Admin Manage Users')
 
 @section('content')
-<div class="container py-4">
+<div class="admin-users-view">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
             <span class="badge bg-warning text-dark px-3 py-1 rounded-pill fw-bold text-uppercase mb-1">
@@ -79,7 +80,7 @@
                                 {{ $u->created_at->format('M d, Y') }}
                             </td>
                             <td class="text-end">
-                                <form action="{{ route('admin.users.delete', $u) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this {{ $u->role }} account?')" class="m-0">
+                                <form action="{{ route('admin.users.delete', $u) }}" method="POST" class="swal-confirm m-0" data-confirm="Are you sure you want to permanently delete the {{ $u->role }} account for '{{ $u->name }}'?" data-confirm-btn="Yes, delete user">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-danger btn-sm px-3 fw-bold">

@@ -140,21 +140,92 @@ $(document).ready(function () {
         $modal.find('#edit_description').val(description);
     });
 
-    // 7. Toast helper function
-    window.showToast = function (title, message) {
-        const toastHtml = `
-            <div class="toast align-items-center text-white bg-farm-primary border-0 show" role="alert" aria-live="assertive" aria-atomic="true" style="position: fixed; bottom: 20px; right: 20px; z-index: 1090;">
-                <div class="d-flex">
-                    <div class="toast-body">
-                        <strong>${title}:</strong> ${message}
-                    </div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-                </div>
-            </div>
-        `;
-        const $toast = $(toastHtml).appendTo('body');
-        setTimeout(() => {
-            $toast.fadeOut(400, function () { $(this).remove(); });
-        }, 3000);
+    // 7. SweetAlert2 Universal Confirmation & Notification Helpers
+    window.swalSuccess = function (title, text) {
+        if (typeof Swal !== 'undefined') {
+            return Swal.fire({
+                icon: 'success',
+                title: title,
+                text: text,
+                confirmButtonColor: '#1B4332'
+            });
+        }
+    };
+
+    window.swalError = function (title, text) {
+        if (typeof Swal !== 'undefined') {
+            return Swal.fire({
+                icon: 'error',
+                title: title,
+                text: text,
+                confirmButtonColor: '#1B4332'
+            });
+        }
+    };
+
+    window.swalWarning = function (title, text) {
+        if (typeof Swal !== 'undefined') {
+            return Swal.fire({
+                icon: 'warning',
+                title: title,
+                text: text,
+                confirmButtonColor: '#DAA520'
+            });
+        }
+    };
+
+    // Universal confirmation dialog for SweetAlert2
+    $(document).on('submit', 'form.swal-confirm, form[data-confirm]', function (e) {
+        e.preventDefault();
+        const $form = $(this);
+        const title = $form.data('confirm-title') || 'Are you sure?';
+        const text = $form.data('confirm') || $form.data('confirm-text') || 'Do you want to proceed with this action?';
+        const icon = $form.data('confirm-icon') || 'warning';
+        const confirmBtnText = $form.data('confirm-btn') || 'Yes, proceed';
+
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: title,
+                text: text,
+                icon: icon,
+                showCancelButton: true,
+                confirmButtonColor: '#1B4332',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: confirmBtnText,
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $form.off('submit').submit();
+                }
+            });
+        } else {
+            if (confirm(text)) {
+                $form.off('submit').submit();
+            }
+        }
+    });
+
+    // 8. Toast helper using SweetAlert2
+    window.showToast = function (title, message, icon = 'success') {
+        if (typeof Swal !== 'undefined') {
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer);
+                    toast.addEventListener('mouseleave', Swal.resumeTimer);
+                }
+            });
+
+            Toast.fire({
+                icon: icon,
+                title: title ? `${title}: ${message}` : message
+            });
+        } else {
+            alert(`${title}: ${message}`);
+        }
     };
 });

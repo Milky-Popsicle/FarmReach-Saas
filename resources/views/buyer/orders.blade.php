@@ -124,7 +124,7 @@
                                     </div>
                                     <div class="d-flex gap-2 justify-content-md-end">
                                         @if($ord->status === 'pending')
-                                            <form action="{{ route('buyer.orders.cancel', $ord) }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel this order?')">
+                                            <form action="{{ route('buyer.orders.cancel', $ord) }}" method="POST" class="swal-confirm m-0" data-confirm="Are you sure you want to cancel order #{{ $ord->order_number }}? The reserved crops will be returned to the farmer's inventory." data-confirm-btn="Yes, cancel order">
                                                 @csrf
                                                 <button type="submit" class="btn btn-sm btn-outline-danger">Cancel Order</button>
                                             </form>
@@ -194,7 +194,7 @@
                                         <td>
                                             <div class="d-flex gap-1">
                                                 @if($ord->status === 'pending')
-                                                    <form action="{{ route('buyer.orders.cancel', $ord) }}" method="POST" onsubmit="return confirm('Cancel this order?')">
+                                                    <form action="{{ route('buyer.orders.cancel', $ord) }}" method="POST" class="swal-confirm m-0" data-confirm="Cancel order #{{ $ord->order_number }}?" data-confirm-btn="Yes, cancel">
                                                         @csrf
                                                         <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2" title="Cancel">
                                                             <i class="bi bi-x"></i>

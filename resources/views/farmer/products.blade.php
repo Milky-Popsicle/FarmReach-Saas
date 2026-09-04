@@ -75,7 +75,7 @@
                                 <i class="bi bi-pencil-square me-1"></i> Edit Product
                             </button>
 
-                            <form action="{{ route('farmer.products.destroy', $prod) }}" method="POST" onsubmit="return confirm('Delete this crop listing?')" class="m-0">
+                            <form action="{{ route('farmer.products.destroy', $prod) }}" method="POST" class="swal-confirm m-0" data-confirm="Are you sure you want to delete this '{{ $prod->name }}' crop listing? It will be removed from the marketplace." data-confirm-btn="Yes, delete it">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn btn-sm btn-link text-danger p-0">
@@ -177,7 +177,7 @@
                                         </li>
                                         <li><hr class="dropdown-divider"></li>
                                         <li>
-                                            <form action="{{ route('farmer.orders.status', $ord) }}" method="POST" onsubmit="return confirm('Cancel this order?')">
+                                            <form action="{{ route('farmer.orders.status', $ord) }}" method="POST" class="swal-confirm" data-confirm="Are you sure you want to cancel or reject order #{{ $ord->order_number }}?" data-confirm-btn="Yes, reject order">
                                                 @csrf
                                                 <input type="hidden" name="status" value="cancelled">
                                                 <button type="submit" class="dropdown-item text-danger"><i class="bi bi-x-circle me-1"></i> Cancel / Reject</button>

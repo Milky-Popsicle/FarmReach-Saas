@@ -223,8 +223,50 @@
     <!-- Bootstrap 5.3.3 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <!-- FarmReach Custom App Script -->
     <script src="/js/farmreach-app.js"></script>
+
+    <!-- SweetAlert2 Flash Notifications Trigger -->
+    <script>
+        @if(session('success'))
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: "{{ session('success') }}",
+                confirmButtonColor: '#1B4332'
+            });
+        @endif
+
+        @if(session('error'))
+            Swal.fire({
+                icon: 'error',
+                title: 'Attention',
+                text: "{{ session('error') }}",
+                confirmButtonColor: '#1B4332'
+            });
+        @endif
+
+        @if(session('info'))
+            Swal.fire({
+                icon: 'info',
+                title: 'Notice',
+                text: "{{ session('info') }}",
+                confirmButtonColor: '#1B4332'
+            });
+        @endif
+
+        @if(session('warning'))
+            Swal.fire({
+                icon: 'warning',
+                title: 'Warning',
+                text: "{{ session('warning') }}",
+                confirmButtonColor: '#DAA520'
+            });
+        @endif
+    </script>
 
     @stack('scripts')
 </body>

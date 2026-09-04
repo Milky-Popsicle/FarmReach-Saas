@@ -1,9 +1,10 @@
-@extends('layouts.app')
+@extends('layouts.admin')
 
 @section('title', 'Recipe Directory Management - Admin Panel')
+@section('header_title', 'Admin Recipe Directory')
 
 @section('content')
-<div class="container py-4">
+<div class="admin-recipes-view">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
             <span class="badge bg-warning text-dark px-3 py-1 rounded-pill fw-bold text-uppercase mb-1">
@@ -132,7 +133,7 @@
                             <td class="text-end">
                                 <div class="d-flex gap-2 justify-content-end">
                                     <a href="{{ route('recipes.show', $rec) }}" class="btn btn-sm btn-outline-secondary" target="_blank">Test Match</a>
-                                    <form action="{{ route('admin.recipes.delete', $rec) }}" method="POST" onsubmit="return confirm('Delete this recipe?')" class="m-0">
+                                    <form action="{{ route('admin.recipes.delete', $rec) }}" method="POST" class="swal-confirm m-0" data-confirm="Are you sure you want to delete the recipe '{{ $rec->title }}' and its ingredient mappings?" data-confirm-btn="Yes, delete recipe">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-danger px-2">Delete</button>

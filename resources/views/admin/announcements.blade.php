@@ -1,9 +1,10 @@
-@extends('layouts.app')
+@extends('layouts.admin')
 
 @section('title', 'Manage Announcements - Admin Panel')
+@section('header_title', 'Admin Announcements')
 
 @section('content')
-<div class="container py-4">
+<div class="admin-announcements-view">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
             <span class="badge bg-warning text-dark px-3 py-1 rounded-pill fw-bold text-uppercase mb-1">
@@ -71,7 +72,7 @@
                         <a href="{{ route('announcements.show', $ann) }}" class="btn btn-sm btn-outline-secondary" target="_blank">
                             <i class="bi bi-eye"></i> View
                         </a>
-                        <form action="{{ route('admin.announcements.delete', $ann) }}" method="POST" onsubmit="return confirm('Delete this announcement?')" class="m-0">
+                        <form action="{{ route('admin.announcements.delete', $ann) }}" method="POST" class="swal-confirm m-0" data-confirm="Are you sure you want to delete the announcement '{{ $ann->title }}'?" data-confirm-btn="Yes, delete announcement">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="btn btn-sm btn-danger px-3">
