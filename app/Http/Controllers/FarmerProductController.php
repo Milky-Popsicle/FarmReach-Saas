@@ -84,7 +84,7 @@ class FarmerProductController extends Controller
         $imagePath = 'https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=600&auto=format&fit=crop&q=80';
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('products', 'public');
-            $imagePath = '/storage/' . $path;
+            $imagePath = '/storage/'.$path;
         }
 
         $product = Product::create([
@@ -102,7 +102,7 @@ class FarmerProductController extends Controller
 
         ActivityLog::log($farmer->id, 'Product Created', "Farmer {$farmer->name} listed new product: {$product->name}.");
 
-        return back()->with('success', "Product '{$product->name}' added to your listings!");
+        return back()->with('success', "Product '{$product->name}' has been added successfully!");
     }
 
     public function update(Request $request, Product $product)
@@ -135,7 +135,7 @@ class FarmerProductController extends Controller
 
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('products', 'public');
-            $data['image_path'] = '/storage/' . $path;
+            $data['image_path'] = '/storage/'.$path;
         }
 
         $product->update($data);
@@ -167,8 +167,8 @@ class FarmerProductController extends Controller
             abort(403);
         }
 
-        $product->update(['is_active' => !$product->is_active]);
+        $product->update(['is_active' => ! $product->is_active]);
 
-        return back()->with('success', "Product status updated.");
+        return back()->with('success', 'Product status updated.');
     }
 }

@@ -21,7 +21,10 @@
         </div>
         <div class="input-group mt-1">
             <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock text-muted"></i></span>
-            <input type="password" class="form-control border-start-0" id="password" name="password" placeholder="Enter your password" required>
+            <input type="password" class="form-control border-start-0 border-end-0" id="password" name="password" placeholder="Enter your password" required>
+            <button type="button" class="btn btn-toggle-password" data-target="#password" title="Show Password" aria-label="Show Password">
+                <i class="bi bi-eye"></i>
+            </button>
         </div>
     </div>
 

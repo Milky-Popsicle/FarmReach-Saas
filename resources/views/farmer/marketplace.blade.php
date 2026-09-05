@@ -57,9 +57,11 @@
         <div class="row g-3">
             @foreach($featuredProducts as $item)
                 <div class="col-6 col-md-4 col-lg-2">
-                    <div class="farm-card h-100 p-2 text-center d-flex flex-column">
+                    <div class="farm-card h-100 p-2 text-center d-flex flex-column farm-card-interactive" data-url="{{ route('marketplace.show', $item) }}">
                         <img src="{{ $item->image_path }}" class="rounded-3 mb-2" alt="{{ $item->name }}" style="height: 110px; object-fit: cover;">
-                        <h6 class="fw-bold small mb-1 text-truncate">{{ $item->name }}</h6>
+                        <h6 class="fw-bold small mb-1 text-truncate">
+                            <a href="{{ route('marketplace.show', $item) }}" class="text-decoration-none text-dark">{{ $item->name }}</a>
+                        </h6>
                         <span class="text-muted small d-block" style="font-size: 11px;">{{ $item->kilograms }} {{ $item->unit }}</span>
                         <strong class="text-farm-primary small mb-1">₱{{ number_format($item->price, 2) }}</strong>
                         <span class="badge bg-light text-muted border small" style="font-size: 10px;">Qty: {{ $item->quantity }}</span>
@@ -82,11 +84,13 @@
         <div class="row g-3">
             @foreach($allProducts as $p)
                 <div class="col-md-3">
-                    <div class="p-3 border rounded-3 bg-light">
+                    <div class="p-3 border rounded-3 bg-light farm-card-interactive" data-url="{{ route('marketplace.show', $p) }}">
                         <div class="d-flex align-items-center gap-2 mb-2">
                             <img src="{{ $p->image_path }}" class="rounded-2" alt="{{ $p->name }}" style="width: 40px; height: 40px; object-fit: cover;">
                             <div>
-                                <h6 class="mb-0 fw-bold small text-truncate" style="max-width: 150px;">{{ $p->name }}</h6>
+                                <h6 class="mb-0 fw-bold small text-truncate" style="max-width: 150px;">
+                                    <a href="{{ route('marketplace.show', $p) }}" class="text-decoration-none text-dark">{{ $p->name }}</a>
+                                </h6>
                                 <small class="text-muted">{{ $p->farmer?->name ?? 'Local Farmer' }}</small>
                             </div>
                         </div>

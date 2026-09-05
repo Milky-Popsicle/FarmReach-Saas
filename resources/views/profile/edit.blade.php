@@ -95,11 +95,21 @@
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label for="password" class="form-label fw-bold small">New Password</label>
-                                    <input type="password" class="form-control" id="password" name="password" placeholder="New password">
+                                    <div class="input-group">
+                                        <input type="password" class="form-control border-end-0" id="password" name="password" placeholder="New password">
+                                        <button type="button" class="btn btn-toggle-password" data-target="#password" title="Show Password" aria-label="Show Password">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label for="password_confirmation" class="form-label fw-bold small">Confirm Password</label>
-                                    <input type="password" class="form-control" id="password_confirmation" name="password_confirmation" placeholder="Repeat new password">
+                                    <div class="input-group">
+                                        <input type="password" class="form-control border-end-0" id="password_confirmation" name="password_confirmation" placeholder="Repeat new password">
+                                        <button type="button" class="btn btn-toggle-password" data-target="#password_confirmation" title="Show Password" aria-label="Show Password">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -107,7 +117,7 @@
                         <!-- Avatar and Photo Box (Matching wireframe) -->
                         <div class="col-md-4 text-center">
                             <div class="p-3 bg-light rounded-3 border">
-                                <div class="mb-3">
+                                <div class="mb-3" id="avatarPreviewContainer">
                                     @if($user->avatar_path)
                                         <img src="{{ $user->avatar_path }}" alt="Avatar" class="rounded-circle img-thumbnail shadow-sm" style="width: 140px; height: 140px; object-fit: cover;">
                                     @else
@@ -140,8 +150,10 @@
         if (input.files && input.files[0]) {
             const reader = new FileReader();
             reader.onload = function (e) {
-                // simple preview
-                location.reload();
+                const container = document.getElementById('avatarPreviewContainer');
+                if (container) {
+                    container.innerHTML = '<img src="' + e.target.result + '" alt="Avatar Preview" class="rounded-circle img-thumbnail shadow-sm" style="width: 140px; height: 140px; object-fit: cover;">';
+                }
             };
             reader.readAsDataURL(input.files[0]);
         }

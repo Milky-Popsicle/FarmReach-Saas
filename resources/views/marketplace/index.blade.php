@@ -92,7 +92,7 @@
             <div class="row g-3">
                 @foreach($featuredProducts as $item)
                     <div class="col-6 col-md-4 col-lg-2">
-                        <div class="farm-card h-100 farm-card-interactive d-flex flex-column">
+                        <div class="farm-card h-100 farm-card-interactive d-flex flex-column" data-url="{{ route('marketplace.show', $item) }}">
                             <img src="{{ $item->image_path }}" class="product-card-img" alt="{{ $item->name }}" style="height: 120px;">
                             <div class="p-2 d-flex flex-column flex-grow-1">
                                 <span class="badge bg-light text-success border small mb-1">{{ $item->category?->name ?? 'Produce' }}</span>
@@ -179,7 +179,7 @@
         <div class="row g-4 mb-4">
             @forelse($products as $product)
                 <div class="col-sm-6 col-md-4 col-lg-3">
-                    <div class="farm-card h-100 farm-card-interactive d-flex flex-column">
+                    <div class="farm-card h-100 farm-card-interactive d-flex flex-column" data-url="{{ route('marketplace.show', $product) }}">
                         <div class="position-relative">
                             <img src="{{ $product->image_path }}" class="product-card-img" alt="{{ $product->name }}">
                             <span class="position-absolute top-0 start-0 m-2 badge bg-dark bg-opacity-75 text-white">

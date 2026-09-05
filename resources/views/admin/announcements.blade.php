@@ -72,6 +72,17 @@
                         <a href="{{ route('announcements.show', $ann) }}" class="btn btn-sm btn-outline-secondary" target="_blank">
                             <i class="bi bi-eye"></i> View
                         </a>
+                        <button type="button" 
+                                class="btn btn-sm btn-outline-primary btn-edit-announcement"
+                                data-bs-toggle="modal" 
+                                data-bs-target="#editAnnouncementModal"
+                                data-id="{{ $ann->id }}"
+                                data-title="{{ $ann->title }}"
+                                data-location="{{ $ann->location }}"
+                                data-event-date="{{ $ann->event_date }}"
+                                data-description="{{ $ann->description }}">
+                            <i class="bi bi-pencil-square"></i> Edit
+                        </button>
                         <form action="{{ route('admin.announcements.delete', $ann) }}" method="POST" class="swal-confirm m-0" data-confirm="Are you sure you want to delete the announcement '{{ $ann->title }}'?" data-confirm-btn="Yes, delete announcement">
                             @csrf
                             @method('DELETE')
@@ -88,6 +99,47 @@
 
         <div class="mt-4 d-flex justify-content-center">
             {{ $announcements->links('pagination::bootstrap-5') }}
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Edit Announcement -->
+<div class="modal fade" id="editAnnouncementModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content farm-card border-0">
+            <div class="modal-header modal-header-farm">
+                <h5 class="modal-title fw-bold">Edit Announcement</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="" method="POST">
+                @csrf
+                @method('PUT')
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label for="edit_announcement_title" class="form-label fw-bold small">Title</label>
+                        <input type="text" class="form-control" id="edit_announcement_title" name="title" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="edit_announcement_location" class="form-label fw-bold small">Where (Location)</label>
+                        <input type="text" class="form-control" id="edit_announcement_location" name="location" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="edit_announcement_event_date" class="form-label fw-bold small">When (Date / Schedule)</label>
+                        <input type="text" class="form-control" id="edit_announcement_event_date" name="event_date" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="edit_announcement_description" class="form-label fw-bold small">Description</label>
+                        <textarea class="form-control" id="edit_announcement_description" name="description" rows="3" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-farm-primary px-4 fw-bold">Save Changes</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

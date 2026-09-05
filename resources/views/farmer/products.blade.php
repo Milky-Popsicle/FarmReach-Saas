@@ -255,7 +255,11 @@
 
                     <div class="mb-3">
                         <label for="image" class="form-label fw-bold small">Attach Image (Optional)</label>
-                        <input type="file" class="form-control" id="image" name="image" accept="image/*">
+                        <input type="file" class="form-control input-img-preview" id="image" name="image" accept="image/*" data-preview-target="#addProductImgPreview">
+                        <div class="image-preview-container d-none mt-2 text-center">
+                            <img id="addProductImgPreview" src="" alt="Live Preview" class="img-fluid">
+                            <span class="d-block text-success small mt-1"><i class="bi bi-check-circle-fill me-1"></i>Image ready for upload</span>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer bg-light">

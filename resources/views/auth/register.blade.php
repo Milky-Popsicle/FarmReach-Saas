@@ -60,11 +60,21 @@
     <div class="row">
         <div class="col-md-6 mb-3">
             <label for="password" class="form-label fw-semibold small text-dark">Password</label>
-            <input type="password" class="form-control" id="password" name="password" placeholder="Min. 6 chars" required>
+            <div class="input-group">
+                <input type="password" class="form-control border-end-0" id="password" name="password" placeholder="Min. 6 chars" required>
+                <button type="button" class="btn btn-toggle-password" data-target="#password" title="Show Password" aria-label="Show Password">
+                    <i class="bi bi-eye"></i>
+                </button>
+            </div>
         </div>
         <div class="col-md-6 mb-3">
             <label for="password_confirmation" class="form-label fw-semibold small text-dark">Confirm</label>
-            <input type="password" class="form-control" id="password_confirmation" name="password_confirmation" placeholder="Repeat" required>
+            <div class="input-group">
+                <input type="password" class="form-control border-end-0" id="password_confirmation" name="password_confirmation" placeholder="Repeat" required>
+                <button type="button" class="btn btn-toggle-password" data-target="#password_confirmation" title="Show Password" aria-label="Show Password">
+                    <i class="bi bi-eye"></i>
+                </button>
+            </div>
         </div>
     </div>
 

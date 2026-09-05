@@ -24,37 +24,37 @@
 </head>
 <body>
     <!-- Top Navigation Bar -->
-    <nav class="navbar navbar-expand-lg farm-navbar sticky-top">
+    <nav class="navbar navbar-expand-lg farm-navbar sticky-top py-2">
         <div class="container">
-            <a class="navbar-brand" href="{{ route('marketplace') }}">
-                <i class="bi bi-tree-fill text-warning"></i>
-                <span>FarmReach</span>
-                <span class="badge-accent">SaaS</span>
+            <a class="navbar-brand py-0 me-3" href="{{ route('marketplace') }}">
+                <i class="bi bi-tree-fill text-warning fs-5"></i>
+                <span class="fw-bold">FarmReach</span>
+                <span class="badge-accent ms-1">SaaS</span>
             </a>
 
-            <button class="navbar-toggler text-white border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
-                <i class="bi bi-list fs-2"></i>
+            <button class="navbar-toggler text-white border-0 p-1" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+                <i class="bi bi-list fs-3"></i>
             </button>
 
             <div class="collapse navbar-collapse" id="navbarContent">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 gap-1">
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('marketplace*') ? 'active' : '' }}" href="{{ route('marketplace') }}">
+                        <a class="nav-link py-1 px-3 rounded-pill {{ (request()->routeIs('marketplace') || request()->routeIs('marketplace.show')) ? 'active' : '' }}" href="{{ route('marketplace') }}">
                             <i class="bi bi-shop me-1"></i> Marketplace
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('marketplace.compare') ? 'active' : '' }}" href="{{ route('marketplace.compare') }}">
+                        <a class="nav-link py-1 px-3 rounded-pill {{ request()->routeIs('marketplace.compare') ? 'active' : '' }}" href="{{ route('marketplace.compare') }}">
                             <i class="bi bi-bar-chart-steps me-1"></i> Price Compare
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('recipes*') ? 'active' : '' }}" href="{{ route('recipes.index') }}">
+                        <a class="nav-link py-1 px-3 rounded-pill {{ request()->routeIs('recipes*') ? 'active' : '' }}" href="{{ route('recipes.index') }}">
                             <i class="bi bi-book-half me-1"></i> Recipe Shopping
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('announcements*') ? 'active' : '' }}" href="{{ route('announcements.index') }}">
+                        <a class="nav-link py-1 px-3 rounded-pill {{ request()->routeIs('announcements*') ? 'active' : '' }}" href="{{ route('announcements.index') }}">
                             <i class="bi bi-megaphone me-1"></i> Announcements
                         </a>
                     </li>
@@ -64,8 +64,9 @@
                     <!-- Cart Button -->
                     @php $cartCount = count(session('cart', [])); @endphp
                     <li class="nav-item">
-                        <a href="{{ route('cart.index') }}" class="btn btn-outline-light position-relative px-3 py-1 rounded-pill">
-                            <i class="bi bi-cart3 me-1"></i> Cart
+                        <a href="{{ route('cart.index') }}" class="btn btn-sm btn-outline-light position-relative px-3 py-1 rounded-pill d-flex align-items-center gap-1">
+                            <i class="bi bi-cart3"></i>
+                            <span class="small fw-semibold">Cart</span>
                             <span class="cart-badge-count badge rounded-pill bg-warning text-dark ms-1" style="{{ $cartCount > 0 ? '' : 'display:none;' }}">
                                 {{ $cartCount }}
                             </span>
@@ -74,65 +75,76 @@
 
                     @guest
                         <li class="nav-item">
-                            <a href="{{ route('login') }}" class="btn btn-sm btn-outline-light rounded-pill px-3">Sign In</a>
+                            <a href="{{ route('login') }}" class="btn btn-sm btn-outline-light rounded-pill px-3 py-1">Sign In</a>
                         </li>
                         <li class="nav-item">
-                            <a href="{{ route('register') }}" class="btn btn-sm btn-farm-accent rounded-pill px-3 text-dark font-weight-bold">Register</a>
+                            <a href="{{ route('register') }}" class="btn btn-sm btn-farm-accent rounded-pill px-3 py-1 text-dark fw-bold">Register</a>
                         </li>
                     @else
                         @if(Auth::user()->isFarmer())
                             <li class="nav-item">
-                                <a href="{{ route('farmer.marketplace') }}" class="btn btn-sm btn-farm-accent rounded-pill px-3 text-dark fw-bold">
-                                    <i class="bi bi-speedometer2 me-1"></i> Farmer Hub
+                                <a href="{{ route('farmer.marketplace') }}" class="btn btn-sm btn-farm-accent rounded-pill px-3 py-1 text-dark fw-bold d-flex align-items-center gap-1">
+                                    <i class="bi bi-speedometer2"></i>
+                                    <span>Farmer Hub</span>
                                 </a>
                             </li>
                         @elseif(Auth::user()->isAdmin())
                             <li class="nav-item">
-                                <a href="{{ route('admin.dashboard') }}" class="btn btn-sm btn-warning rounded-pill px-3 text-dark fw-bold">
-                                    <i class="bi bi-shield-lock me-1"></i> Admin Panel
+                                <a href="{{ route('admin.dashboard') }}" class="btn btn-sm btn-warning rounded-pill px-3 py-1 text-dark fw-bold d-flex align-items-center gap-1">
+                                    <i class="bi bi-shield-lock"></i>
+                                    <span>Admin Panel</span>
                                 </a>
                             </li>
                         @else
                             <li class="nav-item">
-                                <a href="{{ route('buyer.orders') }}" class="btn btn-sm btn-outline-light rounded-pill px-3">
-                                    <i class="bi bi-bag-check me-1"></i> My Orders
+                                <a href="{{ route('buyer.orders') }}" class="btn btn-sm btn-outline-light rounded-pill px-3 py-1 d-flex align-items-center gap-1">
+                                    <i class="bi bi-bag-check"></i>
+                                    <span>My Orders</span>
                                 </a>
                             </li>
                         @endif
 
                         <!-- User Profile Dropdown -->
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle text-white d-flex align-items-center gap-2" href="#" role="button" data-bs-toggle="dropdown">
-                                <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center fw-bold" style="width: 32px; height: 32px; font-size: 13px;">
-                                    {{ substr(Auth::user()->name, 0, 1) }}
-                                </div>
-                                <span class="d-none d-md-inline">{{ Auth::user()->name }}</span>
+                        <li class="nav-item dropdown ms-1">
+                            <a class="nav-link py-1 px-2 rounded-pill text-white d-flex align-items-center gap-2" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                @if(Auth::user()->avatar_path)
+                                    <img src="{{ Auth::user()->avatar_path }}" alt="{{ Auth::user()->name }}" class="rounded-circle border border-white" style="width: 30px; height: 30px; object-fit: cover;">
+                                @else
+                                    <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center fw-bold" style="width: 30px; height: 30px; font-size: 12px;">
+                                        {{ substr(Auth::user()->name, 0, 1) }}
+                                    </div>
+                                @endif
+                                <span class="d-none d-md-inline small fw-semibold">{{ Auth::user()->name }}</span>
+                                <i class="bi bi-chevron-down opacity-75" style="font-size: 10px;"></i>
                             </a>
-                            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
-                                <li class="px-3 py-1 text-muted small">
-                                    Signed in as <strong class="text-capitalize">{{ Auth::user()->role }}</strong>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2">
+                                <li class="px-3 py-2 bg-light border-bottom rounded-top">
+                                    <div class="fw-bold small text-dark">{{ Auth::user()->name }}</div>
+                                    <div class="text-muted mt-1" style="font-size: 11px;">
+                                        Role: <span class="badge {{ Auth::user()->isFarmer() ? 'bg-success' : (Auth::user()->isAdmin() ? 'bg-danger' : 'bg-primary') }} text-white text-capitalize py-1 px-2 fw-bold" style="font-size: 10px;">{{ Auth::user()->role }}</span>
+                                    </div>
                                 </li>
-                                <li><hr class="dropdown-divider"></li>
                                 <li>
-                                    <a class="dropdown-item" href="{{ route('profile.edit') }}">
-                                        <i class="bi bi-person-gear me-2"></i> My Profile
+                                    <a class="dropdown-item py-2" href="{{ route('profile.edit') }}">
+                                        <i class="bi bi-person-gear me-2 text-muted"></i> My Profile
                                     </a>
                                 </li>
                                 @if(Auth::user()->isFarmer())
-                                    <li><a class="dropdown-item" href="{{ route('farmer.products') }}"><i class="bi bi-box-seam me-2"></i> My Products</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('farmer.orders') }}"><i class="bi bi-receipt me-2"></i> Incoming Orders</a></li>
+                                    <li><a class="dropdown-item py-2" href="{{ route('farmer.products') }}"><i class="bi bi-box-seam me-2 text-muted"></i> My Products</a></li>
+                                    <li><a class="dropdown-item py-2" href="{{ route('farmer.orders') }}"><i class="bi bi-receipt me-2 text-muted"></i> Incoming Orders</a></li>
+                                    <li><a class="dropdown-item py-2" href="{{ route('buyer.orders') }}"><i class="bi bi-bag-check me-2 text-muted"></i> My Purchases</a></li>
                                 @elseif(Auth::user()->isAdmin())
-                                    <li><a class="dropdown-item" href="{{ route('admin.users') }}"><i class="bi bi-people me-2"></i> Manage Users</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('admin.announcements') }}"><i class="bi bi-megaphone me-2"></i> Announcements</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('admin.recipes') }}"><i class="bi bi-book me-2"></i> Recipes</a></li>
+                                    <li><a class="dropdown-item py-2" href="{{ route('admin.users') }}"><i class="bi bi-people me-2 text-muted"></i> Manage Users</a></li>
+                                    <li><a class="dropdown-item py-2" href="{{ route('admin.announcements') }}"><i class="bi bi-megaphone me-2 text-muted"></i> Announcements</a></li>
+                                    <li><a class="dropdown-item py-2" href="{{ route('admin.recipes') }}"><i class="bi bi-book me-2 text-muted"></i> Recipes</a></li>
                                 @else
-                                    <li><a class="dropdown-item" href="{{ route('buyer.orders') }}"><i class="bi bi-card-checklist me-2"></i> My Orders</a></li>
+                                    <li><a class="dropdown-item py-2" href="{{ route('buyer.orders') }}"><i class="bi bi-card-checklist me-2 text-muted"></i> My Orders</a></li>
                                 @endif
-                                <li><hr class="dropdown-divider"></li>
+                                <li><hr class="dropdown-divider my-1"></li>
                                 <li>
-                                    <form action="{{ route('logout') }}" method="POST">
+                                    <form action="{{ route('logout') }}" method="POST" class="m-0">
                                         @csrf
-                                        <button type="submit" class="dropdown-item text-danger">
+                                        <button type="submit" class="dropdown-item py-2 text-danger">
                                             <i class="bi bi-box-arrow-right me-2"></i> Log out
                                         </button>
                                     </form>
@@ -145,32 +157,7 @@
         </div>
     </nav>
 
-    <!-- Flash Notifications -->
-    <div class="container mt-3">
-        @if(session('success'))
-            <div class="alert alert-success alert-dismissible fade show d-flex align-items-center" role="alert">
-                <i class="bi bi-check-circle-fill fs-5 me-2"></i>
-                <div>{{ session('success') }}</div>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        @endif
 
-        @if(session('error'))
-            <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center" role="alert">
-                <i class="bi bi-exclamation-triangle-fill fs-5 me-2"></i>
-                <div>{{ session('error') }}</div>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        @endif
-
-        @if(session('info'))
-            <div class="alert alert-info alert-dismissible fade show d-flex align-items-center" role="alert">
-                <i class="bi bi-info-circle-fill fs-5 me-2"></i>
-                <div>{{ session('info') }}</div>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        @endif
-    </div>
 
     <!-- Main Content Area -->
     <main class="flex-grow-1 mb-5">
@@ -197,6 +184,27 @@
             </div>
         </div>
     </div>
+
+    <!-- Global Image Lightbox Preview Modal -->
+    <div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content farm-card border-0 overflow-hidden">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-farm-primary" id="imagePreviewModalTitle">Crop Preview</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center p-3">
+                    <img src="" id="imagePreviewModalSrc" class="img-fluid rounded-3 shadow" alt="Preview Image" style="max-height: 75vh; object-fit: contain;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Back-to-Top Button -->
+    <button type="button" id="btnBackToTop" class="btn-back-to-top" title="Back to Top" aria-label="Back to Top">
+        <i class="bi bi-arrow-up-short"></i>
+    </button>
+
 
     <!-- Footer -->
     <footer class="bg-white border-top py-4 mt-auto">
@@ -231,12 +239,36 @@
 
     <!-- SweetAlert2 Flash Notifications Trigger -->
     <script>
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3500,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer);
+                toast.addEventListener('mouseleave', Swal.resumeTimer);
+            }
+        });
+
         @if(session('success'))
-            Swal.fire({
+            Toast.fire({
                 icon: 'success',
-                title: 'Success!',
-                text: "{{ session('success') }}",
-                confirmButtonColor: '#1B4332'
+                title: @json(session('success'))
+            });
+        @endif
+
+        @if(session('info'))
+            Toast.fire({
+                icon: 'info',
+                title: @json(session('info'))
+            });
+        @endif
+
+        @if(session('warning'))
+            Toast.fire({
+                icon: 'warning',
+                title: @json(session('warning'))
             });
         @endif
 
@@ -244,26 +276,8 @@
             Swal.fire({
                 icon: 'error',
                 title: 'Attention',
-                text: "{{ session('error') }}",
+                text: @json(session('error')),
                 confirmButtonColor: '#1B4332'
-            });
-        @endif
-
-        @if(session('info'))
-            Swal.fire({
-                icon: 'info',
-                title: 'Notice',
-                text: "{{ session('info') }}",
-                confirmButtonColor: '#1B4332'
-            });
-        @endif
-
-        @if(session('warning'))
-            Swal.fire({
-                icon: 'warning',
-                title: 'Warning',
-                text: "{{ session('warning') }}",
-                confirmButtonColor: '#DAA520'
             });
         @endif
     </script>

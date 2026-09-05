@@ -57,6 +57,20 @@ class Product extends Model
         if ($this->quantity <= 10) {
             return 'Low Stock';
         }
+
         return 'In Stock';
+    }
+
+    public function getImagePathAttribute(?string $value): string
+    {
+        if (empty($value)) {
+            return 'https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=600&auto=format&fit=crop&q=80';
+        }
+
+        if (str_starts_with($value, 'http://') || str_starts_with($value, 'https://')) {
+            return $value;
+        }
+
+        return asset(ltrim($value, '/'));
     }
 }

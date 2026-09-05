@@ -7,7 +7,6 @@ use App\Models\Announcement;
 use App\Models\Category;
 use App\Models\Order;
 use App\Models\OrderItem;
-use App\Models\Product;
 use App\Models\Recipe;
 use App\Models\RecipeIngredient;
 use App\Models\User;
@@ -27,9 +26,9 @@ class AdminController extends Controller
 
         // 30 Days Sales Data for Chart.js
         $salesData = Order::select(
-                DB::raw('DATE(created_at) as order_date'),
-                DB::raw('SUM(total_amount) as daily_total')
-            )
+            DB::raw('DATE(created_at) as order_date'),
+            DB::raw('SUM(total_amount) as daily_total')
+        )
             ->where('created_at', '>=', now()->subDays(30))
             ->groupBy('order_date')
             ->orderBy('order_date', 'asc')
@@ -37,10 +36,10 @@ class AdminController extends Controller
 
         // Top Selling Products Report
         $topProducts = OrderItem::select(
-                'product_id',
-                DB::raw('SUM(quantity) as total_qty_sold'),
-                DB::raw('SUM(subtotal) as total_revenue')
-            )
+            'product_id',
+            DB::raw('SUM(quantity) as total_qty_sold'),
+            DB::raw('SUM(subtotal) as total_revenue')
+        )
             ->with('product.farmer')
             ->groupBy('product_id')
             ->orderByDesc('total_qty_sold')
@@ -74,8 +73,8 @@ class AdminController extends Controller
             $s = trim($request->search);
             $query->where(function ($q) use ($s) {
                 $q->where('name', 'LIKE', "%{$s}%")
-                  ->orWhere('email', 'LIKE', "%{$s}%")
-                  ->orWhere('phone_number', 'LIKE', "%{$s}%");
+                    ->orWhere('email', 'LIKE', "%{$s}%")
+                    ->orWhere('phone_number', 'LIKE', "%{$s}%");
             });
         }
 
@@ -102,6 +101,7 @@ class AdminController extends Controller
     public function announcements()
     {
         $announcements = Announcement::with('author')->latest()->paginate(10);
+
         return view('admin.announcements', compact('announcements'));
     }
 
@@ -138,10 +138,32 @@ class AdminController extends Controller
         return back()->with('success', 'Announcement deleted successfully.');
     }
 
+    public function updateAnnouncement(Request $request, Announcement $announcement)
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:190',
+            'location' => 'nullable|string|max:190',
+            'event_date' => 'nullable|string|max:100',
+            'description' => 'required|string|max:2000',
+        ]);
+
+        $announcement->update([
+            'title' => $validated['title'],
+            'location' => $validated['location'] ?? null,
+            'event_date' => $validated['event_date'] ?? null,
+            'description' => $validated['description'],
+        ]);
+
+        ActivityLog::log(Auth::id(), 'Announcement Updated', "Admin updated announcement: {$announcement->title}.");
+
+        return back()->with('success', 'Announcement updated successfully!');
+    }
+
     public function recipes()
     {
         $recipes = Recipe::with(['ingredients.category'])->latest()->paginate(10);
         $categories = Category::all();
+
         return view('admin.recipes', compact('recipes', 'categories'));
     }
 
@@ -162,12 +184,12 @@ class AdminController extends Controller
         $imagePath = 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&auto=format&fit=crop&q=80';
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('recipes', 'public');
-            $imagePath = '/storage/' . $path;
+            $imagePath = '/storage/'.$path;
         }
 
         $recipe = Recipe::create([
             'title' => $validated['title'],
-            'slug' => Str::slug($validated['title']) . '-' . rand(100, 999),
+            'slug' => Str::slug($validated['title']).'-'.rand(100, 999),
             'prep_time' => $validated['prep_time'] ?? null,
             'description' => $validated['description'] ?? null,
             'instructions' => $validated['instructions'] ?? null,

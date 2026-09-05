@@ -281,24 +281,7 @@
             </div>
         </header>
 
-        <!-- Flash Alerts Container -->
-        <div class="px-4 pt-3">
-            @if(session('success'))
-                <div class="alert alert-success alert-dismissible fade show d-flex align-items-center shadow-sm" role="alert">
-                    <i class="bi bi-check-circle-fill fs-5 me-2"></i>
-                    <div>{{ session('success') }}</div>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            @endif
 
-            @if(session('error'))
-                <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center shadow-sm" role="alert">
-                    <i class="bi bi-exclamation-triangle-fill fs-5 me-2"></i>
-                    <div>{{ session('error') }}</div>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            @endif
-        </div>
 
         <!-- Yield Page Content -->
         <main class="admin-content-body">
@@ -330,13 +313,37 @@
                 $(this).removeClass('active');
             });
 
-            // SweetAlert2 Flash Notifications
+            // SweetAlert2 Toast Notifications
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3500,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer);
+                    toast.addEventListener('mouseleave', Swal.resumeTimer);
+                }
+            });
+
             @if(session('success'))
-                Swal.fire({
+                Toast.fire({
                     icon: 'success',
-                    title: 'Success!',
-                    text: "{{ session('success') }}",
-                    confirmButtonColor: '#1B4332'
+                    title: @json(session('success'))
+                });
+            @endif
+
+            @if(session('info'))
+                Toast.fire({
+                    icon: 'info',
+                    title: @json(session('info'))
+                });
+            @endif
+
+            @if(session('warning'))
+                Toast.fire({
+                    icon: 'warning',
+                    title: @json(session('warning'))
                 });
             @endif
 
@@ -344,26 +351,8 @@
                 Swal.fire({
                     icon: 'error',
                     title: 'Attention',
-                    text: "{{ session('error') }}",
+                    text: @json(session('error')),
                     confirmButtonColor: '#1B4332'
-                });
-            @endif
-
-            @if(session('info'))
-                Swal.fire({
-                    icon: 'info',
-                    title: 'Notice',
-                    text: "{{ session('info') }}",
-                    confirmButtonColor: '#1B4332'
-                });
-            @endif
-
-            @if(session('warning'))
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Warning',
-                    text: "{{ session('warning') }}",
-                    confirmButtonColor: '#DAA520'
                 });
             @endif
         });

@@ -17,10 +17,10 @@ class RecipeController extends Controller
         if ($request->filled('search')) {
             $search = trim($request->search);
             $query->where('title', 'LIKE', "%{$search}%")
-                  ->orWhere('description', 'LIKE', "%{$search}%")
-                  ->orWhereHas('ingredients', function ($iq) use ($search) {
-                      $iq->where('name', 'LIKE', "%{$search}%");
-                  });
+                ->orWhere('description', 'LIKE', "%{$search}%")
+                ->orWhereHas('ingredients', function ($iq) use ($search) {
+                    $iq->where('name', 'LIKE', "%{$search}%");
+                });
         }
 
         $recipes = $query->latest()->paginate(9)->withQueryString();
@@ -74,6 +74,10 @@ class RecipeController extends Controller
             $product = Product::find($productId);
 
             if ($product && $product->is_active && $product->quantity >= $qty) {
+                // Skip farmer's own products
+                if (Auth::check() && $product->user_id === Auth::id()) {
+                    continue;
+                }
                 if (isset($cart[$productId])) {
                     $cart[$productId]['quantity'] += $qty;
                 } else {

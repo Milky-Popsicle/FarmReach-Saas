@@ -38,8 +38,20 @@ class CartController extends Controller
 
         $product = Product::with('farmer')->findOrFail($request->product_id);
 
-        if (!$product->is_active) {
+        if (! $product->is_active) {
             return back()->with('error', 'This product is currently inactive.');
+        }
+
+        // Block farmers from buying their own products
+        if (Auth::check() && $product->user_id === Auth::id()) {
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "You cannot purchase your own crop listing ('{$product->name}').",
+                ], 422);
+            }
+
+            return back()->with('error', "You cannot purchase your own crop listing ('{$product->name}').");
         }
 
         $requestedQty = (int) $request->quantity;
@@ -52,6 +64,7 @@ class CartController extends Controller
                     'message' => "Only {$product->quantity} {$product->unit}(s) available in stock.",
                 ], 422);
             }
+
             return back()->with('error', "Insufficient stock! Only {$product->quantity} {$product->unit}(s) available.");
         }
 
@@ -67,6 +80,7 @@ class CartController extends Controller
                         'message' => "Cannot exceed available stock of {$product->quantity} {$product->unit}(s).",
                     ], 422);
                 }
+
                 return back()->with('error', "Cannot exceed available stock of {$product->quantity} {$product->unit}(s).");
             }
             $cart[$productId]['quantity'] = $newQty;
@@ -128,7 +142,7 @@ class CartController extends Controller
             session()->put('cart', $cart);
 
             $itemSubtotal = $cart[$product->id]['price'] * $cart[$product->id]['quantity'];
-            $cartTotal = array_sum(array_map(fn($i) => $i['price'] * $i['quantity'], $cart));
+            $cartTotal = array_sum(array_map(fn ($i) => $i['price'] * $i['quantity'], $cart));
 
             return response()->json([
                 'success' => true,
@@ -155,7 +169,8 @@ class CartController extends Controller
         }
 
         if ($request->ajax()) {
-            $cartTotal = array_sum(array_map(fn($i) => $i['price'] * $i['quantity'], $cart));
+            $cartTotal = array_sum(array_map(fn ($i) => $i['price'] * $i['quantity'], $cart));
+
             return response()->json([
                 'success' => true,
                 'message' => 'Item removed from cart.',
@@ -175,8 +190,8 @@ class CartController extends Controller
         }
 
         $user = Auth::user();
-        $subtotal = array_sum(array_map(fn($i) => $i['price'] * $i['quantity'], $cart));
-        $totalKg = array_sum(array_map(fn($i) => ($i['kilograms'] ?? 1) * $i['quantity'], $cart));
+        $subtotal = array_sum(array_map(fn ($i) => $i['price'] * $i['quantity'], $cart));
+        $totalKg = array_sum(array_map(fn ($i) => ($i['kilograms'] ?? 1) * $i['quantity'], $cart));
 
         // Detect if contains bulk quantities
         $hasBulkItems = false;
@@ -210,7 +225,7 @@ class CartController extends Controller
         // Check stock for all items before proceeding
         foreach ($cart as $productId => $item) {
             $prod = Product::lockForUpdate()->find($productId);
-            if (!$prod || $prod->quantity < $item['quantity']) {
+            if (! $prod || $prod->quantity < $item['quantity']) {
                 return back()->with('error', "Sorry, '{$item['name']}' only has {$prod?->quantity} units left. Please adjust your cart.")->withInput();
             }
         }
@@ -219,6 +234,9 @@ class CartController extends Controller
         $farmerItems = [];
         foreach ($cart as $productId => $item) {
             $farmerId = $item['farmer_id'];
+            if (Auth::check() && $farmerId === Auth::id()) {
+                return back()->with('error', "You cannot place an order for your own farm produce ('{$item['name']}').");
+            }
             $farmerItems[$farmerId][] = $item;
         }
 
@@ -239,7 +257,7 @@ class CartController extends Controller
                 $shippingFee = $validated['delivery_method'] === 'deliver' ? 60.00 : 0.00;
                 $orderTotal = $farmerOrderSubtotal + $shippingFee;
 
-                $orderNumber = ($isBulk ? 'BLK-' : 'ORD-') . date('Ymd') . '-' . strtoupper(Str::random(5));
+                $orderNumber = ($isBulk ? 'BLK-' : 'ORD-').date('Ymd').'-'.strtoupper(Str::random(5));
 
                 $order = Order::create([
                     'order_number' => $orderNumber,
@@ -280,7 +298,7 @@ class CartController extends Controller
                 ActivityLog::log(
                     $buyer->id,
                     $isBulk ? 'Bulk Order Placed' : 'Order Placed',
-                    "Order #{$orderNumber} placed for ₱" . number_format($orderTotal, 2)
+                    "Order #{$orderNumber} placed for ₱".number_format($orderTotal, 2)
                 );
 
                 $createdOrders[] = $order;

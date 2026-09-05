@@ -16,8 +16,11 @@
     <div class="row g-4">
         <!-- Product Photo & Main Info -->
         <div class="col-lg-6">
-            <div class="farm-card p-3 mb-4 text-center">
-                <img src="{{ $product->image_path }}" class="img-fluid rounded-3 shadow-sm" alt="{{ $product->name }}" style="max-height: 420px; width: 100%; object-fit: cover;">
+            <div class="farm-card p-3 mb-4 text-center position-relative">
+                <img src="{{ $product->image_path }}" class="img-fluid rounded-3 shadow-sm img-zoomable" alt="{{ $product->name }}" style="max-height: 420px; width: 100%; object-fit: cover;" title="Click to zoom image">
+                <span class="position-absolute bottom-0 end-0 m-4 badge bg-dark bg-opacity-75 text-white small">
+                    <i class="bi bi-zoom-in me-1"></i> Click to Zoom
+                </span>
             </div>
 
             <!-- Farmer Profile Card -->
@@ -59,7 +62,7 @@
 
         <!-- Product Purchase Actions & Price Comparison -->
         <div class="col-lg-6">
-            <div class="farm-card p-4 mb-4">
+            <div class="farm-card p-4 mb-4 product-price-calculator" data-unit-price="{{ $product->price }}" data-unit-kg="{{ $product->kilograms }}">
                 <div class="d-flex justify-content-between align-items-start mb-2">
                     <span class="badge bg-farm-primary text-white text-uppercase px-3 py-1">
                         {{ $product->category?->name ?? 'Fresh Produce' }}
@@ -89,22 +92,39 @@
 
                     <div class="mb-3">
                         <label class="form-label fw-bold small">Quantity to Purchase</label>
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="qty-control d-flex align-items-center">
-                                <button type="button" class="qty-btn btn-qty-minus">-</button>
-                                <input type="number" name="quantity" class="qty-input" value="1" min="1" max="{{ $product->quantity }}" style="width: 80px; height: 38px; font-size: 16px;">
-                                <button type="button" class="qty-btn btn-qty-plus">+</button>
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 p-3 bg-light rounded-3 border">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="qty-control d-flex align-items-center">
+                                    <button type="button" class="qty-btn btn-qty-minus">-</button>
+                                    <input type="number" name="quantity" class="qty-input" value="1" min="1" max="{{ $product->quantity }}" style="width: 80px; height: 38px; font-size: 16px;">
+                                    <button type="button" class="qty-btn btn-qty-plus">+</button>
+                                </div>
+                                <span class="text-muted small">
+                                    Weight: <strong id="dynamicWeight">{{ $product->kilograms }}</strong> kg
+                                </span>
                             </div>
-                            <span class="text-muted small">
-                                Total estimated weight: <strong id="dynamicWeight">{{ $product->kilograms }}</strong> kg
-                            </span>
+
+                            <div>
+                                <span class="text-muted small d-block">Subtotal:</span>
+                                <strong class="fs-4 text-farm-primary" id="dynamicSubtotal">₱{{ number_format($product->price, 2) }}</strong>
+                            </div>
                         </div>
                     </div>
 
                     <div class="d-flex gap-3 mb-3">
-                        <button type="submit" class="btn btn-farm-primary flex-grow-1 py-2 fw-bold">
-                            <i class="bi bi-cart-plus me-2"></i> Add to Cart
-                        </button>
+                        @if(Auth::check() && $product->user_id === Auth::id())
+                            <div class="alert alert-warning border-0 shadow-sm rounded-3 p-3 w-100 mb-0 d-flex align-items-center gap-2">
+                                <i class="bi bi-info-circle-fill text-warning fs-5"></i>
+                                <div>
+                                    <strong class="d-block text-dark small">Your Listed Crop</strong>
+                                    <span class="small text-muted">You are the seller of this produce. Farmers cannot purchase their own harvest.</span>
+                                </div>
+                            </div>
+                        @else
+                            <button type="submit" class="btn btn-farm-primary flex-grow-1 py-2 fw-bold">
+                                <i class="bi bi-cart-plus me-2"></i> Add to Cart
+                            </button>
+                        @endif
                         <a href="{{ route('recipes.index') }}" class="btn btn-farm-outline py-2 fw-bold">
                             <i class="bi bi-book me-1"></i> Recipes using this
                         </a>

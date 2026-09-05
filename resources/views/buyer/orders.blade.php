@@ -269,9 +269,11 @@
         <div class="row g-3">
             @foreach($recommendedProducts as $rec)
                 <div class="col-6 col-md-3">
-                    <div class="farm-card h-100 p-3 farm-card-interactive d-flex flex-column">
+                    <div class="farm-card h-100 p-3 farm-card-interactive d-flex flex-column" data-url="{{ route('marketplace.show', $rec) }}">
                         <img src="{{ $rec->image_path }}" class="rounded-3 mb-2" alt="{{ $rec->name }}" style="height: 120px; object-fit: cover;">
-                        <h6 class="fw-bold mb-1 text-truncate">{{ $rec->name }}</h6>
+                        <h6 class="fw-bold mb-1 text-truncate">
+                            <a href="{{ route('marketplace.show', $rec) }}" class="text-decoration-none text-dark">{{ $rec->name }}</a>
+                        </h6>
                         <small class="text-muted d-block mb-2">{{ $rec->farmer?->name ?? 'Local Farm' }}</small>
                         <div class="mt-auto d-flex justify-content-between align-items-center">
                             <strong class="text-farm-primary">₱{{ number_format($rec->price, 2) }}</strong>

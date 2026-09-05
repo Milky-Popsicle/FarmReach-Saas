@@ -46,7 +46,7 @@
     <div class="row g-4">
         @forelse($recipes as $recipe)
             <div class="col-md-6 col-lg-3">
-                <div class="farm-card h-100 farm-card-interactive d-flex flex-column">
+                <div class="farm-card h-100 farm-card-interactive d-flex flex-column" data-url="{{ route('recipes.show', $recipe) }}">
                     <img src="{{ $recipe->image_path }}" class="product-card-img" alt="{{ $recipe->title }}" style="height: 180px;">
                     <div class="p-3 d-flex flex-column flex-grow-1">
                         <div class="d-flex justify-content-between align-items-center mb-1">

@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\Announcement;
+use App\Models\Order;
 use App\Models\Product;
 use App\Models\Recipe;
 use App\Models\User;
@@ -116,7 +118,7 @@ class FarmReachTest extends TestCase
         $farmer = User::where('role', 'farmer')->first();
         $this->actingAs($farmer);
 
-        $order = \App\Models\Order::where('farmer_id', $farmer->id)->where('status', 'pending')->first();
+        $order = Order::where('farmer_id', $farmer->id)->where('status', 'pending')->first();
         if ($order) {
             $response = $this->post(route('farmer.orders.status', $order), [
                 'status' => 'confirmed',
@@ -148,6 +150,58 @@ class FarmReachTest extends TestCase
             $response = $this->get(route('marketplace.show', $product));
             $response->assertStatus(200);
             $response->assertSee($product->name);
+        }
+    }
+
+    public function test_admin_can_update_announcement()
+    {
+        $admin = User::where('role', 'admin')->first();
+        $this->actingAs($admin);
+
+        $announcement = Announcement::first();
+        if ($announcement) {
+            $response = $this->put(route('admin.announcements.update', $announcement), [
+                'title' => 'Updated Test Announcement Title',
+                'location' => 'Surigao City Hall',
+                'event_date' => 'Next Month',
+                'description' => 'Updated announcement description text.',
+            ]);
+
+            $response->assertSessionHas('success');
+            $this->assertEquals('Updated Test Announcement Title', $announcement->fresh()->title);
+        }
+    }
+
+    public function test_farmer_cannot_purchase_own_crop_listing()
+    {
+        $farmer = User::where('role', 'farmer')->first();
+        $this->actingAs($farmer);
+
+        $ownProduct = Product::where('user_id', $farmer->id)->first();
+        if ($ownProduct) {
+            $response = $this->post('/cart/add', [
+                'product_id' => $ownProduct->id,
+                'quantity' => 1,
+            ]);
+
+            $response->assertSessionHas('error');
+        }
+    }
+
+    public function test_farmer_can_purchase_produce_from_another_farmer()
+    {
+        $farmer = User::where('role', 'farmer')->first();
+        $otherFarmerProduct = Product::where('user_id', '!=', $farmer->id)->where('quantity', '>', 5)->first();
+
+        if ($otherFarmerProduct) {
+            $this->actingAs($farmer);
+
+            $response = $this->post('/cart/add', [
+                'product_id' => $otherFarmerProduct->id,
+                'quantity' => 1,
+            ]);
+
+            $response->assertSessionHas('cart');
         }
     }
 }

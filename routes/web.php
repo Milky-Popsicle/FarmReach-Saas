@@ -56,8 +56,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/checkout', [CartController::class, 'placeOrder'])->name('checkout.place');
 });
 
-// Buyer Order Tracking (Dual view: Card & Table, Filter, Cancel, Reorder)
-Route::middleware(['auth', 'role:buyer,admin'])->group(function () {
+// Buyer & Peer Order Tracking (Dual view: Card & Table, Filter, Cancel, Reorder)
+Route::middleware(['auth', 'role:buyer,farmer,admin'])->group(function () {
     Route::get('/buyer/orders', [BuyerOrderController::class, 'index'])->name('buyer.orders');
     Route::post('/buyer/orders/{order}/cancel', [BuyerOrderController::class, 'cancel'])->name('buyer.orders.cancel');
     Route::post('/buyer/orders/{order}/reorder', [BuyerOrderController::class, 'reorder'])->name('buyer.orders.reorder');
@@ -84,6 +84,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
     Route::get('/announcements', [AdminController::class, 'announcements'])->name('announcements');
     Route::post('/announcements', [AdminController::class, 'storeAnnouncement'])->name('announcements.store');
+    Route::put('/announcements/{announcement}', [AdminController::class, 'updateAnnouncement'])->name('announcements.update');
     Route::delete('/announcements/{announcement}', [AdminController::class, 'deleteAnnouncement'])->name('announcements.delete');
 
     Route::get('/recipes', [AdminController::class, 'recipes'])->name('recipes');
