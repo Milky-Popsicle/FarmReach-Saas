@@ -70,12 +70,12 @@ class FarmerOrderController extends Controller
         if ($request->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => "Order #{$order->order_number} status updated to " . ucfirst($validated['status']),
+                'message' => "Order #{$order->order_number} status updated to ".ucfirst($validated['status']),
                 'new_status' => $validated['status'],
                 'badge_class' => $order->status_badge_class,
             ]);
         }
 
-        return back()->with('success', "Order #{$order->order_number} updated to " . ucfirst($validated['status']));
+        return back()->with('success', "Order #{$order->order_number} updated to ".ucfirst($validated['status']));
     }
 }

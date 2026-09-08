@@ -12,18 +12,17 @@ class RoleMiddleware
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     * @param  string  ...$roles
+     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             return redirect()->route('login')->with('error', 'Please sign in to access this page.');
         }
 
         $user = Auth::user();
 
-        if (!in_array($user->role, $roles)) {
+        if (! in_array($user->role, $roles)) {
             // Redirect to appropriate dashboard based on their actual role
             return match ($user->role) {
                 'admin' => redirect()->route('admin.dashboard')->with('error', 'Unauthorized access area.'),

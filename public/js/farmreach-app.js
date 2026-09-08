@@ -241,24 +241,62 @@ $(document).ready(function () {
         }
     };
 
-    // 9. Password Show / Hide Eye Toggle with active state indicator
-    $(document).on('click', '.btn-toggle-password', function () {
-        const $btn = $(this);
-        const targetId = $btn.data('target');
-        const $input = $(targetId);
-        const $icon = $btn.find('i');
-
-        if ($input.length === 0) return;
-
-        if ($input.attr('type') === 'password') {
-            $input.attr('type', 'text');
-            $icon.removeClass('bi-eye bi-eye-slash').addClass('bi-eye-slash-fill');
-            $btn.addClass('is-active').attr('title', 'Hide Password').attr('aria-label', 'Hide Password');
-        } else {
-            $input.attr('type', 'password');
-            $icon.removeClass('bi-eye-slash-fill bi-eye-slash').addClass('bi-eye');
-            $btn.removeClass('is-active').attr('title', 'Show Password').attr('aria-label', 'Show Password');
+    // 9. Password Show / Hide Eye Toggle with active state indicator & mobile touch support
+    window.togglePasswordVisibility = function (trigger, event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
         }
+
+        const btn = (trigger && trigger.closest) ? trigger.closest('.btn-toggle-password') : trigger;
+        if (!btn) return;
+
+        const targetSelector = btn.getAttribute('data-target') || btn.getAttribute('data-bs-target');
+        let input = null;
+        if (targetSelector) {
+            try {
+                input = document.querySelector(targetSelector);
+            } catch (err) {
+                // Ignore querySelector syntax error if any
+            }
+        }
+        if (!input) {
+            const group = btn.closest('.input-group') || btn.parentElement;
+            if (group) {
+                input = group.querySelector('input[type="password"], input[type="text"]');
+            }
+        }
+        if (!input) return;
+
+        const isPassword = input.getAttribute('type') === 'password';
+        input.setAttribute('type', isPassword ? 'text' : 'password');
+
+        const icon = btn.querySelector('i') || btn.querySelector('.bi');
+        if (icon) {
+            if (isPassword) {
+                icon.classList.remove('bi-eye');
+                icon.classList.add('bi-eye-slash-fill');
+            } else {
+                icon.classList.remove('bi-eye-slash-fill', 'bi-eye-slash');
+                icon.classList.add('bi-eye');
+            }
+        }
+
+        if (isPassword) {
+            btn.classList.add('is-active');
+            btn.setAttribute('title', 'Hide Password');
+            btn.setAttribute('aria-label', 'Hide Password');
+            btn.setAttribute('aria-pressed', 'true');
+        } else {
+            btn.classList.remove('is-active');
+            btn.setAttribute('title', 'Show Password');
+            btn.setAttribute('aria-label', 'Show Password');
+            btn.setAttribute('aria-pressed', 'false');
+        }
+    };
+
+    $(document).on('click', '.btn-toggle-password', function (e) {
+        window.togglePasswordVisibility(this, e);
     });
 
     // 10. Admin Announcement Edit Modal population

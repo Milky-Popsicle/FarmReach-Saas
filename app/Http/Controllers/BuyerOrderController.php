@@ -27,12 +27,12 @@ class BuyerOrderController extends Controller
             $search = trim($request->search);
             $query->where(function ($q) use ($search) {
                 $q->where('order_number', 'LIKE', "%{$search}%")
-                  ->orWhereHas('items.product', function ($pq) use ($search) {
-                      $pq->where('name', 'LIKE', "%{$search}%");
-                  })
-                  ->orWhereHas('farmer', function ($fq) use ($search) {
-                      $fq->where('name', 'LIKE', "%{$search}%");
-                  });
+                    ->orWhereHas('items.product', function ($pq) use ($search) {
+                        $pq->where('name', 'LIKE', "%{$search}%");
+                    })
+                    ->orWhereHas('farmer', function ($fq) use ($search) {
+                        $fq->where('name', 'LIKE', "%{$search}%");
+                    });
             });
         }
 
@@ -126,6 +126,7 @@ class BuyerOrderController extends Controller
 
         if ($reorderedCount > 0) {
             ActivityLog::log($buyer->id, 'Reordered Items', "Reordered items from Order #{$order->order_number}.");
+
             return redirect()->route('cart.index')->with('success', "Added {$reorderedCount} item(s) from Order #{$order->order_number} back to your cart!");
         }
 

@@ -14,7 +14,7 @@
     <!-- Bootstrap 5.3.3 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="/css/farmreach-theme.css">
+    <link rel="stylesheet" href="/css/farmreach-theme.css?v=2.1">
 
     <style>
         :root {
@@ -307,7 +307,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- FarmReach Custom App Script -->
-    <script src="/js/farmreach-app.js"></script>
+    <script src="/js/farmreach-app.js?v=2.1"></script>
 
     <script>
         $(document).ready(function () {

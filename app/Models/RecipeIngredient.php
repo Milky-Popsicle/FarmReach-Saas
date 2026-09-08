@@ -40,7 +40,7 @@ class RecipeIngredient extends Model
         $name = trim($this->name);
         // Match either by direct name substring or category
         $query->where(function ($q) use ($name) {
-            $q->where('name', 'LIKE', '%' . $name . '%');
+            $q->where('name', 'LIKE', '%'.$name.'%');
             if ($this->category_id) {
                 $q->orWhere('category_id', $this->category_id);
             }

@@ -18,22 +18,22 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
     <!-- FarmReach Custom Theme CSS -->
-    <link rel="stylesheet" href="/css/farmreach-theme.css">
+    <link rel="stylesheet" href="/css/farmreach-theme.css?v=2.1">
 
     @stack('styles')
 </head>
 <body>
     <!-- Top Navigation Bar -->
-    <nav class="navbar navbar-expand-lg farm-navbar sticky-top py-2">
-        <div class="container">
-            <a class="navbar-brand py-0 me-3" href="{{ route('marketplace') }}">
+    <nav class="navbar navbar-expand-xl farm-navbar sticky-top py-2">
+        <div class="container d-flex align-items-center justify-content-between flex-nowrap">
+            <a class="navbar-brand py-0 me-3 text-nowrap" href="{{ route('marketplace') }}">
                 <i class="bi bi-tree-fill text-warning fs-5"></i>
                 <span class="fw-bold">FarmReach</span>
                 <span class="badge-accent ms-1">SaaS</span>
             </a>
 
-            <!-- Mobile Quick Actions & Drawer Toggle (Right-aligned on mobile) -->
-            <div class="d-flex align-items-center gap-2 d-lg-none ms-auto">
+            <!-- Mobile Quick Actions & Drawer Toggle (Right-aligned on mobile/tablet) -->
+            <div class="d-flex align-items-center gap-2 d-xl-none ms-auto">
                 @php $cartCount = count(session('cart', [])); @endphp
                 <a href="{{ route('cart.index') }}" class="btn btn-sm btn-outline-light position-relative px-2 py-1 rounded-pill" title="Cart">
                     <i class="bi bi-cart3"></i>
@@ -46,36 +46,36 @@
                 </button>
             </div>
 
-            <!-- Desktop Horizontal Navigation (Hidden on mobile screens) -->
-            <div class="collapse navbar-collapse d-none d-lg-flex" id="desktopNavbar">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0 gap-1">
+            <!-- Desktop Horizontal Navigation (Hidden on mobile/tablet screens < 1200px) -->
+            <div class="collapse navbar-collapse d-none d-xl-flex" id="desktopNavbar">
+                <ul class="navbar-nav me-auto mb-2 mb-xl-0 gap-1 flex-nowrap">
                     <li class="nav-item">
-                        <a class="nav-link py-1 px-3 rounded-pill {{ (request()->routeIs('marketplace') || request()->routeIs('marketplace.show')) ? 'active' : '' }}" href="{{ route('marketplace') }}">
+                        <a class="nav-link py-1 px-2 px-xxl-3 text-nowrap rounded-pill {{ (request()->routeIs('marketplace') || request()->routeIs('marketplace.show')) ? 'active' : '' }}" href="{{ route('marketplace') }}">
                             <i class="bi bi-shop me-1"></i> Marketplace
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link py-1 px-3 rounded-pill {{ request()->routeIs('marketplace.compare') ? 'active' : '' }}" href="{{ route('marketplace.compare') }}">
+                        <a class="nav-link py-1 px-2 px-xxl-3 text-nowrap rounded-pill {{ request()->routeIs('marketplace.compare') ? 'active' : '' }}" href="{{ route('marketplace.compare') }}">
                             <i class="bi bi-bar-chart-steps me-1"></i> Price Compare
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link py-1 px-3 rounded-pill {{ request()->routeIs('recipes*') ? 'active' : '' }}" href="{{ route('recipes.index') }}">
+                        <a class="nav-link py-1 px-2 px-xxl-3 text-nowrap rounded-pill {{ request()->routeIs('recipes*') ? 'active' : '' }}" href="{{ route('recipes.index') }}">
                             <i class="bi bi-book-half me-1"></i> Recipe Shopping
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link py-1 px-3 rounded-pill {{ request()->routeIs('announcements*') ? 'active' : '' }}" href="{{ route('announcements.index') }}">
+                        <a class="nav-link py-1 px-2 px-xxl-3 text-nowrap rounded-pill {{ request()->routeIs('announcements*') ? 'active' : '' }}" href="{{ route('announcements.index') }}">
                             <i class="bi bi-megaphone me-1"></i> Announcements
                         </a>
                     </li>
                 </ul>
 
-                <ul class="navbar-nav ms-auto align-items-center gap-2">
+                <ul class="navbar-nav ms-auto align-items-center gap-2 flex-nowrap">
                     <!-- Desktop Cart Button -->
                     @php $cartCount = count(session('cart', [])); @endphp
                     <li class="nav-item">
-                        <a href="{{ route('cart.index') }}" class="btn btn-sm btn-outline-light position-relative px-3 py-1 rounded-pill d-flex align-items-center gap-1">
+                        <a href="{{ route('cart.index') }}" class="btn btn-sm btn-outline-light position-relative px-3 py-1 rounded-pill d-flex align-items-center gap-1 text-nowrap">
                             <i class="bi bi-cart3"></i>
                             <span class="small fw-semibold">Cart</span>
                             <span class="cart-badge-count badge rounded-pill bg-warning text-dark ms-1" style="{{ $cartCount > 0 ? '' : 'display:none;' }}">
@@ -86,29 +86,29 @@
 
                     @guest
                         <li class="nav-item">
-                            <a href="{{ route('login') }}" class="btn btn-sm btn-outline-light rounded-pill px-3 py-1">Sign In</a>
+                            <a href="{{ route('login') }}" class="btn btn-sm btn-outline-light rounded-pill px-3 py-1 text-nowrap">Sign In</a>
                         </li>
                         <li class="nav-item">
-                            <a href="{{ route('register') }}" class="btn btn-sm btn-farm-accent rounded-pill px-3 py-1 text-dark fw-bold">Register</a>
+                            <a href="{{ route('register') }}" class="btn btn-sm btn-farm-accent rounded-pill px-3 py-1 text-dark fw-bold text-nowrap">Register</a>
                         </li>
                     @else
                         @if(Auth::user()->isFarmer())
                             <li class="nav-item">
-                                <a href="{{ route('farmer.marketplace') }}" class="btn btn-sm btn-farm-accent rounded-pill px-3 py-1 text-dark fw-bold d-flex align-items-center gap-1">
+                                <a href="{{ route('farmer.marketplace') }}" class="btn btn-sm btn-farm-accent rounded-pill px-3 py-1 text-dark fw-bold d-flex align-items-center gap-1 text-nowrap">
                                     <i class="bi bi-speedometer2"></i>
                                     <span>Farmer Hub</span>
                                 </a>
                             </li>
                         @elseif(Auth::user()->isAdmin())
                             <li class="nav-item">
-                                <a href="{{ route('admin.dashboard') }}" class="btn btn-sm btn-warning rounded-pill px-3 py-1 text-dark fw-bold d-flex align-items-center gap-1">
+                                <a href="{{ route('admin.dashboard') }}" class="btn btn-sm btn-warning rounded-pill px-3 py-1 text-dark fw-bold d-flex align-items-center gap-1 text-nowrap">
                                     <i class="bi bi-shield-lock"></i>
                                     <span>Admin Panel</span>
                                 </a>
                             </li>
                         @else
                             <li class="nav-item">
-                                <a href="{{ route('buyer.orders') }}" class="btn btn-sm btn-outline-light rounded-pill px-3 py-1 d-flex align-items-center gap-1">
+                                <a href="{{ route('buyer.orders') }}" class="btn btn-sm btn-outline-light rounded-pill px-3 py-1 d-flex align-items-center gap-1 text-nowrap">
                                     <i class="bi bi-bag-check"></i>
                                     <span>My Orders</span>
                                 </a>
@@ -117,7 +117,7 @@
 
                         <!-- User Profile Dropdown -->
                         <li class="nav-item dropdown ms-1">
-                            <a class="nav-link py-1 px-2 rounded-pill text-white d-flex align-items-center gap-2" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <a class="nav-link py-1 px-2 rounded-pill text-white d-flex align-items-center gap-2 text-nowrap" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 @if(Auth::user()->avatar_path)
                                     <img src="{{ Auth::user()->avatar_path }}" alt="{{ Auth::user()->name }}" class="rounded-circle border border-white" style="width: 30px; height: 30px; object-fit: cover;">
                                 @else
@@ -125,7 +125,7 @@
                                         {{ substr(Auth::user()->name, 0, 1) }}
                                     </div>
                                 @endif
-                                <span class="d-none d-md-inline small fw-semibold">{{ Auth::user()->name }}</span>
+                                <span class="d-none d-md-inline small fw-semibold text-truncate" style="max-width: 130px;">{{ Auth::user()->name }}</span>
                                 <i class="bi bi-chevron-down opacity-75" style="font-size: 10px;"></i>
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2">
@@ -169,7 +169,7 @@
     </nav>
 
     <!-- Mobile Side Navigation Drawer (Right Side, Responsive, No Dropdowns) -->
-    <div class="offcanvas offcanvas-end farm-nav-drawer text-white d-lg-none" tabindex="-1" id="mobileNavDrawer" aria-labelledby="mobileNavDrawerLabel">
+    <div class="offcanvas offcanvas-end farm-nav-drawer text-white d-xl-none" tabindex="-1" id="mobileNavDrawer" aria-labelledby="mobileNavDrawerLabel">
         <!-- Drawer Header -->
         <div class="offcanvas-header">
             <div class="d-flex align-items-center gap-2" id="mobileNavDrawerLabel">
@@ -388,7 +388,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- FarmReach Custom App Script -->
-    <script src="/js/farmreach-app.js"></script>
+    <script src="/js/farmreach-app.js?v=2.1"></script>
 
     <!-- SweetAlert2 Flash Notifications Trigger -->
     <script>
@@ -433,6 +433,23 @@
                 confirmButtonColor: '#1B4332'
             });
         @endif
+
+        // Gracefully close offcanvas and remove backdrop if resized to desktop view (>= 1200px)
+        window.addEventListener('resize', function () {
+            if (window.innerWidth >= 1200) {
+                const drawerEl = document.getElementById('mobileNavDrawer');
+                if (drawerEl && drawerEl.classList.contains('show')) {
+                    const offcanvasInstance = bootstrap.Offcanvas.getInstance(drawerEl);
+                    if (offcanvasInstance) {
+                        offcanvasInstance.hide();
+                    }
+                }
+                document.querySelectorAll('.offcanvas-backdrop').forEach(el => el.remove());
+                document.body.classList.remove('modal-open');
+                document.body.style.removeProperty('overflow');
+                document.body.style.removeProperty('padding-right');
+            }
+        });
     </script>
 
     @stack('scripts')

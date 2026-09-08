@@ -7,7 +7,6 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
 
 class AuthController extends Controller
 {
@@ -16,6 +15,7 @@ class AuthController extends Controller
         if (Auth::check()) {
             return $this->redirectBasedOnRole(Auth::user());
         }
+
         return view('auth.login');
     }
 
@@ -123,6 +123,7 @@ class AuthController extends Controller
 
         if ($user) {
             ActivityLog::log($user->id, 'Password Reset Requested', "Password reset link requested for {$user->name}.");
+
             return back()->with('success', 'Password reset instructions have been sent to your registered contact.');
         }
 
@@ -132,6 +133,7 @@ class AuthController extends Controller
     public function editProfile()
     {
         $user = Auth::user();
+
         return view('profile.edit', compact('user'));
     }
 
@@ -141,8 +143,8 @@ class AuthController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:190',
-            'email' => 'required|email|max:190|unique:users,email,' . $user->id,
-            'phone_number' => 'nullable|string|max:20|unique:users,phone_number,' . $user->id,
+            'email' => 'required|email|max:190|unique:users,email,'.$user->id,
+            'phone_number' => 'nullable|string|max:20|unique:users,phone_number,'.$user->id,
             'gender' => 'nullable|string|max:50',
             'birthday' => 'nullable|date',
             'address' => 'nullable|string|max:500',
@@ -161,13 +163,13 @@ class AuthController extends Controller
             'bio' => $validated['bio'] ?? null,
         ];
 
-        if (!empty($validated['password'])) {
+        if (! empty($validated['password'])) {
             $userData['password'] = Hash::make($validated['password']);
         }
 
         if ($request->hasFile('avatar')) {
             $path = $request->file('avatar')->store('avatars', 'public');
-            $userData['avatar_path'] = '/storage/' . $path;
+            $userData['avatar_path'] = '/storage/'.$path;
         }
 
         $user->update($userData);

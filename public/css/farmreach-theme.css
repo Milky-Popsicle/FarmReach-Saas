@@ -495,7 +495,7 @@ h1, h2, h3, h4, h5, h6, .font-headline {
     width: 100%;
 }
 
-/* Password Toggle Eye Button Styling & Interactive Hover */
+/* Password Toggle Eye Button Styling & Interactive Touch/Click State */
 .btn-toggle-password {
     border-color: #ced4da;
     color: #495057;
@@ -503,40 +503,53 @@ h1, h2, h3, h4, h5, h6, .font-headline {
     transition: all 0.2s ease-in-out;
     cursor: pointer;
     z-index: 5;
-    padding-left: 0.75rem;
-    padding-right: 0.75rem;
+    padding-left: 0.8rem;
+    padding-right: 0.8rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    min-width: 44px;
+    min-height: 38px;
+    flex-shrink: 0;
 }
 
 .btn-toggle-password i {
-    font-size: 1.1rem;
+    font-size: 1.15rem;
+    pointer-events: none; /* Crucial: ensures touch/click events hit the button and bubble properly on all mobile WebKit browsers */
     transition: transform 0.2s ease, color 0.2s ease;
 }
 
-.btn-toggle-password:hover {
+.btn-toggle-password:hover,
+.btn-toggle-password:focus-visible {
     background-color: #e9ecef;
     color: #1B4332;
     border-color: #1B4332;
     box-shadow: 0 2px 8px rgba(27, 67, 50, 0.15);
+    outline: none;
 }
 
-.btn-toggle-password:hover i {
-    transform: scale(1.2);
+.btn-toggle-password:hover i,
+.btn-toggle-password:focus-visible i {
+    transform: scale(1.15);
     color: #1B4332;
+}
+
+.btn-toggle-password:active {
+    transform: scale(0.96);
 }
 
 .btn-toggle-password.is-active {
     background-color: #eaf4ee !important;
-    color: #2D6A4F !important;
-    border-color: #2D6A4F !important;
+    color: #1B4332 !important;
+    border-color: #1B4332 !important;
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
 }
 
 .btn-toggle-password.is-active i {
-    color: #2D6A4F;
-    transform: scale(1.1);
+    color: #1B4332;
 }
 
 /* Floating Back-To-Top Button */
@@ -692,6 +705,34 @@ h1, h2, h3, h4, h5, h6, .font-headline {
     font-weight: 700;
     padding: 0.75rem 0.5rem 0.35rem;
 }
+
+/* Quick Demo Accounts Selector (Auth Page) */
+.demo-account-btn {
+    background-color: #ffffff;
+    cursor: pointer;
+    border: 1px solid var(--farm-border) !important;
+    transition: all 0.2s ease-in-out;
+}
+.demo-account-btn:hover {
+    background-color: #f8faf9;
+    border-color: #1B4332 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+.demo-account-btn:active {
+    transform: translateY(0);
+}
+
+/* Navbar desktop layout safeguards */
+@media (min-width: 1200px) {
+    .farm-navbar .navbar-nav .nav-link {
+        white-space: nowrap;
+    }
+    .farm-navbar .navbar-brand {
+        white-space: nowrap;
+    }
+}
+
 
 
 

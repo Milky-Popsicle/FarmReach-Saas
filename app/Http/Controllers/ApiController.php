@@ -31,7 +31,7 @@ class ApiController extends Controller
         }
 
         if ($request->filled('search')) {
-            $query->where('name', 'LIKE', '%' . $request->search . '%');
+            $query->where('name', 'LIKE', '%'.$request->search.'%');
         }
 
         return response()->json([
@@ -46,6 +46,7 @@ class ApiController extends Controller
     public function productDetails(Product $product): JsonResponse
     {
         $product->load(['farmer:id,name,address,phone_number,bio', 'category:id,name,slug']);
+
         return response()->json([
             'status' => 'success',
             'data' => $product,
@@ -105,10 +106,10 @@ class ApiController extends Controller
     public function salesData(): JsonResponse
     {
         $sales = Order::select(
-                DB::raw('DATE(created_at) as date'),
-                DB::raw('SUM(total_amount) as total_sales'),
-                DB::raw('COUNT(*) as order_count')
-            )
+            DB::raw('DATE(created_at) as date'),
+            DB::raw('SUM(total_amount) as total_sales'),
+            DB::raw('COUNT(*) as order_count')
+        )
             ->where('created_at', '>=', now()->subDays(30))
             ->groupBy('date')
             ->orderBy('date', 'asc')
@@ -126,10 +127,10 @@ class ApiController extends Controller
     public function topProducts(): JsonResponse
     {
         $top = OrderItem::select(
-                'product_id',
-                DB::raw('SUM(quantity) as total_quantity_sold'),
-                DB::raw('SUM(subtotal) as total_revenue')
-            )
+            'product_id',
+            DB::raw('SUM(quantity) as total_quantity_sold'),
+            DB::raw('SUM(subtotal) as total_revenue')
+        )
             ->with('product:id,name,price,image_path,user_id', 'product.farmer:id,name,address')
             ->groupBy('product_id')
             ->orderByDesc('total_quantity_sold')
@@ -148,6 +149,7 @@ class ApiController extends Controller
     public function recentActivities(): JsonResponse
     {
         $logs = ActivityLog::with('user:id,name,role')->latest()->take(25)->get();
+
         return response()->json([
             'status' => 'success',
             'data' => $logs,
@@ -160,6 +162,7 @@ class ApiController extends Controller
     public function recipes(): JsonResponse
     {
         $recipes = Recipe::with('ingredients.category')->latest()->get();
+
         return response()->json([
             'status' => 'success',
             'data' => $recipes,
@@ -183,7 +186,7 @@ class ApiController extends Controller
                 'ingredient_name' => $ingredient->name,
                 'quantity_description' => $ingredient->quantity_description,
                 'is_available' => $matchedProducts->isNotEmpty(),
-                'matched_products' => $matchedProducts->map(fn($p) => [
+                'matched_products' => $matchedProducts->map(fn ($p) => [
                     'id' => $p->id,
                     'name' => $p->name,
                     'price' => (float) $p->price,

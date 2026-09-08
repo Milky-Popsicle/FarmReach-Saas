@@ -20,11 +20,11 @@ class MarketplaceController extends Controller
             $search = trim($request->search);
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'LIKE', "%{$search}%")
-                  ->orWhere('description', 'LIKE', "%{$search}%")
-                  ->orWhereHas('farmer', function ($fq) use ($search) {
-                      $fq->where('name', 'LIKE', "%{$search}%")
-                         ->orWhere('address', 'LIKE', "%{$search}%");
-                  });
+                    ->orWhere('description', 'LIKE', "%{$search}%")
+                    ->orWhereHas('farmer', function ($fq) use ($search) {
+                        $fq->where('name', 'LIKE', "%{$search}%")
+                            ->orWhere('address', 'LIKE', "%{$search}%");
+                    });
             });
         }
 
@@ -106,7 +106,7 @@ class MarketplaceController extends Controller
         $comparisonProducts = Product::with(['farmer', 'category'])
             ->where('is_active', true)
             ->whereHas('farmer')
-            ->when($selectedCategory, fn($q) => $q->where('category_id', $selectedCategory))
+            ->when($selectedCategory, fn ($q) => $q->where('category_id', $selectedCategory))
             ->orderBy('price', 'asc')
             ->get();
 

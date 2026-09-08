@@ -95,18 +95,18 @@
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label for="password" class="form-label fw-bold small">New Password</label>
-                                    <div class="input-group">
-                                        <input type="password" class="form-control border-end-0" id="password" name="password" placeholder="New password">
-                                        <button type="button" class="btn btn-toggle-password" data-target="#password" title="Show Password" aria-label="Show Password">
+                                    <div class="input-group flex-nowrap">
+                                        <input type="password" class="form-control border-end-0" id="password" name="password" placeholder="New password" autocomplete="new-password">
+                                        <button type="button" class="btn btn-toggle-password" data-target="#password" onclick="togglePasswordVisibility(this, event)" title="Show Password" aria-label="Show Password">
                                             <i class="bi bi-eye"></i>
                                         </button>
                                     </div>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label for="password_confirmation" class="form-label fw-bold small">Confirm Password</label>
-                                    <div class="input-group">
-                                        <input type="password" class="form-control border-end-0" id="password_confirmation" name="password_confirmation" placeholder="Repeat new password">
-                                        <button type="button" class="btn btn-toggle-password" data-target="#password_confirmation" title="Show Password" aria-label="Show Password">
+                                    <div class="input-group flex-nowrap">
+                                        <input type="password" class="form-control border-end-0" id="password_confirmation" name="password_confirmation" placeholder="Repeat new password" autocomplete="new-password">
+                                        <button type="button" class="btn btn-toggle-password" data-target="#password_confirmation" onclick="togglePasswordVisibility(this, event)" title="Show Password" aria-label="Show Password">
                                             <i class="bi bi-eye"></i>
                                         </button>
                                     </div>
