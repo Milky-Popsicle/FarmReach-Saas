@@ -238,15 +238,19 @@
 
         <!-- Sidebar Bottom Footer with User & Log out (Wireframe page 24-26) -->
         <div class="admin-sidebar-footer">
-            <div class="d-flex align-items-center gap-2 mb-3">
-                <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center fw-bold" style="width: 38px; height: 38px;">
-                    {{ substr(Auth::user()->name, 0, 1) }}
-                </div>
+            <a href="{{ route('profile.edit') }}" class="d-flex align-items-center gap-2 mb-3 text-decoration-none text-white" title="Edit Profile">
+                @if(Auth::user()->avatar_path)
+                    <img src="{{ Auth::user()->avatar_path }}" alt="{{ Auth::user()->name }}" class="rounded-circle border border-white flex-shrink-0" style="width: 38px; height: 38px; object-fit: cover;">
+                @else
+                    <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center fw-bold flex-shrink-0" style="width: 38px; height: 38px;">
+                        {{ substr(Auth::user()->name, 0, 1) }}
+                    </div>
+                @endif
                 <div class="overflow-hidden">
                     <div class="fw-bold small text-white text-truncate">{{ Auth::user()->name }}</div>
                     <small class="text-white text-opacity-50 d-block text-truncate" style="font-size: 11px;">Administrator</small>
                 </div>
-            </div>
+            </a>
 
             <form action="{{ route('logout') }}" method="POST" class="m-0">
                 @csrf
@@ -275,8 +279,13 @@
                 <span class="badge bg-light text-dark border d-none d-sm-inline">
                     <i class="bi bi-clock me-1"></i> {{ now()->format('M d, Y') }}
                 </span>
-                <a href="{{ route('profile.edit') }}" class="btn btn-sm btn-farm-outline py-1 px-3">
-                    <i class="bi bi-person me-1"></i> Profile
+                <a href="{{ route('profile.edit') }}" class="btn btn-sm btn-farm-outline py-1 px-3 d-flex align-items-center gap-2">
+                    @if(Auth::user()->avatar_path)
+                        <img src="{{ Auth::user()->avatar_path }}" alt="{{ Auth::user()->name }}" class="rounded-circle border" style="width: 20px; height: 20px; object-fit: cover;">
+                    @else
+                        <i class="bi bi-person me-1"></i>
+                    @endif
+                    <span>Profile</span>
                 </a>
             </div>
         </header>

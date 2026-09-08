@@ -27,9 +27,13 @@
             <div class="farm-card p-4">
                 <h5 class="fw-bold mb-3 text-farm-primary"><i class="bi bi-person-badge-fill me-2"></i>Produced by Local Farmer</h5>
                 <div class="d-flex align-items-center gap-3 mb-3">
-                    <div class="rounded-circle bg-farm-primary text-warning d-flex align-items-center justify-content-center fw-bold fs-4" style="width: 56px; height: 56px;">
-                        {{ substr($product->farmer?->name ?? 'F', 0, 1) }}
-                    </div>
+                    @if($product->farmer?->avatar_path)
+                        <img src="{{ $product->farmer->avatar_path }}" alt="{{ $product->farmer->name }}" class="rounded-circle border border-2 border-farm-primary flex-shrink-0" style="width: 56px; height: 56px; object-fit: cover;">
+                    @else
+                        <div class="rounded-circle bg-farm-primary text-warning d-flex align-items-center justify-content-center fw-bold fs-4 flex-shrink-0" style="width: 56px; height: 56px;">
+                            {{ substr($product->farmer?->name ?? 'F', 0, 1) }}
+                        </div>
+                    @endif
                     <div>
                         <h5 class="fw-bold mb-0">{{ $product->farmer?->name ?? 'Local Farmer' }}</h5>
                         <div class="text-muted small">

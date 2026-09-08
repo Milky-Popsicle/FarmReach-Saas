@@ -32,11 +32,22 @@
                 <span class="badge-accent ms-1">SaaS</span>
             </a>
 
-            <button class="navbar-toggler text-white border-0 p-1" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
-                <i class="bi bi-list fs-3"></i>
-            </button>
+            <!-- Mobile Quick Actions & Drawer Toggle (Right-aligned on mobile) -->
+            <div class="d-flex align-items-center gap-2 d-lg-none ms-auto">
+                @php $cartCount = count(session('cart', [])); @endphp
+                <a href="{{ route('cart.index') }}" class="btn btn-sm btn-outline-light position-relative px-2 py-1 rounded-pill" title="Cart">
+                    <i class="bi bi-cart3"></i>
+                    <span class="cart-badge-count badge rounded-pill bg-warning text-dark ms-1" style="{{ $cartCount > 0 ? '' : 'display:none;' }}">
+                        {{ $cartCount }}
+                    </span>
+                </a>
+                <button class="btn btn-sm text-white p-1 border-0 shadow-none d-flex align-items-center" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileNavDrawer" aria-controls="mobileNavDrawer" aria-label="Toggle Navigation Drawer">
+                    <i class="bi bi-list fs-2"></i>
+                </button>
+            </div>
 
-            <div class="collapse navbar-collapse" id="navbarContent">
+            <!-- Desktop Horizontal Navigation (Hidden on mobile screens) -->
+            <div class="collapse navbar-collapse d-none d-lg-flex" id="desktopNavbar">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0 gap-1">
                     <li class="nav-item">
                         <a class="nav-link py-1 px-3 rounded-pill {{ (request()->routeIs('marketplace') || request()->routeIs('marketplace.show')) ? 'active' : '' }}" href="{{ route('marketplace') }}">
@@ -61,7 +72,7 @@
                 </ul>
 
                 <ul class="navbar-nav ms-auto align-items-center gap-2">
-                    <!-- Cart Button -->
+                    <!-- Desktop Cart Button -->
                     @php $cartCount = count(session('cart', [])); @endphp
                     <li class="nav-item">
                         <a href="{{ route('cart.index') }}" class="btn btn-sm btn-outline-light position-relative px-3 py-1 rounded-pill d-flex align-items-center gap-1">
@@ -156,6 +167,148 @@
             </div>
         </div>
     </nav>
+
+    <!-- Mobile Side Navigation Drawer (Right Side, Responsive, No Dropdowns) -->
+    <div class="offcanvas offcanvas-end farm-nav-drawer text-white d-lg-none" tabindex="-1" id="mobileNavDrawer" aria-labelledby="mobileNavDrawerLabel">
+        <!-- Drawer Header -->
+        <div class="offcanvas-header">
+            <div class="d-flex align-items-center gap-2" id="mobileNavDrawerLabel">
+                <i class="bi bi-tree-fill text-warning fs-4"></i>
+                <span class="fw-bold text-white fs-5 font-headline">FarmReach</span>
+                <span class="badge-accent ms-1">SaaS</span>
+            </div>
+            <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+
+        <!-- Drawer Body -->
+        <div class="offcanvas-body">
+            <!-- User Profile Card -->
+            <div class="mb-3">
+                @auth
+                    <div class="drawer-user-card p-3 rounded-3">
+                        <div class="d-flex align-items-center gap-3">
+                            @if(Auth::user()->avatar_path)
+                                <img src="{{ Auth::user()->avatar_path }}" alt="{{ Auth::user()->name }}" class="rounded-circle border border-2 border-white flex-shrink-0" style="width: 46px; height: 46px; object-fit: cover;">
+                            @else
+                                <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center fw-bold flex-shrink-0" style="width: 46px; height: 46px; font-size: 18px;">
+                                    {{ substr(Auth::user()->name, 0, 1) }}
+                                </div>
+                            @endif
+                            <div class="overflow-hidden">
+                                <div class="fw-bold text-white text-truncate">{{ Auth::user()->name }}</div>
+                                <span class="badge {{ Auth::user()->isFarmer() ? 'bg-success' : (Auth::user()->isAdmin() ? 'bg-danger' : 'bg-primary') }} text-white text-capitalize mt-1" style="font-size: 11px;">
+                                    {{ Auth::user()->role }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="mt-3 pt-2 border-top border-white border-opacity-10 d-flex justify-content-between align-items-center">
+                            <a href="{{ route('profile.edit') }}" class="text-white text-opacity-75 small text-decoration-none d-flex align-items-center gap-1">
+                                <i class="bi bi-person-gear"></i> My Profile
+                            </a>
+                        </div>
+                    </div>
+                @else
+                    <div class="drawer-user-card p-3 rounded-3 text-center">
+                        <p class="text-white small mb-2">Welcome to FarmReach Cloud</p>
+                        <div class="d-grid gap-2">
+                            <a href="{{ route('login') }}" class="btn btn-sm btn-outline-light rounded-pill">Sign In</a>
+                            <a href="{{ route('register') }}" class="btn btn-sm btn-farm-accent rounded-pill text-dark fw-bold">Register</a>
+                        </div>
+                    </div>
+                @endauth
+            </div>
+
+            <!-- Main Navigation Links -->
+            <div class="drawer-section-title">Navigation</div>
+            <nav class="nav flex-column gap-1 mb-3">
+                <a class="drawer-nav-link {{ (request()->routeIs('marketplace') || request()->routeIs('marketplace.show')) ? 'active' : '' }}" href="{{ route('marketplace') }}">
+                    <i class="bi bi-shop"></i>
+                    <span>Marketplace</span>
+                </a>
+                <a class="drawer-nav-link {{ request()->routeIs('marketplace.compare') ? 'active' : '' }}" href="{{ route('marketplace.compare') }}">
+                    <i class="bi bi-bar-chart-steps"></i>
+                    <span>Price Compare</span>
+                </a>
+                <a class="drawer-nav-link {{ request()->routeIs('recipes*') ? 'active' : '' }}" href="{{ route('recipes.index') }}">
+                    <i class="bi bi-book-half"></i>
+                    <span>Recipe Shopping</span>
+                </a>
+                <a class="drawer-nav-link {{ request()->routeIs('announcements*') ? 'active' : '' }}" href="{{ route('announcements.index') }}">
+                    <i class="bi bi-megaphone"></i>
+                    <span>Announcements</span>
+                </a>
+                <a class="drawer-nav-link {{ request()->routeIs('cart.*') ? 'active' : '' }}" href="{{ route('cart.index') }}">
+                    <i class="bi bi-cart3"></i>
+                    <span>Cart</span>
+                    @php $drawerCart = count(session('cart', [])); @endphp
+                    <span class="cart-badge-count badge rounded-pill bg-warning text-dark ms-auto" style="{{ $drawerCart > 0 ? '' : 'display:none;' }}">{{ $drawerCart }}</span>
+                </a>
+            </nav>
+
+            <!-- Role-Specific Shortcuts (No Dropdowns!) -->
+            @auth
+                @if(Auth::user()->isFarmer())
+                    <div class="drawer-section-title">Farmer Portal</div>
+                    <nav class="nav flex-column gap-1 mb-3">
+                        <a href="{{ route('farmer.marketplace') }}" class="drawer-nav-link {{ request()->routeIs('farmer.marketplace') ? 'active' : '' }}">
+                            <i class="bi bi-speedometer2"></i>
+                            <span>Farmer Hub</span>
+                        </a>
+                        <a href="{{ route('farmer.products') }}" class="drawer-nav-link {{ request()->routeIs('farmer.products') ? 'active' : '' }}">
+                            <i class="bi bi-box-seam"></i>
+                            <span>Manage Products</span>
+                        </a>
+                        <a href="{{ route('farmer.orders') }}" class="drawer-nav-link {{ request()->routeIs('farmer.orders') ? 'active' : '' }}">
+                            <i class="bi bi-receipt"></i>
+                            <span>Incoming Orders</span>
+                        </a>
+                        <a href="{{ route('buyer.orders') }}" class="drawer-nav-link {{ request()->routeIs('buyer.orders') ? 'active' : '' }}">
+                            <i class="bi bi-bag-check"></i>
+                            <span>My Purchases</span>
+                        </a>
+                    </nav>
+                @elseif(Auth::user()->isAdmin())
+                    <div class="drawer-section-title">Administration</div>
+                    <nav class="nav flex-column gap-1 mb-3">
+                        <a href="{{ route('admin.dashboard') }}" class="drawer-nav-link">
+                            <i class="bi bi-shield-lock"></i>
+                            <span>Admin Panel</span>
+                        </a>
+                        <a href="{{ route('admin.users') }}" class="drawer-nav-link">
+                            <i class="bi bi-people"></i>
+                            <span>Manage Users</span>
+                        </a>
+                        <a href="{{ route('admin.announcements') }}" class="drawer-nav-link">
+                            <i class="bi bi-megaphone"></i>
+                            <span>Announcements</span>
+                        </a>
+                        <a href="{{ route('admin.recipes') }}" class="drawer-nav-link">
+                            <i class="bi bi-book"></i>
+                            <span>Recipes</span>
+                        </a>
+                    </nav>
+                @else
+                    <div class="drawer-section-title">Buyer Account</div>
+                    <nav class="nav flex-column gap-1 mb-3">
+                        <a href="{{ route('buyer.orders') }}" class="drawer-nav-link {{ request()->routeIs('buyer.orders') ? 'active' : '' }}">
+                            <i class="bi bi-bag-check"></i>
+                            <span>My Orders</span>
+                        </a>
+                    </nav>
+                @endif
+
+                <!-- Drawer Logout at Bottom -->
+                <div class="mt-auto pt-3 border-top border-white border-opacity-10">
+                    <form action="{{ route('logout') }}" method="POST" class="m-0">
+                        @csrf
+                        <button type="submit" class="btn btn-outline-light btn-sm w-100 fw-bold d-flex align-items-center justify-content-center gap-2 py-2">
+                            <i class="bi bi-box-arrow-left"></i> Log out
+                        </button>
+                    </form>
+                </div>
+            @endauth
+        </div>
+    </div>
 
 
 

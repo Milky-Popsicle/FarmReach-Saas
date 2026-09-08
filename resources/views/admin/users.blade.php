@@ -56,9 +56,13 @@
                         <tr>
                             <td>
                                 <div class="d-flex align-items-center gap-2">
-                                    <div class="rounded-circle bg-light border d-flex align-items-center justify-content-center fw-bold text-dark" style="width: 36px; height: 36px; font-size: 13px;">
-                                        {{ substr($u->name, 0, 1) }}
-                                    </div>
+                                    @if($u->avatar_path)
+                                        <img src="{{ $u->avatar_path }}" alt="{{ $u->name }}" class="rounded-circle border flex-shrink-0" style="width: 36px; height: 36px; object-fit: cover;">
+                                    @else
+                                        <div class="rounded-circle bg-light border d-flex align-items-center justify-content-center fw-bold text-dark flex-shrink-0" style="width: 36px; height: 36px; font-size: 13px;">
+                                            {{ substr($u->name, 0, 1) }}
+                                        </div>
+                                    @endif
                                     <div>
                                         <div class="fw-bold text-dark">{{ $u->name }}</div>
                                         <small class="text-muted">{{ $u->email }}</small>
