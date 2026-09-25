@@ -79,12 +79,35 @@
                     </div>
                 </div>
 
+                <!-- Bulk Action Bar for Cancelled Orders -->
+                @if($currentStatus === 'cancelled' && $orders->count() > 0)
+                    <div class="card bg-light border p-2 mb-3">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="form-check ms-2 mb-0">
+                                <input class="form-check-input" type="checkbox" id="selectAllCancelled">
+                                <label class="form-check-label small fw-bold text-dark cursor-pointer" for="selectAllCancelled">
+                                    Select All Cancelled Orders
+                                </label>
+                            </div>
+                            <form id="bulkDeleteCancelledForm" action="{{ route('buyer.orders.bulkDelete') }}" method="POST" class="swal-confirm m-0" data-confirm="Are you sure you want to delete all selected cancelled orders?" data-confirm-btn="Yes, delete selected">
+                                @csrf
+                                <button type="submit" id="btnBulkDeleteCancelled" class="btn btn-sm btn-danger fw-bold px-3" disabled>
+                                    <i class="bi bi-trash3 me-1"></i> Delete Selected (<span id="selectedCancelledCount">0</span>)
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                @endif
+
                 <!-- 1. Card View Container (Wireframe page 31) -->
                 <div id="ordersCardContainer" class="d-flex flex-column gap-3">
                     @forelse($orders as $ord)
                         <div class="farm-card p-3 border">
                             <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 pb-2 border-bottom">
-                                <div>
+                                <div class="d-flex align-items-center">
+                                    @if($ord->status === 'cancelled')
+                                        <input type="checkbox" name="order_ids[]" form="bulkDeleteCancelledForm" value="{{ $ord->id }}" class="form-check-input cancelled-order-checkbox me-2" title="Select order #{{ $ord->order_number }}">
+                                    @endif
                                     <span class="fw-bold text-dark me-2">#{{ $ord->order_number }}</span>
                                     @if($ord->isBulk())
                                         <span class="badge bg-warning text-dark me-2"><i class="bi bi-box-fill me-1"></i>Bulk Order</span>
@@ -93,7 +116,7 @@
                                 </div>
                                 <div>
                                     <span class="badge {{ $ord->status_badge_class }} px-3 py-1 text-capitalize">
-                                        {{ $ord->status }}
+                                        {{ $ord->status_label }}
                                     </span>
                                 </div>
                             </div>
@@ -107,8 +130,8 @@
                                     <div class="my-2">
                                         @foreach($ord->items as $it)
                                             <div class="small text-dark">
-                                                &bull; <strong>{{ $it->quantity }}x</strong> {{ $it->product->name ?? 'Produce' }}
-                                                <span class="text-muted">(₱{{ number_format($it->unit_price, 2) }} each)</span>
+                                                &bull; <strong>{{ $it->quantity }} {{ $it->product?->stock_unit_label ?? 'unit' }}</strong> {{ $it->product->name ?? 'Produce' }}
+                                                <span class="text-muted">(₱{{ number_format($it->unit_price, 2) }} / {{ $it->product?->price_unit_label ?? 'unit' }})</span>
                                             </div>
                                         @endforeach
                                     </div>
@@ -122,11 +145,20 @@
                                         <span class="text-muted small">Total: </span>
                                         <span class="fs-5 fw-bold text-farm-primary">₱{{ number_format($ord->total_amount, 2) }}</span>
                                     </div>
-                                    <div class="d-flex gap-2 justify-content-md-end">
+                                    <div class="d-flex gap-2 justify-content-md-end align-items-center">
                                         @if($ord->status === 'pending')
                                             <form action="{{ route('buyer.orders.cancel', $ord) }}" method="POST" class="swal-confirm m-0" data-confirm="Are you sure you want to cancel order #{{ $ord->order_number }}? The reserved crops will be returned to the farmer's inventory." data-confirm-btn="Yes, cancel order">
                                                 @csrf
                                                 <button type="submit" class="btn btn-sm btn-outline-danger">Cancel Order</button>
+                                            </form>
+                                        @endif
+                                        @if($ord->status === 'cancelled')
+                                            <form action="{{ route('buyer.orders.destroy', $ord) }}" method="POST" class="swal-confirm m-0" data-confirm="Are you sure you want to delete cancelled order #{{ $ord->order_number }}?" data-confirm-btn="Yes, delete order">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete Cancelled Order">
+                                                    <i class="bi bi-trash3 me-1"></i> Delete
+                                                </button>
                                             </form>
                                         @endif
                                         <form action="{{ route('buyer.orders.reorder', $ord) }}" method="POST">
@@ -153,6 +185,11 @@
                         <table class="table table-hover align-middle farm-table mb-0">
                             <thead>
                                 <tr>
+                                    @if($currentStatus === 'cancelled')
+                                        <th style="width: 40px;">
+                                            <input type="checkbox" id="selectAllCancelledTable" class="form-check-input" title="Select All">
+                                        </th>
+                                    @endif
                                     <th>Order ID</th>
                                     <th>Product Details</th>
                                     <th>Seller (Farmer)</th>
@@ -165,6 +202,11 @@
                             <tbody>
                                 @forelse($orders as $ord)
                                     <tr>
+                                        @if($currentStatus === 'cancelled')
+                                            <td>
+                                                <input type="checkbox" name="order_ids[]" form="bulkDeleteCancelledForm" value="{{ $ord->id }}" class="form-check-input cancelled-order-checkbox">
+                                            </td>
+                                        @endif
                                         <td>
                                             <strong class="text-dark small">#{{ $ord->order_number }}</strong>
                                             @if($ord->isBulk())
@@ -188,16 +230,25 @@
                                         </td>
                                         <td>
                                             <span class="badge {{ $ord->status_badge_class }} small text-capitalize">
-                                                {{ $ord->status }}
+                                                {{ $ord->status_label }}
                                             </span>
                                         </td>
                                         <td>
-                                            <div class="d-flex gap-1">
+                                            <div class="d-flex gap-1 align-items-center">
                                                 @if($ord->status === 'pending')
                                                     <form action="{{ route('buyer.orders.cancel', $ord) }}" method="POST" class="swal-confirm m-0" data-confirm="Cancel order #{{ $ord->order_number }}?" data-confirm-btn="Yes, cancel">
                                                         @csrf
                                                         <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2" title="Cancel">
                                                             <i class="bi bi-x"></i>
+                                                        </button>
+                                                    </form>
+                                                @endif
+                                                @if($ord->status === 'cancelled')
+                                                    <form action="{{ route('buyer.orders.destroy', $ord) }}" method="POST" class="swal-confirm m-0" data-confirm="Delete cancelled order #{{ $ord->order_number }}?" data-confirm-btn="Yes, delete">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2" title="Delete">
+                                                            <i class="bi bi-trash3"></i>
                                                         </button>
                                                     </form>
                                                 @endif
@@ -212,7 +263,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="7" class="text-center py-4 text-muted">No orders found.</td>
+                                        <td colspan="{{ $currentStatus === 'cancelled' ? '8' : '7' }}" class="text-center py-4 text-muted">No orders found.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -293,3 +344,28 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    $(document).ready(function () {
+        function updateCancelledSelection() {
+            const total = $('.cancelled-order-checkbox').length;
+            const checked = $('.cancelled-order-checkbox:checked').length;
+            $('#selectedCancelledCount').text(checked);
+            $('#btnBulkDeleteCancelled').prop('disabled', checked === 0);
+            $('#selectAllCancelled, #selectAllCancelledTable').prop('checked', total > 0 && checked === total);
+        }
+
+        $('#selectAllCancelled, #selectAllCancelledTable').on('change', function () {
+            const isChecked = $(this).is(':checked');
+            $('.cancelled-order-checkbox').prop('checked', isChecked);
+            $('#selectAllCancelled, #selectAllCancelledTable').prop('checked', isChecked);
+            updateCancelledSelection();
+        });
+
+        $(document).on('change', '.cancelled-order-checkbox', function () {
+            updateCancelledSelection();
+        });
+    });
+</script>
+@endpush

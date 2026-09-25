@@ -39,6 +39,9 @@
                         <table class="table align-middle farm-table mb-0">
                             <thead>
                                 <tr>
+                                    <th style="width: 44px;" class="text-center">
+                                        <input type="checkbox" id="selectAllCart" class="form-check-input" checked title="Select All Items">
+                                    </th>
                                     <th>Product</th>
                                     <th>Farmer</th>
                                     <th>Unit Price</th>
@@ -50,12 +53,27 @@
                             <tbody>
                                 @foreach($cart as $id => $item)
                                     <tr class="cart-item-row" data-id="{{ $id }}">
+                                        <td class="text-center">
+                                            <input type="checkbox" 
+                                                   name="selected_items[]" 
+                                                   form="checkoutForm"
+                                                   value="{{ $id }}" 
+                                                   class="form-check-input cart-item-check" 
+                                                   data-price="{{ $item['price'] }}" 
+                                                   data-kg="{{ $item['kilograms'] ?? 0 }}"
+                                                   checked>
+                                        </td>
                                         <td>
                                             <div class="d-flex align-items-center gap-3">
                                                 <img src="{{ $item['image_path'] }}" class="rounded-3 shadow-sm" alt="{{ $item['name'] }}" style="width: 54px; height: 54px; object-fit: cover;">
                                                 <div>
                                                     <h6 class="fw-bold mb-0 text-dark">{{ $item['name'] }}</h6>
-                                                    <small class="text-muted">{{ $item['kilograms'] }} {{ $item['unit'] }}</small>
+                                                    <small class="text-muted">
+                                                        Unit: {{ $item['unit'] }}
+                                                        @if(!empty($item['weight_per_unit']))
+                                                            ({{ number_format($item['weight_per_unit'], 2) }} kg/unit)
+                                                        @endif
+                                                    </small>
                                                     @if($item['quantity'] >= 20 || ($item['order_type'] ?? '') === 'bulk')
                                                         <span class="badge bg-warning text-dark ms-1" style="font-size: 10px;">Bulk Wholesale</span>
                                                     @endif
@@ -70,6 +88,7 @@
                                         </td>
                                         <td class="fw-semibold">
                                             ₱{{ number_format($item['price'], 2) }}
+                                            <span class="text-muted small fw-normal">/ {{ $item['price_unit_label'] ?? $item['unit'] }}</span>
                                         </td>
                                         <td>
                                             <div class="qty-control d-flex align-items-center">
@@ -111,18 +130,18 @@
                     <h5 class="fw-bold mb-3 text-farm-primary border-bottom pb-2">Order Summary</h5>
 
                     <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted">Total Products:</span>
-                        <strong>{{ count($cart) }} item(s)</strong>
+                        <span class="text-muted">Selected Produce:</span>
+                        <strong id="selectedItemsText">{{ count($cart) }} item(s)</strong>
                     </div>
 
-                    <div class="d-flex justify-content-between mb-2">
+                    <div class="d-flex justify-content-between mb-2" id="weightSummaryRow" @if($totalKilograms <= 0) style="display: none;" @endif>
                         <span class="text-muted">Total Produce Weight:</span>
-                        <strong>{{ number_format($totalKilograms, 1) }} kg</strong>
+                        <strong id="selectedWeightText">{{ number_format($totalKilograms, 1) }} kg</strong>
                     </div>
 
                     <div class="d-flex justify-content-between mb-3">
                         <span class="text-muted">Subtotal:</span>
-                        <strong class="fs-5 text-farm-primary cart-grand-total">₱{{ number_format($subtotal, 2) }}</strong>
+                        <strong class="fs-5 text-farm-primary cart-grand-total" id="selectedSubtotalText">₱{{ number_format($subtotal, 2) }}</strong>
                     </div>
 
                     <div class="alert alert-light border small text-muted mb-4">
@@ -130,9 +149,11 @@
                     </div>
 
                     @auth
-                        <a href="{{ route('checkout') }}" class="btn btn-farm-primary w-100 py-2 fw-bold shadow-sm">
-                            Proceed to Checkout &rarr;
-                        </a>
+                        <form action="{{ route('checkout') }}" method="GET" id="checkoutForm">
+                            <button type="submit" class="btn btn-farm-primary w-100 py-2 fw-bold shadow-sm" id="btnProceedCheckout">
+                                Proceed to Checkout (<span id="btnCheckoutCount">{{ count($cart) }}</span>) &rarr;
+                            </button>
+                        </form>
                     @else
                         <a href="{{ route('login') }}" class="btn btn-farm-primary w-100 py-2 fw-bold shadow-sm">
                             Sign In to Checkout &rarr;
@@ -145,3 +166,72 @@
     @endif
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    $(document).ready(function () {
+        function recalculateCartSelection() {
+            let totalSubtotal = 0;
+            let totalWeight = 0;
+            let selectedCount = 0;
+            const totalItems = $('.cart-item-check').length;
+
+            $('.cart-item-check').each(function () {
+                if ($(this).is(':checked')) {
+                    selectedCount++;
+                    const $row = $(this).closest('.cart-item-row');
+                    const price = parseFloat($(this).data('price')) || 0;
+                    const qty = parseInt($row.find('.cart-qty-input').val()) || 1;
+                    const kg = parseFloat($(this).data('kg')) || 0;
+
+                    totalSubtotal += price * qty;
+                    totalWeight += kg * qty;
+                }
+            });
+
+            $('#selectedItemsText').text(selectedCount + ' item(s)');
+            $('#selectedSubtotalText').text('₱' + totalSubtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+            $('#selectedWeightText').text(totalWeight.toFixed(1) + ' kg');
+            $('#btnCheckoutCount').text(selectedCount);
+
+            if (totalWeight > 0) {
+                $('#weightSummaryRow').show();
+            } else {
+                $('#weightSummaryRow').hide();
+            }
+
+            if (selectedCount === 0) {
+                $('#btnProceedCheckout').prop('disabled', true).addClass('opacity-50');
+            } else {
+                $('#btnProceedCheckout').prop('disabled', false).removeClass('opacity-50');
+            }
+
+            $('#selectAllCart').prop('checked', totalItems > 0 && selectedCount === totalItems);
+        }
+
+        $('#selectAllCart').on('change', function () {
+            const isChecked = $(this).is(':checked');
+            $('.cart-item-check').prop('checked', isChecked);
+            recalculateCartSelection();
+        });
+
+        $(document).on('change', '.cart-item-check', function () {
+            recalculateCartSelection();
+        });
+
+        $(document).on('change', '.cart-qty-input', function () {
+            setTimeout(recalculateCartSelection, 150);
+        });
+
+        $('#checkoutForm').on('submit', function (e) {
+            const checkedCount = $('.cart-item-check:checked').length;
+            if (checkedCount === 0) {
+                e.preventDefault();
+                alert('Please select at least one produce item to proceed to checkout.');
+            }
+        });
+
+        recalculateCartSelection();
+    });
+</script>
+@endpush

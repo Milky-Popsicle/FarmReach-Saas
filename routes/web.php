@@ -61,6 +61,8 @@ Route::middleware(['auth', 'role:buyer,farmer,admin'])->group(function () {
     Route::get('/buyer/orders', [BuyerOrderController::class, 'index'])->name('buyer.orders');
     Route::post('/buyer/orders/{order}/cancel', [BuyerOrderController::class, 'cancel'])->name('buyer.orders.cancel');
     Route::post('/buyer/orders/{order}/reorder', [BuyerOrderController::class, 'reorder'])->name('buyer.orders.reorder');
+    Route::delete('/buyer/orders/{order}', [BuyerOrderController::class, 'destroy'])->name('buyer.orders.destroy');
+    Route::post('/buyer/orders/bulk-delete', [BuyerOrderController::class, 'bulkDestroy'])->name('buyer.orders.bulkDelete');
 });
 
 // Farmer Portal

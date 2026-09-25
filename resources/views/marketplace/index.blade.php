@@ -100,7 +100,7 @@
                                     <a href="{{ route('marketplace.show', $item) }}" class="text-decoration-none text-dark">{{ $item->name }}</a>
                                 </h6>
                                 <div class="text-muted small text-truncate mb-1">
-                                    <i class="bi bi-geo-alt"></i> {{ $item->farmer?->name ?? 'Local Farmer' }}
+                                    <i class="bi bi-person-fill text-success"></i> {{ $item->farmer?->name ?? 'Local Farmer' }}
                                 </div>
                                 <div class="mt-auto pt-2 border-top d-flex justify-content-between align-items-center">
                                     <span class="fw-bold text-farm-primary">₱{{ number_format($item->price, 2) }}</span>
@@ -187,7 +187,7 @@
                             </span>
                             @if($product->quantity <= 10)
                                 <span class="position-absolute top-0 end-0 m-2 badge bg-danger">
-                                    Low Stock ({{ $product->quantity }})
+                                    Low Stock ({{ $product->stock_with_unit }})
                                 </span>
                             @endif
                         </div>
@@ -213,15 +213,22 @@
                                 </div>
                             </div>
 
-                            <div class="mt-auto pt-2 border-top d-flex justify-content-between align-items-center mb-3">
+                            <div class="mt-auto pt-2 border-top d-flex justify-content-between align-items-center mb-2">
                                 <div>
                                     <span class="price-tag">₱{{ number_format($product->price, 2) }}</span>
-                                    <span class="text-muted small">/ {{ $product->kilograms }} {{ $product->unit }}</span>
+                                    <span class="text-muted small">/ {{ $product->price_unit_label }}</span>
                                 </div>
                                 <span class="badge bg-light text-muted border">
-                                    {{ $product->quantity }} in stock
+                                    Stock: {{ $product->stock_with_unit }}
                                 </span>
                             </div>
+
+                            @if($product->has_weight_per_unit)
+                                <div class="text-muted small mb-2 d-flex align-items-center gap-1" style="font-size: 11px;">
+                                    <i class="bi bi-box-seam text-secondary"></i>
+                                    <span>Weight per Unit: <strong>{{ $product->formatted_weight_per_unit }}</strong></span>
+                                </div>
+                            @endif
 
                             <!-- Add to Cart / Order Form -->
                             <form action="{{ route('cart.add') }}" method="POST" class="form-add-to-cart">

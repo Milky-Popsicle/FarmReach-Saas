@@ -132,4 +132,51 @@ class BuyerOrderController extends Controller
 
         return back()->with('error', 'Sorry, items from this order are currently out of stock.');
     }
+
+    public function destroy(Order $order)
+    {
+        $buyer = Auth::user();
+        if ($order->buyer_id !== $buyer->id) {
+            abort(403);
+        }
+
+        if ($order->status !== 'cancelled') {
+            return back()->with('error', 'Only cancelled orders can be deleted.');
+        }
+
+        $orderNumber = $order->order_number;
+        $order->delete();
+
+        ActivityLog::log($buyer->id, 'Order Deleted', "Buyer deleted cancelled Order #{$orderNumber}.");
+
+        return back()->with('success', "Cancelled order #{$orderNumber} has been deleted.");
+    }
+
+    public function bulkDestroy(Request $request)
+    {
+        $buyer = Auth::user();
+
+        $validated = $request->validate([
+            'order_ids' => 'required|array|min:1',
+            'order_ids.*' => 'integer|exists:orders,id',
+        ]);
+
+        $orders = Order::where('buyer_id', $buyer->id)
+            ->where('status', 'cancelled')
+            ->whereIn('id', $validated['order_ids'])
+            ->get();
+
+        $count = $orders->count();
+        if ($count === 0) {
+            return back()->with('error', 'No eligible cancelled orders selected to delete.');
+        }
+
+        foreach ($orders as $order) {
+            $order->delete();
+        }
+
+        ActivityLog::log($buyer->id, 'Cancelled Orders Bulk Deleted', "Buyer deleted {$count} cancelled order(s).");
+
+        return back()->with('success', "Successfully deleted {$count} cancelled order(s).");
+    }
 }

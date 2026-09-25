@@ -73,13 +73,22 @@ class FarmerProductController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:190',
             'category_id' => 'required|exists:categories,id',
-            'price' => 'required|numeric|min:1',
+            'price' => 'required|numeric|min:0.01',
             'quantity' => 'required|integer|min:0',
-            'kilograms' => 'required|numeric|min:0.1',
+            'selling_unit' => 'nullable|string|in:kg,g,pcs,bundle,pack,sack,crate,box',
             'unit' => 'nullable|string|max:20',
+            'kilograms' => 'nullable|numeric|min:0.01',
+            'weight_per_unit' => 'nullable|numeric|min:0.01',
             'description' => 'nullable|string|max:1000',
             'image' => 'nullable|image|max:2048',
         ]);
+
+        $unit = $validated['selling_unit'] ?? $validated['unit'] ?? 'kg';
+        $kilograms = null;
+        if (! in_array(strtolower($unit), ['kg', 'g'], true)) {
+            $rawKg = $validated['weight_per_unit'] ?? $validated['kilograms'] ?? null;
+            $kilograms = ($rawKg !== null && $rawKg !== '') ? (float) $rawKg : null;
+        }
 
         $imagePath = 'https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=600&auto=format&fit=crop&q=80';
         if ($request->hasFile('image')) {
@@ -94,8 +103,8 @@ class FarmerProductController extends Controller
             'description' => $validated['description'] ?? null,
             'price' => $validated['price'],
             'quantity' => $validated['quantity'],
-            'kilograms' => $validated['kilograms'],
-            'unit' => $validated['unit'] ?? 'kg',
+            'kilograms' => $kilograms,
+            'unit' => $unit,
             'image_path' => $imagePath,
             'is_active' => true,
         ]);
@@ -115,21 +124,30 @@ class FarmerProductController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:190',
             'category_id' => 'required|exists:categories,id',
-            'price' => 'required|numeric|min:1',
+            'price' => 'required|numeric|min:0.01',
             'quantity' => 'required|integer|min:0',
-            'kilograms' => 'required|numeric|min:0.1',
+            'selling_unit' => 'nullable|string|in:kg,g,pcs,bundle,pack,sack,crate,box',
             'unit' => 'nullable|string|max:20',
+            'kilograms' => 'nullable|numeric|min:0.01',
+            'weight_per_unit' => 'nullable|numeric|min:0.01',
             'description' => 'nullable|string|max:1000',
             'image' => 'nullable|image|max:2048',
         ]);
+
+        $unit = $validated['selling_unit'] ?? $validated['unit'] ?? $product->unit;
+        $kilograms = null;
+        if (! in_array(strtolower($unit), ['kg', 'g'], true)) {
+            $rawKg = $validated['weight_per_unit'] ?? $validated['kilograms'] ?? null;
+            $kilograms = ($rawKg !== null && $rawKg !== '') ? (float) $rawKg : null;
+        }
 
         $data = [
             'name' => $validated['name'],
             'category_id' => $validated['category_id'],
             'price' => $validated['price'],
             'quantity' => $validated['quantity'],
-            'kilograms' => $validated['kilograms'],
-            'unit' => $validated['unit'] ?? $product->unit,
+            'kilograms' => $kilograms,
+            'unit' => $unit,
             'description' => $validated['description'] ?? $product->description,
         ];
 

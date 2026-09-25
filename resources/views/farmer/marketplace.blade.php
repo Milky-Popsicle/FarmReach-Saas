@@ -62,9 +62,11 @@
                         <h6 class="fw-bold small mb-1 text-truncate">
                             <a href="{{ route('marketplace.show', $item) }}" class="text-decoration-none text-dark">{{ $item->name }}</a>
                         </h6>
-                        <span class="text-muted small d-block" style="font-size: 11px;">{{ $item->kilograms }} {{ $item->unit }}</span>
-                        <strong class="text-farm-primary small mb-1">₱{{ number_format($item->price, 2) }}</strong>
-                        <span class="badge bg-light text-muted border small" style="font-size: 10px;">Qty: {{ $item->quantity }}</span>
+                        <strong class="text-farm-primary small mb-1">{{ $item->formatted_price_per_unit }}</strong>
+                        <span class="badge bg-light text-muted border small" style="font-size: 10px;">Stock: {{ $item->stock_with_unit }}</span>
+                        @if($item->has_weight_per_unit)
+                            <span class="text-muted small d-block mt-1" style="font-size: 10px;">{{ $item->formatted_weight_per_unit }} / unit</span>
+                        @endif
                     </div>
                 </div>
             @endforeach
@@ -95,8 +97,8 @@
                             </div>
                         </div>
                         <div class="d-flex justify-content-between align-items-center">
-                            <span class="fw-bold text-farm-primary">₱{{ number_format($p->price, 2) }}</span>
-                            <span class="badge bg-white border text-dark">{{ $p->quantity }} in stock</span>
+                            <span class="fw-bold text-farm-primary">{{ $p->formatted_price_per_unit }}</span>
+                            <span class="badge bg-white border text-dark">Stock: {{ $p->stock_with_unit }}</span>
                         </div>
                     </div>
                 </div>

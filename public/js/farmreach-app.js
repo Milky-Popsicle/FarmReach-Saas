@@ -124,7 +124,181 @@ $(document).ready(function () {
         $('#ordersCardContainer').addClass('d-none');
     });
 
-    // 6. Farmer Product Edit Modal population
+    // 6. Farmer Product Modal - Dynamic Selling Units, Category Guidance & Live Preview
+    const categoryUnitConfig = {
+        'vegetables': {
+            name: 'Vegetables',
+            units: ['kg', 'pcs', 'bundle', 'crate', 'pack'],
+            examples: 'Examples: Carrots — 20 kg • Cabbage — 30 pcs • Pechay — 25 bundles'
+        },
+        'fruits': {
+            name: 'Fruits',
+            units: ['kg', 'pcs', 'crate', 'box', 'pack'],
+            examples: 'Examples: Grapes — 11 kg • Apple — 25 pcs • Mango — 40 pcs'
+        },
+        'grains-rice': {
+            name: 'Grains & Rice',
+            units: ['kg', 'sack', 'pack'],
+            examples: 'Examples: Rice — 10 sacks • Corn — 50 kg'
+        },
+        'root-crops': {
+            name: 'Root Crops',
+            units: ['kg', 'pcs', 'sack', 'bundle'],
+            examples: 'Examples: Potato — 40 kg • Cassava — 20 kg • Sweet Potato — 30 kg'
+        },
+        'herbs-spices': {
+            name: 'Herbs & Spices',
+            units: ['kg', 'g', 'bundle', 'pack', 'pcs'],
+            examples: 'Examples: Garlic — 10 kg • Ginger — 5 kg • Basil — 20 bundles • Chili — 3 kg'
+        }
+    };
+
+    function getUnitLabels(unit, qty) {
+        unit = (unit || 'kg').toLowerCase().trim();
+        const quantity = parseFloat(qty) || 0;
+        let priceLabel = 'kg';
+        let stockLabel = 'kg';
+
+        switch (unit) {
+            case 'pcs':
+            case 'pc':
+            case 'piece':
+            case 'pieces':
+                priceLabel = 'pc';
+                stockLabel = quantity === 1 ? 'pc' : 'pcs';
+                break;
+            case 'bundle':
+            case 'bundles':
+                priceLabel = 'bundle';
+                stockLabel = quantity === 1 ? 'bundle' : 'bundles';
+                break;
+            case 'pack':
+            case 'packs':
+                priceLabel = 'pack';
+                stockLabel = quantity === 1 ? 'pack' : 'packs';
+                break;
+            case 'sack':
+            case 'sacks':
+                priceLabel = 'sack';
+                stockLabel = quantity === 1 ? 'sack' : 'sacks';
+                break;
+            case 'crate':
+            case 'crates':
+                priceLabel = 'crate';
+                stockLabel = quantity === 1 ? 'crate' : 'crates';
+                break;
+            case 'box':
+            case 'boxes':
+                priceLabel = 'box';
+                stockLabel = quantity === 1 ? 'box' : 'boxes';
+                break;
+            case 'g':
+            case 'gram':
+            case 'grams':
+                priceLabel = 'g';
+                stockLabel = 'g';
+                break;
+            default:
+                priceLabel = 'kg';
+                stockLabel = 'kg';
+                break;
+        }
+
+        return { priceLabel, stockLabel };
+    }
+
+    function updateProductModalLogic($container) {
+        const unit = $container.find('.select-selling-unit').val() || 'kg';
+        const qty = $container.find('input[name="quantity"]').val() || '0';
+        const price = parseFloat($container.find('input[name="price"]').val()) || 0;
+        const name = $container.find('input[name="name"]').val() || 'Fresh Produce';
+        const categoryText = $container.find('.category-select option:selected').text() || 'Category';
+        const weightVal = $container.find('.input-weight-per-unit').val();
+        const isWeightBased = (unit === 'kg' || unit === 'g');
+
+        const { priceLabel, stockLabel } = getUnitLabels(unit, qty);
+
+        // Update inline text displays
+        $container.find('.stock-unit-display').text(stockLabel);
+        $container.find('.price-unit-display').text('/ ' + priceLabel);
+
+        // Toggle Weight per Unit field applicability
+        const $weightInput = $container.find('.input-weight-per-unit');
+        const $weightHelper = $container.find('.weight-helper-text');
+        if (isWeightBased) {
+            $weightInput.prop('disabled', true).val('').attr('placeholder', 'Not applicable (sold by ' + unit + ')');
+            $weightHelper.html('<i class="bi bi-info-circle text-primary me-1"></i>Not applicable — this produce is already priced and sold directly by weight (' + unit + ').');
+        } else {
+            $weightInput.prop('disabled', false).attr('placeholder', 'e.g. 0.20 for apple, 1.5 for cabbage');
+            $weightHelper.html('Optional — Specify weight of 1 unit in kg if known (e.g. 0.20 kg for an apple, 1.5 kg for cabbage, 50 kg for a sack).');
+        }
+
+        // Live preview updates
+        $container.find('.preview-title').text(name);
+        $container.find('.preview-category').text(categoryText.replace('Select Category', 'Fresh Produce'));
+        $container.find('.preview-price').text('₱' + price.toFixed(2) + ' / ' + priceLabel);
+        $container.find('.preview-stock').text('Stock: ' + qty + ' ' + stockLabel);
+
+        const $previewWeight = $container.find('.preview-weight');
+        if (!isWeightBased && weightVal && parseFloat(weightVal) > 0) {
+            $previewWeight.show().find('.preview-weight-val').text(parseFloat(weightVal).toFixed(2) + ' kg');
+        } else {
+            $previewWeight.hide();
+        }
+    }
+
+    function handleCategoryChange($container, suggestionContainerId) {
+        const $catSelect = $container.find('.category-select');
+        const slug = $catSelect.find('option:selected').data('slug');
+        const $sugg = $container.find(suggestionContainerId);
+
+        if (slug && categoryUnitConfig[slug]) {
+            const config = categoryUnitConfig[slug];
+            $sugg.removeClass('d-none');
+            $sugg.find('.cat-name-display').text(config.name);
+            $sugg.find('.unit-examples').text(config.examples);
+
+            let chipsHtml = '';
+            config.units.forEach(u => {
+                chipsHtml += `<button type="button" class="btn btn-xs btn-outline-success py-0 px-2 rounded-pill btn-suggested-unit" data-unit="${u}" style="font-size: 11px;">+ ${u}</button>`;
+            });
+            $sugg.find('.unit-chips').html(chipsHtml);
+        } else {
+            $sugg.addClass('d-none');
+        }
+
+        updateProductModalLogic($container);
+    }
+
+    // Attach events for Add Product Modal
+    $('#addProductModal').on('change', '.category-select', function () {
+        handleCategoryChange($('#addProductModal'), '#addCategoryUnitSuggestions');
+    });
+
+    $('#addProductModal').on('click', '.btn-suggested-unit', function () {
+        const u = $(this).data('unit');
+        $('#addProductModal').find('.select-selling-unit').val(u).trigger('change');
+    });
+
+    $('#addProductModal').on('input change', 'input, select, textarea', function () {
+        updateProductModalLogic($('#addProductModal'));
+    });
+
+    // Attach events for Edit Product Modal
+    $('#editProductModal').on('change', '.category-select', function () {
+        handleCategoryChange($('#editProductModal'), '#editCategoryUnitSuggestions');
+    });
+
+    $('#editProductModal').on('click', '.btn-suggested-unit', function () {
+        const u = $(this).data('unit');
+        $('#editProductModal').find('.select-selling-unit').val(u).trigger('change');
+    });
+
+    $('#editProductModal').on('input change', 'input, select, textarea', function () {
+        updateProductModalLogic($('#editProductModal'));
+    });
+
+    // Edit Product modal opening population
     $(document).on('click', '.btn-edit-product', function () {
         const id = $(this).data('id');
         const name = $(this).data('name');
@@ -141,9 +315,12 @@ $(document).ready(function () {
         $modal.find('#edit_category_id').val(categoryId);
         $modal.find('#edit_price').val(price);
         $modal.find('#edit_quantity').val(quantity);
-        $modal.find('#edit_kilograms').val(kilograms);
         $modal.find('#edit_unit').val(unit);
+        $modal.find('#edit_kilograms').val(kilograms || '');
         $modal.find('#edit_description').val(description);
+
+        handleCategoryChange($modal, '#editCategoryUnitSuggestions');
+        updateProductModalLogic($modal);
     });
 
     // 7. SweetAlert2 Universal Confirmation & Notification Helpers
@@ -332,14 +509,16 @@ $(document).ready(function () {
         if ($calcContainer.length === 0) return;
 
         const unitPrice = parseFloat($calcContainer.data('unit-price')) || 0;
-        const unitKg = parseFloat($calcContainer.data('unit-kg')) || 1;
+        const unitKg = parseFloat($calcContainer.data('unit-kg')) || 0;
         const $qtyInput = $calcContainer.find('.qty-input');
         const qty = parseInt($qtyInput.val()) || 1;
 
-        const totalKg = (unitKg * qty).toFixed(1);
+        const totalKg = (unitKg * qty).toFixed(2);
         const subtotal = (unitPrice * qty).toFixed(2);
 
-        $calcContainer.find('#dynamicWeight').text(totalKg);
+        if (unitKg > 0) {
+            $calcContainer.find('#dynamicWeight').text(totalKg);
+        }
         $calcContainer.find('#dynamicSubtotal').text('₱' + Number(subtotal).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
     }
 

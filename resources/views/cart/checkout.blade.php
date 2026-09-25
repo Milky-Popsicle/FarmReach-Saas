@@ -25,6 +25,9 @@
 
     <form id="checkoutForm" action="{{ route('checkout.place') }}" method="POST">
         @csrf
+        @foreach($selectedItems as $itemId)
+            <input type="hidden" name="selected_items[]" value="{{ $itemId }}">
+        @endforeach
 
         <div class="row g-4">
             <!-- Delivery & Payment Configuration -->
@@ -45,7 +48,13 @@
                                             <i class="bi bi-truck me-1"></i> Direct Delivery
                                         </label>
                                     </div>
-                                    <small class="text-muted d-block ps-4">Delivered to your doorstep (₱60.00)</small>
+                                    <small class="text-muted d-block ps-4">
+                                        @if($farmerCount > 1)
+                                            Delivered to your doorstep (₱60.00 × {{ $farmerCount }} farmers)
+                                        @else
+                                            Delivered to your doorstep (₱60.00)
+                                        @endif
+                                    </small>
                                 </div>
                             </div>
                             <div class="col-6">
@@ -73,51 +82,28 @@
                     </div>
                 </div>
 
-                <!-- Payment Method Card (COD, Bank Transfer, GCash) -->
+                <!-- Payment Method Card (COD / Cash on Pickup Only per Client Request) -->
                 <div class="farm-card p-4">
                     <h5 class="fw-bold text-farm-primary mb-3 border-bottom pb-2">
-                        <i class="bi bi-credit-card me-1"></i> 2. Payment Method
+                        <i class="bi bi-cash-stack me-1"></i> 2. Payment Method
                     </h5>
 
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-4">
-                            <div class="p-3 border rounded-3 text-center payment-option active" style="border-color: #1B4332 !important; background-color: #f7fdf9;">
-                                <input class="form-check-input d-none" type="radio" name="payment_method" id="pay_cod" value="cod" checked>
-                                <label for="pay_cod" class="d-block cursor-pointer">
-                                    <i class="bi bi-cash-coin fs-2 text-success d-block mb-1"></i>
-                                    <strong>Cash on Delivery</strong>
-                                    <small class="text-muted d-block" style="font-size: 11px;">Pay when you receive</small>
-                                </label>
+                    <div class="p-3 border rounded-3 text-start payment-option active" style="border-color: #1B4332 !important; background-color: #f7fdf9;">
+                        <input class="form-check-input d-none" type="radio" name="payment_method" id="pay_cod" value="cod" checked>
+                        <label for="pay_cod" class="d-flex align-items-center gap-3 cursor-pointer mb-0">
+                            <div class="rounded-circle bg-success-subtle p-3 text-success">
+                                <i class="bi bi-cash-coin fs-3"></i>
                             </div>
-                        </div>
-
-                        <div class="col-md-4">
-                            <div class="p-3 border rounded-3 text-center payment-option">
-                                <input class="form-check-input d-none" type="radio" name="payment_method" id="pay_gcash" value="gcash">
-                                <label for="pay_gcash" class="d-block cursor-pointer">
-                                    <i class="bi bi-phone-fill fs-2 text-primary d-block mb-1"></i>
-                                    <strong>GCash</strong>
-                                    <small class="text-muted d-block" style="font-size: 11px;">Instant mobile e-wallet</small>
-                                </label>
+                            <div>
+                                <strong class="d-block text-dark fs-6" id="paymentMethodTitle">Cash on Delivery (COD)</strong>
+                                <span class="text-muted small" id="paymentMethodDesc">Pay in cash when your farm produce is delivered to your doorstep.</span>
                             </div>
-                        </div>
-
-                        <div class="col-md-4">
-                            <div class="p-3 border rounded-3 text-center payment-option">
-                                <input class="form-check-input d-none" type="radio" name="payment_method" id="pay_bank" value="bank_transfer">
-                                <label for="pay_bank" class="d-block cursor-pointer">
-                                    <i class="bi bi-bank fs-2 text-warning d-block mb-1"></i>
-                                    <strong>Bank Transfer</strong>
-                                    <small class="text-muted d-block" style="font-size: 11px;">Online bank deposit</small>
-                                </label>
-                            </div>
-                        </div>
+                            <span class="badge bg-success ms-auto px-2 py-1"><i class="bi bi-check2"></i> Standard</span>
+                        </label>
                     </div>
 
-                    <div class="mb-3 d-none" id="referenceNumberGroup">
-                        <label for="reference_number" class="form-label fw-bold small">Payment Reference Number (GCash / Bank)</label>
-                        <input type="text" class="form-control" id="reference_number" name="reference_number" placeholder="e.g. GCASH-10928374 or BDO-TX-998">
-                        <small class="text-muted">Enter the transaction reference number provided by your mobile banking or GCash app.</small>
+                    <div class="alert alert-light border small text-muted mt-3 mb-0">
+                        <i class="bi bi-info-circle me-1 text-primary"></i> Direct cash payments ensure straightforward, fee-free transactions for both local farmers and consumers.
                     </div>
                 </div>
             </div>
@@ -134,7 +120,7 @@
                                     <img src="{{ $item['image_path'] }}" class="rounded-2" alt="{{ $item['name'] }}" style="width: 40px; height: 40px; object-fit: cover;">
                                     <div>
                                         <h6 class="mb-0 small fw-bold text-dark">{{ $item['name'] }}</h6>
-                                        <small class="text-muted">x{{ $item['quantity'] }} &bull; {{ $item['farmer_name'] }}</small>
+                                        <small class="text-muted">{{ $item['quantity'] }} {{ $item['stock_unit_label'] ?? $item['unit'] }} &bull; {{ $item['farmer_name'] }}</small>
                                     </div>
                                 </div>
                                 <span class="fw-bold text-farm-primary small">
@@ -150,8 +136,13 @@
                     </div>
 
                     <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted small">Shipping / Handling:</span>
-                        <span class="fw-semibold" id="shippingFeeDisplay">₱60.00</span>
+                        <span class="text-muted small">
+                            Shipping / Handling:
+                            @if($farmerCount > 1)
+                                <small class="text-muted d-block" id="farmerShippingNote" style="font-size: 11px;">(₱60.00 × {{ $farmerCount }} farmers)</small>
+                            @endif
+                        </span>
+                        <span class="fw-semibold" id="shippingFeeDisplay">₱{{ number_format($shippingTotal, 2) }}</span>
                     </div>
 
                     <hr class="my-2">
@@ -159,7 +150,7 @@
                     <div class="d-flex justify-content-between align-items-baseline mb-4">
                         <strong class="fs-5 text-dark">Total Amount:</strong>
                         <strong class="fs-4 text-farm-primary" id="totalOrderAmount">
-                            ₱{{ number_format($subtotal + 60, 2) }}
+                            ₱{{ number_format($subtotal + $shippingTotal, 2) }}
                         </strong>
                     </div>
 
@@ -171,7 +162,7 @@
             </div>
         </div>
 
-        <!-- Buyer OrderReview(CheckoutToDeliver) Modal (Exact Wireframe match page 33) -->
+        <!-- Buyer OrderReview Modal -->
         <div class="modal fade" id="orderReviewModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content farm-card border-0">
@@ -192,16 +183,16 @@
                                 <div class="col-7 text-dark" id="modalReviewAddress">{{ $user->address }}</div>
 
                                 <div class="col-5 text-muted">Total Quantity:</div>
-                                <div class="col-7 fw-bold text-dark">{{ array_sum(array_column($cart, 'quantity')) }} items ({{ number_format($totalKg, 1) }} kg)</div>
+                                <div class="col-7 fw-bold text-dark">{{ array_sum(array_column($cart, 'quantity')) }} items @if($totalKg > 0)({{ number_format($totalKg, 1) }} kg)@endif</div>
 
                                 <div class="col-5 text-muted">Payment Method:</div>
                                 <div class="col-7 fw-bold text-dark" id="modalReviewPaymentMethod">Cash on Delivery (COD)</div>
 
                                 <div class="col-5 text-muted">Shipping Fee:</div>
-                                <div class="col-7 text-dark" id="modalReviewShipping">₱60.00</div>
+                                <div class="col-7 text-dark" id="modalReviewShipping">₱{{ number_format($shippingTotal, 2) }}</div>
 
                                 <div class="col-5 text-muted">Total Amount:</div>
-                                <div class="col-7 fw-bold text-success fs-5" id="modalReviewTotal">₱{{ number_format($subtotal + 60, 2) }}</div>
+                                <div class="col-7 fw-bold text-success fs-5" id="modalReviewTotal">₱{{ number_format($subtotal + $shippingTotal, 2) }}</div>
                             </div>
                         </div>
 
@@ -225,6 +216,9 @@
 <script>
     $(document).ready(function () {
         const subtotal = {{ $subtotal }};
+        const farmerCount = {{ $farmerCount }};
+        const shippingPerFarmer = {{ $shippingPerFarmer }};
+        const totalDeliveryShipping = farmerCount * shippingPerFarmer;
 
         // Fulfillment radio toggle
         $('input[name="delivery_method"]').on('change', function () {
@@ -235,27 +229,19 @@
             if (method === 'deliver') {
                 $('#deliveryAddressGroup').show();
                 $('#delivery_address').prop('required', true);
-                $('#shippingFeeDisplay').text('₱60.00');
-                $('#totalOrderAmount').text('₱' + (subtotal + 60).toFixed(2));
+                $('#shippingFeeDisplay').text('₱' + totalDeliveryShipping.toFixed(2));
+                $('#totalOrderAmount').text('₱' + (subtotal + totalDeliveryShipping).toFixed(2));
+                $('#farmerShippingNote').show();
+                $('#paymentMethodTitle').text('Cash on Delivery (COD)');
+                $('#paymentMethodDesc').text('Pay in cash when your farm produce is delivered to your doorstep.');
             } else {
                 $('#deliveryAddressGroup').hide();
                 $('#delivery_address').prop('required', false);
                 $('#shippingFeeDisplay').text('₱0.00');
                 $('#totalOrderAmount').text('₱' + subtotal.toFixed(2));
-            }
-        });
-
-        // Payment radio toggle
-        $('.payment-option').on('click', function () {
-            $('.payment-option').removeClass('active').css({'border-color': '#E2E8F0', 'background-color': '#ffffff'});
-            $(this).addClass('active').css({'border-color': '#1B4332', 'background-color': '#f7fdf9'});
-            const $radio = $(this).find('input[type="radio"]');
-            $radio.prop('checked', true);
-
-            if ($radio.val() === 'gcash' || $radio.val() === 'bank_transfer') {
-                $('#referenceNumberGroup').removeClass('d-none');
-            } else {
-                $('#referenceNumberGroup').addClass('d-none');
+                $('#farmerShippingNote').hide();
+                $('#paymentMethodTitle').text('Cash on Pick Up (COP)');
+                $('#paymentMethodDesc').text('Pay in cash directly to the farmer when picking up your crops at the farm.');
             }
         });
 
@@ -263,14 +249,13 @@
         $('#btnReviewOrder').on('click', function () {
             const method = $('input[name="delivery_method"]:checked').val();
             const address = $('#delivery_address').val();
-            const payment = $('input[name="payment_method"]:checked').val();
-            const shipping = method === 'deliver' ? 60 : 0;
+            const shipping = method === 'deliver' ? totalDeliveryShipping : 0;
             const total = subtotal + shipping;
 
             $('#modalReviewDeliveryMethod').text(method === 'deliver' ? 'Direct Delivery' : 'Farm Stand Pick Up');
             $('#modalReviewAddress').text(method === 'deliver' ? (address || 'Not specified') : 'Pick up at registered farm location');
-            $('#modalReviewPaymentMethod').text(payment.toUpperCase());
-            $('#modalReviewShipping').text('₱' + shipping.toFixed(2));
+            $('#modalReviewPaymentMethod').text(method === 'deliver' ? 'Cash on Delivery (COD)' : 'Cash on Pick Up (COP)');
+            $('#modalReviewShipping').text('₱' + shipping.toFixed(2) + (method === 'deliver' && farmerCount > 1 ? ` (₱60.00 × ${farmerCount} farmers)` : ''));
             $('#modalReviewTotal').text('₱' + total.toFixed(2));
 
             const modal = new bootstrap.Modal(document.getElementById('orderReviewModal'));

@@ -31,7 +31,7 @@ class FarmerOrderController extends Controller
         $standardOrdersCount = Order::where('farmer_id', $farmer->id)->where('order_type', 'standard')->count();
         $bulkOrdersCount = Order::where('farmer_id', $farmer->id)->where('order_type', 'bulk')->count();
         $pendingOrdersCount = Order::where('farmer_id', $farmer->id)->where('status', 'pending')->count();
-        $totalSales = Order::where('farmer_id', $farmer->id)->where('status', 'delivered')->sum('total_amount');
+        $totalSales = Order::where('farmer_id', $farmer->id)->whereIn('status', ['delivered', 'picked_up'])->sum('total_amount');
 
         return view('farmer.orders', compact(
             'orders',
@@ -50,32 +50,55 @@ class FarmerOrderController extends Controller
         }
 
         $validated = $request->validate([
-            'status' => 'required|in:confirmed,delivered,cancelled',
+            'status' => 'required|in:confirmed,delivered,picked_up,cancelled',
+            'shipping_fee' => 'nullable|numeric|min:0',
         ]);
 
-        $oldStatus = $order->status;
-        $order->update(['status' => $validated['status']]);
+        $targetStatus = $validated['status'];
+        if ($order->delivery_method === 'pickup' && $targetStatus === 'delivered') {
+            $targetStatus = 'picked_up';
+        }
 
-        // If marked delivered, also mark payment paid
-        if ($validated['status'] === 'delivered' && $order->payment) {
+        $oldStatus = $order->status;
+        $order->status = $targetStatus;
+
+        // If confirming a delivery order and farmer sets shipping fee, update order totals
+        if ($targetStatus === 'confirmed' && $order->delivery_method === 'deliver' && $request->filled('shipping_fee')) {
+            $newShippingFee = (float) $request->shipping_fee;
+            $itemsTotal = $order->items->sum('subtotal');
+            $order->shipping_fee = $newShippingFee;
+            $order->total_amount = $itemsTotal + $newShippingFee;
+
+            if ($order->payment) {
+                $order->payment->update(['amount' => $order->total_amount]);
+            }
+        }
+
+        $order->save();
+
+        // If marked delivered or picked up, also mark payment paid
+        if (in_array($targetStatus, ['delivered', 'picked_up'], true) && $order->payment) {
             $order->payment->update(['payment_status' => 'paid']);
         }
 
         ActivityLog::log(
             $farmer->id,
             'Order Status Updated',
-            "Farmer updated Order #{$order->order_number} status from {$oldStatus} to {$validated['status']}."
+            "Farmer updated Order #{$order->order_number} status from {$oldStatus} to {$order->status_label}."
         );
 
         if ($request->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => "Order #{$order->order_number} status updated to ".ucfirst($validated['status']),
-                'new_status' => $validated['status'],
+                'message' => "Order #{$order->order_number} status updated to {$order->status_label}",
+                'new_status' => $targetStatus,
+                'status_label' => $order->status_label,
                 'badge_class' => $order->status_badge_class,
+                'total_amount' => number_format($order->total_amount, 2),
+                'shipping_fee' => number_format($order->shipping_fee, 2),
             ]);
         }
 
-        return back()->with('success', "Order #{$order->order_number} updated to ".ucfirst($validated['status']));
+        return back()->with('success', "Order #{$order->order_number} updated to {$order->status_label}");
     }
 }

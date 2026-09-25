@@ -66,13 +66,13 @@
 
         <!-- Product Purchase Actions & Price Comparison -->
         <div class="col-lg-6">
-            <div class="farm-card p-4 mb-4 product-price-calculator" data-unit-price="{{ $product->price }}" data-unit-kg="{{ $product->kilograms }}">
+            <div class="farm-card p-4 mb-4 product-price-calculator" data-unit-price="{{ $product->price }}" data-unit-kg="{{ $product->effective_kilograms }}">
                 <div class="d-flex justify-content-between align-items-start mb-2">
                     <span class="badge bg-farm-primary text-white text-uppercase px-3 py-1">
                         {{ $product->category?->name ?? 'Fresh Produce' }}
                     </span>
                     <span class="badge {{ $product->quantity > 10 ? 'bg-success' : 'bg-warning text-dark' }} px-3 py-1">
-                        {{ $product->stock_status }} ({{ $product->quantity }} available)
+                        {{ $product->stock_status }} &bull; Stock: {{ $product->stock_with_unit }}
                     </span>
                 </div>
 
@@ -80,8 +80,15 @@
 
                 <div class="mb-3 d-flex align-items-baseline gap-2">
                     <span class="display-6 fw-bold text-farm-primary">₱{{ number_format($product->price, 2) }}</span>
-                    <span class="text-muted fs-5">per {{ $product->kilograms }} {{ $product->unit }}</span>
+                    <span class="text-muted fs-5">/ {{ $product->price_unit_label }}</span>
                 </div>
+
+                @if($product->has_weight_per_unit)
+                    <div class="mb-3 p-2 px-3 bg-light rounded-3 border d-inline-flex align-items-center gap-2 small">
+                        <i class="bi bi-box-seam text-secondary"></i>
+                        <span>Weight per Unit: <strong>{{ $product->formatted_weight_per_unit }}</strong></span>
+                    </div>
+                @endif
 
                 <p class="text-secondary mb-4 leading-relaxed">
                     {{ $product->description }}
@@ -95,7 +102,7 @@
                     <input type="hidden" name="product_id" value="{{ $product->id }}">
 
                     <div class="mb-3">
-                        <label class="form-label fw-bold small">Quantity to Purchase</label>
+                        <label class="form-label fw-bold small">Quantity to Purchase (in {{ $product->stock_unit_label }})</label>
                         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 p-3 bg-light rounded-3 border">
                             <div class="d-flex align-items-center gap-3">
                                 <div class="qty-control d-flex align-items-center">
@@ -103,9 +110,11 @@
                                     <input type="number" name="quantity" class="qty-input" value="1" min="1" max="{{ $product->quantity }}" style="width: 80px; height: 38px; font-size: 16px;">
                                     <button type="button" class="qty-btn btn-qty-plus">+</button>
                                 </div>
-                                <span class="text-muted small">
-                                    Weight: <strong id="dynamicWeight">{{ $product->kilograms }}</strong> kg
-                                </span>
+                                @if($product->unit === 'kg' || $product->has_weight_per_unit)
+                                    <span class="text-muted small">
+                                        Weight: <strong id="dynamicWeight">{{ $product->unit === 'kg' ? '1.00' : number_format($product->kilograms, 2) }}</strong> kg
+                                    </span>
+                                @endif
                             </div>
 
                             <div>

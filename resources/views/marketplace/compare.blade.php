@@ -34,7 +34,7 @@
                     <tr>
                         <th>Crop / Produce</th>
                         <th>Farmer & Location</th>
-                        <th>Weight / Unit</th>
+                        <th>Selling Unit & Weight</th>
                         <th>Price (PHP)</th>
                         <th>Stock Availability</th>
                         <th>Action</th>
@@ -57,14 +57,18 @@
                                 <div class="text-muted small"><i class="bi bi-geo-alt-fill text-danger"></i> {{ $prod->farmer?->address ?? 'Surigao del Norte' }}</div>
                             </td>
                             <td>
-                                <span class="badge bg-light text-dark border">{{ $prod->kilograms }} {{ $prod->unit }}</span>
+                                <span class="badge bg-light text-dark border">{{ $prod->unit }}</span>
+                                @if($prod->has_weight_per_unit)
+                                    <small class="text-muted d-block mt-1">Weight: {{ $prod->formatted_weight_per_unit }}</small>
+                                @endif
                             </td>
                             <td>
                                 <span class="fs-5 fw-bold text-farm-primary">₱{{ number_format($prod->price, 2) }}</span>
+                                <span class="text-muted small">/ {{ $prod->price_unit_label }}</span>
                             </td>
                             <td>
                                 <span class="badge {{ $prod->quantity > 10 ? 'bg-success' : ($prod->quantity > 0 ? 'bg-warning text-dark' : 'bg-danger') }}">
-                                    {{ $prod->stock_status }} ({{ $prod->quantity }})
+                                    Stock: {{ $prod->stock_with_unit }}
                                 </span>
                             </td>
                             <td>

@@ -58,11 +58,24 @@ class Order extends Model
         return $this->order_type === 'bulk';
     }
 
+    public function getStatusLabelAttribute(): string
+    {
+        if (in_array($this->status, ['delivered', 'picked_up'], true)) {
+            return $this->delivery_method === 'pickup' ? 'Picked Up' : 'Delivered';
+        }
+
+        return match ($this->status) {
+            'confirmed' => 'Confirmed',
+            'cancelled' => 'Cancelled',
+            default => 'Pending',
+        };
+    }
+
     public function getStatusBadgeClassAttribute(): string
     {
         return match ($this->status) {
             'confirmed' => 'badge-confirmed',
-            'delivered' => 'badge-delivered',
+            'delivered', 'picked_up' => 'badge-delivered',
             'cancelled' => 'badge-cancelled',
             default => 'badge-pending',
         };

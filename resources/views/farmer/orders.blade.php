@@ -95,8 +95,10 @@
                             <td>
                                 @foreach($ord->items as $it)
                                     <div class="small fw-semibold">
-                                        &bull; {{ $it->quantity }}x {{ $it->product->name ?? 'Produce' }}
-                                        <span class="text-muted" style="font-size: 11px;">({{ ($it->product?->kilograms ?? 1) * $it->quantity }} kg)</span>
+                                        &bull; {{ $it->quantity }} {{ $it->product?->stock_unit_label ?? 'unit' }} {{ $it->product->name ?? 'Produce' }}
+                                        @if($it->product && ($it->product->unit === 'kg' || $it->product->has_weight_per_unit))
+                                            <span class="text-muted" style="font-size: 11px;">({{ number_format($it->product->effective_kilograms * $it->quantity, 1) }} kg)</span>
+                                        @endif
                                     </div>
                                 @endforeach
                             </td>
@@ -104,6 +106,9 @@
                                 <span class="badge bg-light text-dark border small text-capitalize">
                                     {{ $ord->delivery_method }}
                                 </span>
+                                @if($ord->delivery_method === 'deliver')
+                                    <small class="d-block text-muted" style="font-size: 10px;">Fee: ₱{{ number_format($ord->shipping_fee, 2) }}</small>
+                                @endif
                             </td>
                             <td>
                                 <strong class="text-farm-primary">₱{{ number_format($ord->total_amount, 2) }}</strong>
@@ -116,29 +121,82 @@
                             </td>
                             <td>
                                 <span class="badge {{ $ord->status_badge_class }} text-capitalize">
-                                    {{ $ord->status }}
+                                    {{ $ord->status_label }}
                                 </span>
                             </td>
                             <td>
-                                <div class="btn-group btn-group-sm">
+                                <div class="d-flex align-items-center gap-1">
                                     @if($ord->status === 'pending')
-                                        <form action="{{ route('farmer.orders.status', $ord) }}" method="POST" class="m-0">
-                                            @csrf
-                                            <input type="hidden" name="status" value="confirmed">
-                                            <button type="submit" class="btn btn-sm btn-outline-primary" title="Confirm Order">
-                                                Confirm
+                                        @if($ord->delivery_method === 'deliver')
+                                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#confirmDeliveryModalOrders{{ $ord->id }}" title="Confirm & Set Shipping">
+                                                <i class="bi bi-truck me-1"></i> Confirm
                                             </button>
-                                        </form>
+
+                                            <!-- Modal for Delivery Order Confirmation -->
+                                            <div class="modal fade" id="confirmDeliveryModalOrders{{ $ord->id }}" tabindex="-1" aria-hidden="true">
+                                                <div class="modal-dialog modal-dialog-centered modal-sm">
+                                                    <div class="modal-content farm-card border-0 shadow">
+                                                        <div class="modal-header bg-success text-white py-2">
+                                                            <h6 class="modal-title fw-bold"><i class="bi bi-truck me-1"></i> Confirm Delivery</h6>
+                                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                                        </div>
+                                                        <form action="{{ route('farmer.orders.status', $ord) }}" method="POST">
+                                                            @csrf
+                                                            <input type="hidden" name="status" value="confirmed">
+                                                            <div class="modal-body text-start">
+                                                                <p class="small text-muted mb-2">
+                                                                    Set your shipping fee for Order <strong>#{{ $ord->order_number }}</strong> based on distance to the buyer:
+                                                                </p>
+                                                                <label class="form-label fw-bold small">Your Delivery Rate (₱)</label>
+                                                                <div class="input-group input-group-sm mb-2">
+                                                                    <span class="input-group-text">₱</span>
+                                                                    <input type="number" step="0.50" min="0" max="1000" name="shipping_fee" class="form-control" value="{{ $ord->shipping_fee > 0 ? $ord->shipping_fee : 60 }}" required>
+                                                                </div>
+                                                                <small class="text-muted" style="font-size: 11px;">Standard default is ₱60.00. You may adjust according to distance.</small>
+                                                            </div>
+                                                            <div class="modal-footer py-2 bg-light">
+                                                                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                                <button type="submit" class="btn btn-sm btn-success fw-bold">Confirm Order</button>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @else
+                                            <form action="{{ route('farmer.orders.status', $ord) }}" method="POST" class="m-0">
+                                                @csrf
+                                                <input type="hidden" name="status" value="confirmed">
+                                                <button type="submit" class="btn btn-sm btn-outline-primary" title="Confirm Order">
+                                                    <i class="bi bi-check-circle me-1"></i> Confirm
+                                                </button>
+                                            </form>
+                                        @endif
                                     @elseif($ord->status === 'confirmed')
-                                        <form action="{{ route('farmer.orders.status', $ord) }}" method="POST" class="m-0">
-                                            @csrf
-                                            <input type="hidden" name="status" value="delivered">
-                                            <button type="submit" class="btn btn-sm btn-outline-success" title="Mark Delivered">
-                                                Deliver
-                                            </button>
-                                        </form>
+                                        @if($ord->delivery_method === 'pickup')
+                                            <form action="{{ route('farmer.orders.status', $ord) }}" method="POST" class="m-0">
+                                                @csrf
+                                                <input type="hidden" name="status" value="picked_up">
+                                                <button type="submit" class="btn btn-sm btn-outline-success" title="Mark Picked Up">
+                                                    <i class="bi bi-bag-check me-1"></i> Picked Up
+                                                </button>
+                                            </form>
+                                        @else
+                                            <form action="{{ route('farmer.orders.status', $ord) }}" method="POST" class="m-0">
+                                                @csrf
+                                                <input type="hidden" name="status" value="delivered">
+                                                <button type="submit" class="btn btn-sm btn-outline-success" title="Mark Delivered">
+                                                    <i class="bi bi-truck me-1"></i> Deliver
+                                                </button>
+                                            </form>
+                                        @endif
+                                    @elseif(in_array($ord->status, ['delivered', 'picked_up'], true))
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                                            <i class="bi bi-check2-all me-1"></i>{{ $ord->status_label }}
+                                        </span>
                                     @else
-                                        <span class="text-muted small">—</span>
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">
+                                            Cancelled
+                                        </span>
                                     @endif
                                 </div>
                             </td>
