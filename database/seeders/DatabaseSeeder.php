@@ -13,11 +13,23 @@ use App\Models\Recipe;
 use App\Models\RecipeIngredient;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
+    {
+        if (User::where('email', 'admin@farmreach.ph')->exists()) {
+            $this->command?->info('FarmReach demo data already exists; skipping seeding.');
+
+            return;
+        }
+
+        DB::transaction(fn () => $this->seedDemoData());
+    }
+
+    private function seedDemoData(): void
     {
         // 1. Create Administrator (only 1 can exist per specs)
         $admin = User::create([

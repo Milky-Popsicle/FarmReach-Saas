@@ -14,9 +14,10 @@ class OrderWorkflowAndSelectiveCheckoutFeatureTest extends TestCase
 {
     public function test_farmer_pickup_order_marks_as_picked_up(): void
     {
-        $farmer = User::where('role', 'farmer')->first();
-        $buyer = User::where('role', 'buyer')->first();
-        $product = Product::where('user_id', $farmer->id)->first();
+        $this->seed();
+        $farmer = User::where('role', 'farmer')->firstOrFail();
+        $buyer = User::where('role', 'buyer')->firstOrFail();
+        $product = Product::where('user_id', $farmer->id)->firstOrFail();
 
         $order = Order::create([
             'order_number' => 'ORD-'.date('Ymd').'-'.strtoupper(Str::random(5)),
@@ -45,7 +46,6 @@ class OrderWorkflowAndSelectiveCheckoutFeatureTest extends TestCase
             'amount' => 150.00,
         ]);
 
-        // Farmer confirms order
         $response = $this->actingAs($farmer)->post(route('farmer.orders.status', $order), [
             'status' => 'confirmed',
         ]);
@@ -53,7 +53,6 @@ class OrderWorkflowAndSelectiveCheckoutFeatureTest extends TestCase
         $order->refresh();
         $this->assertSame('confirmed', $order->status);
 
-        // Farmer marks as picked up (sending delivered or picked_up for pickup order)
         $response = $this->actingAs($farmer)->post(route('farmer.orders.status', $order), [
             'status' => 'delivered',
         ]);
@@ -67,9 +66,10 @@ class OrderWorkflowAndSelectiveCheckoutFeatureTest extends TestCase
 
     public function test_farmer_can_adjust_shipping_fee_when_confirming_delivery_order(): void
     {
-        $farmer = User::where('role', 'farmer')->first();
-        $buyer = User::where('role', 'buyer')->first();
-        $product = Product::where('user_id', $farmer->id)->first();
+        $this->seed();
+        $farmer = User::where('role', 'farmer')->firstOrFail();
+        $buyer = User::where('role', 'buyer')->firstOrFail();
+        $product = Product::where('user_id', $farmer->id)->firstOrFail();
 
         $order = Order::create([
             'order_number' => 'ORD-'.date('Ymd').'-'.strtoupper(Str::random(5)),
@@ -98,7 +98,6 @@ class OrderWorkflowAndSelectiveCheckoutFeatureTest extends TestCase
             'amount' => 260.00,
         ]);
 
-        // Farmer confirms order and specifies custom distance-based shipping fee of 40.00
         $response = $this->actingAs($farmer)->post(route('farmer.orders.status', $order), [
             'status' => 'confirmed',
             'shipping_fee' => 40.00,
@@ -116,8 +115,9 @@ class OrderWorkflowAndSelectiveCheckoutFeatureTest extends TestCase
 
     public function test_buyer_can_delete_cancelled_order(): void
     {
-        $farmer = User::where('role', 'farmer')->first();
-        $buyer = User::where('role', 'buyer')->first();
+        $this->seed();
+        $farmer = User::where('role', 'farmer')->firstOrFail();
+        $buyer = User::where('role', 'buyer')->firstOrFail();
 
         $order = Order::create([
             'order_number' => 'ORD-'.date('Ymd').'-'.strtoupper(Str::random(5)),
@@ -139,8 +139,9 @@ class OrderWorkflowAndSelectiveCheckoutFeatureTest extends TestCase
 
     public function test_buyer_cannot_delete_non_cancelled_order(): void
     {
-        $farmer = User::where('role', 'farmer')->first();
-        $buyer = User::where('role', 'buyer')->first();
+        $this->seed();
+        $farmer = User::where('role', 'farmer')->firstOrFail();
+        $buyer = User::where('role', 'buyer')->firstOrFail();
 
         $order = Order::create([
             'order_number' => 'ORD-'.date('Ymd').'-'.strtoupper(Str::random(5)),
@@ -162,8 +163,9 @@ class OrderWorkflowAndSelectiveCheckoutFeatureTest extends TestCase
 
     public function test_buyer_can_bulk_delete_cancelled_orders(): void
     {
-        $farmer = User::where('role', 'farmer')->first();
-        $buyer = User::where('role', 'buyer')->first();
+        $this->seed();
+        $farmer = User::where('role', 'farmer')->firstOrFail();
+        $buyer = User::where('role', 'buyer')->firstOrFail();
 
         $order1 = Order::create([
             'order_number' => 'ORD-'.date('Ymd').'-'.strtoupper(Str::random(5)),
@@ -200,13 +202,12 @@ class OrderWorkflowAndSelectiveCheckoutFeatureTest extends TestCase
 
     public function test_selective_cart_checkout_orders_only_selected_items_and_preserves_unselected(): void
     {
-        $buyer = User::where('role', 'buyer')->first();
-        $farmer = User::where('role', 'farmer')->first();
+        $this->seed();
+        $buyer = User::where('role', 'buyer')->firstOrFail();
+        $farmer = User::where('role', 'farmer')->firstOrFail();
 
         $products = Product::where('user_id', $farmer->id)->where('quantity', '>=', 5)->take(2)->get();
-        if ($products->count() < 2) {
-            $this->markTestSkipped('Need at least 2 farmer products with stock for this test.');
-        }
+        $this->assertGreaterThanOrEqual(2, $products->count());
 
         $prod1 = $products[0];
         $prod2 = $products[1];
@@ -214,7 +215,6 @@ class OrderWorkflowAndSelectiveCheckoutFeatureTest extends TestCase
         $initialStock1 = $prod1->quantity;
         $initialStock2 = $prod2->quantity;
 
-        // Populate session cart with both products
         $cart = [
             $prod1->id => [
                 'id' => $prod1->id,
@@ -242,7 +242,6 @@ class OrderWorkflowAndSelectiveCheckoutFeatureTest extends TestCase
             ],
         ];
 
-        // Buyer only selects product 1 to place order
         $response = $this->actingAs($buyer)
             ->withSession(['cart' => $cart])
             ->post(route('checkout.place'), [
@@ -255,13 +254,11 @@ class OrderWorkflowAndSelectiveCheckoutFeatureTest extends TestCase
         $response->assertRedirect(route('buyer.orders'));
         $response->assertSessionHas('success');
 
-        // Check stock: prod1 deducted, prod2 unchanged
         $prod1->refresh();
         $prod2->refresh();
         $this->assertSame($initialStock1 - 2, $prod1->quantity);
         $this->assertSame($initialStock2, $prod2->quantity);
 
-        // Check cart session: prod1 removed, prod2 still in cart
         $sessionCart = session('cart');
         $this->assertIsArray($sessionCart);
         $this->assertArrayNotHasKey($prod1->id, $sessionCart);

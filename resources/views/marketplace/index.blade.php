@@ -74,7 +74,7 @@
         <div class="col-6 col-md-3">
             <div class="stat-card">
                 <span class="text-muted small text-uppercase fw-semibold">Payment Options</span>
-                <h3 class="fw-bold mb-0 text-farm-primary mt-1">COD & GCash</h3>
+                <h3 class="fw-bold mb-0 text-farm-primary mt-1">Cash On Delivery</h3>
             </div>
         </div>
     </div>

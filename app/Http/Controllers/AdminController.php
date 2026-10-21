@@ -89,6 +89,14 @@ class AdminController extends Controller
             return back()->with('error', 'Administrator account cannot be deleted.');
         }
 
+        if ($user->buyerOrders()->exists() || $user->farmerOrders()->exists()) {
+            return back()->with('error', "User '{$user->name}' has order history and cannot be deleted.");
+        }
+
+        if ($user->products()->exists()) {
+            return back()->with('error', "User '{$user->name}' has product listings and cannot be deleted. Deactivate the listings instead.");
+        }
+
         $userName = $user->name;
         $userRole = $user->role;
         $user->delete();

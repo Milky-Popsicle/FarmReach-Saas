@@ -1,58 +1,123 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# FarmReach SaaS
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+FarmReach is a Laravel-based agricultural marketplace for Surigao farmers and buyers. It includes a public marketplace, recipe-to-product matching, cart and checkout, buyer order tracking, a farmer portal, and an admin portal.
 
-## About Laravel
+## Requirements
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- PHP 8.3 or newer
+- Composer
+- MySQL 8.x (the local WAMP MySQL 8.4 installation is supported)
+- Node.js and npm (only needed for the optional Vite build)
+- A terminal with the project directory as the working directory
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Local Setup
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+1. Install PHP dependencies:
 
-## Learning Laravel
+   ```bash
+   composer install
+   ```
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+2. Create the local environment file if it does not exist:
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+   ```bash
+   copy .env.example .env
+   php artisan key:generate
+   ```
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+3. Create the `farmreach_core` MySQL database in WAMP, then confirm the `DB_*` values in `.env`.
 
-## Agentic Development
+4. Run the schema and demo data:
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+   ```bash
+   php artisan migrate --seed
+   ```
+
+   The seeder creates the demo accounts below. It is safe to run again: if the demo administrator already exists, seeding is skipped instead of creating duplicates.
+
+5. Link uploaded product images if the application uses local uploads:
+
+   ```bash
+   php artisan storage:link
+   ```
+
+6. Start the application:
+
+   ```bash
+   php artisan serve
+   ```
+
+   Open <http://127.0.0.1:8000>. A WAMP virtual host can be used instead of `artisan serve`.
+
+The main interface uses the checked-in CSS and JavaScript in `public/`. Vite is only used by the default Laravel welcome page, so a frontend build is not required for the normal application pages.
+
+## Demo Accounts
+
+All demo accounts use the password `password`.
+
+| Role | Email | Phone |
+| --- | --- | --- |
+| Admin | `admin@farmreach.ph` | `09123456789` |
+| Farmer | `justin@nabunturanfarm.ph` | `09876543210` |
+| Farmer | `maria@surigaogreens.ph` | `09771234567` |
+| Farmer | `pedro@caragaorganic.ph` | `09669876543` |
+| Buyer | `shery@buyer.ph` | `09151112233` |
+| Buyer | `rynard@caragabistro.ph` | `09172223344` |
+| Buyer | `ana@buyer.ph` | `09203334455` |
+
+Change these passwords before exposing the application outside a local development environment.
+
+## Running Tests
+
+The test suite uses an in-memory SQLite database. It does not read or change the local MySQL database, and no separate test schema is required.
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+php artisan test
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Run a single file or test:
 
-## Contributing
+```bash
+php artisan test tests/Feature/FarmReachTest.php
+php artisan test --filter=test_farmer_can_confirm_order
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Feature tests use `LazilyRefreshDatabase` and seed the demo data explicitly for each test. Factories are available in `database/factories/` for tests that need their own records.
 
-## Code of Conduct
+## Database Backup and Restore
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Use `mysqldump` with the password prompt. Do not put the database password on the command line or commit a dump to the repository.
 
-## Security Vulnerabilities
+```powershell
+& "C:\wamp64\bin\mysql\mysql8.4.7\bin\mysqldump.exe" -u root -p `
+  --single-transaction --quick --routines --triggers --events `
+  --no-tablespaces --default-character-set=utf8mb4 `
+  --databases farmreach_core `
+  --result-file="C:\Users\USER\Documents\FarmReach-Backups\farmreach_core.sql"
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Back up `storage/app/public` separately if local uploads matter. To restore, use the matching `mysql.exe` client against the same schema name, after taking a fresh backup.
 
-## License
+Never commit `.env`, database dumps, or uploaded private files to Git.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Main Areas
+
+- `/marketplace` - public listings and price comparison
+- `/recipes` - recipes and ingredient-to-product matching
+- `/cart` and `/checkout` - cart and order placement
+- `/buyer/orders` - buyer and peer order tracking
+- `/farmer` - farmer product and order management
+- `/admin` - administrator dashboard, users, announcements, and recipes
+- `/api` - JSON endpoints for products, orders, profiles, sales data, recipes, and farmer locations
+
+## Project Structure
+
+- `app/Http/Controllers/` - request handling and portal workflows
+- `app/Models/` - Eloquent models and domain helpers
+- `database/migrations/` - schema
+- `database/seeders/` - demo data
+- `database/factories/` - test data builders
+- `resources/views/` - Blade templates
+- `public/css/` and `public/js/` - checked-in frontend assets
+- `routes/web.php` and `routes/api.php` - route definitions
+- `tests/Feature/` - HTTP and workflow tests

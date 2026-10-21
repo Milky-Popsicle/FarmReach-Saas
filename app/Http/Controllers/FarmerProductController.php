@@ -170,6 +170,10 @@ class FarmerProductController extends Controller
             abort(403);
         }
 
+        if ($product->orderItems()->exists()) {
+            return back()->with('error', "Product '{$product->name}' has order history and cannot be deleted. Deactivate it instead to preserve past orders.");
+        }
+
         $name = $product->name;
         $product->delete();
 

@@ -171,6 +171,14 @@
                                                 </button>
                                             </form>
                                         @endif
+
+                                        <form action="{{ route('farmer.orders.status', $ord) }}" method="POST" class="swal-confirm m-0" data-confirm="Cancel order #{{ $ord->order_number }}? The reserved stock will be returned to your inventory." data-confirm-btn="Yes, cancel">
+                                            @csrf
+                                            <input type="hidden" name="status" value="cancelled">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Cancel Order">
+                                                <i class="bi bi-x-circle me-1"></i> Cancel
+                                            </button>
+                                        </form>
                                     @elseif($ord->status === 'confirmed')
                                         @if($ord->delivery_method === 'pickup')
                                             <form action="{{ route('farmer.orders.status', $ord) }}" method="POST" class="m-0">
@@ -189,6 +197,14 @@
                                                 </button>
                                             </form>
                                         @endif
+
+                                        <form action="{{ route('farmer.orders.status', $ord) }}" method="POST" class="swal-confirm m-0" data-confirm="Cancel order #{{ $ord->order_number }}? The reserved stock will be returned to your inventory." data-confirm-btn="Yes, cancel">
+                                            @csrf
+                                            <input type="hidden" name="status" value="cancelled">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Cancel Order">
+                                                <i class="bi bi-x-circle me-1"></i> Cancel
+                                            </button>
+                                        </form>
                                     @elseif(in_array($ord->status, ['delivered', 'picked_up'], true))
                                         <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
                                             <i class="bi bi-check2-all me-1"></i>{{ $ord->status_label }}

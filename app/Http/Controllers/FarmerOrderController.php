@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
 use App\Models\Order;
+use App\Models\Product;
+use DomainException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class FarmerOrderController extends Controller
 {
@@ -51,47 +54,74 @@ class FarmerOrderController extends Controller
 
         $validated = $request->validate([
             'status' => 'required|in:confirmed,delivered,picked_up,cancelled',
-            'shipping_fee' => 'nullable|numeric|min:0',
+            'shipping_fee' => 'nullable|numeric|min:0|max:1000',
         ]);
 
         $targetStatus = $validated['status'];
         if ($order->delivery_method === 'pickup' && $targetStatus === 'delivered') {
             $targetStatus = 'picked_up';
         }
-
-        $oldStatus = $order->status;
-        $order->status = $targetStatus;
-
-        // If confirming a delivery order and farmer sets shipping fee, update order totals
-        if ($targetStatus === 'confirmed' && $order->delivery_method === 'deliver' && $request->filled('shipping_fee')) {
-            $newShippingFee = (float) $request->shipping_fee;
-            $itemsTotal = $order->items->sum('subtotal');
-            $order->shipping_fee = $newShippingFee;
-            $order->total_amount = $itemsTotal + $newShippingFee;
-
-            if ($order->payment) {
-                $order->payment->update(['amount' => $order->total_amount]);
-            }
+        if ($order->delivery_method === 'deliver' && $targetStatus === 'picked_up') {
+            $targetStatus = 'delivered';
         }
 
-        $order->save();
+        try {
+            $order = DB::transaction(function () use ($order, $targetStatus, $request, $validated, $farmer) {
+                $lockedOrder = Order::with(['items', 'payment'])
+                    ->lockForUpdate()
+                    ->findOrFail($order->id);
 
-        // If marked delivered or picked up, also mark payment paid
-        if (in_array($targetStatus, ['delivered', 'picked_up'], true) && $order->payment) {
-            $order->payment->update(['payment_status' => 'paid']);
+                $allowedTransitions = [
+                    'pending' => ['confirmed', 'cancelled'],
+                    'confirmed' => ['delivered', 'picked_up', 'cancelled'],
+                ];
+
+                if (! in_array($targetStatus, $allowedTransitions[$lockedOrder->status] ?? [], true)) {
+                    throw new DomainException("Order #{$lockedOrder->order_number} cannot be changed from {$lockedOrder->status_label} to {$targetStatus}.");
+                }
+
+                $oldStatus = $lockedOrder->status;
+
+                if ($targetStatus === 'cancelled') {
+                    foreach ($lockedOrder->items as $item) {
+                        Product::whereKey($item->product_id)->increment('quantity', $item->quantity);
+                    }
+                }
+
+                if ($targetStatus === 'confirmed' && $lockedOrder->delivery_method === 'deliver' && $request->filled('shipping_fee')) {
+                    $itemsTotal = $lockedOrder->items->sum('subtotal');
+                    $lockedOrder->shipping_fee = (float) $validated['shipping_fee'];
+                    $lockedOrder->total_amount = $itemsTotal + $lockedOrder->shipping_fee;
+
+                    if ($lockedOrder->payment) {
+                        $lockedOrder->payment->update(['amount' => $lockedOrder->total_amount]);
+                    }
+                }
+
+                $lockedOrder->status = $targetStatus;
+                $lockedOrder->save();
+
+                if (in_array($targetStatus, ['delivered', 'picked_up'], true) && $lockedOrder->payment) {
+                    $lockedOrder->payment->update(['payment_status' => 'paid']);
+                }
+
+                ActivityLog::log(
+                    $farmer->id,
+                    'Order Status Updated',
+                    "Farmer updated Order #{$lockedOrder->order_number} status from {$oldStatus} to {$lockedOrder->status_label}."
+                );
+
+                return $lockedOrder;
+            });
+        } catch (DomainException $exception) {
+            return back()->with('error', $exception->getMessage());
         }
-
-        ActivityLog::log(
-            $farmer->id,
-            'Order Status Updated',
-            "Farmer updated Order #{$order->order_number} status from {$oldStatus} to {$order->status_label}."
-        );
 
         if ($request->ajax()) {
             return response()->json([
                 'success' => true,
                 'message' => "Order #{$order->order_number} status updated to {$order->status_label}",
-                'new_status' => $targetStatus,
+                'new_status' => $order->status,
                 'status_label' => $order->status_label,
                 'badge_class' => $order->status_badge_class,
                 'total_amount' => number_format($order->total_amount, 2),

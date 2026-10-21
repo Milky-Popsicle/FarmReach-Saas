@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\ActivityLog;
 use App\Models\Order;
 use App\Models\Product;
+use DomainException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class BuyerOrderController extends Controller
 {
@@ -76,18 +78,27 @@ class BuyerOrderController extends Controller
             abort(403);
         }
 
-        if ($order->status !== 'pending') {
-            return back()->with('error', 'Only pending orders can be cancelled.');
+        try {
+            DB::transaction(function () use ($order, $buyer) {
+                $lockedOrder = Order::with('items')
+                    ->lockForUpdate()
+                    ->findOrFail($order->id);
+
+                if ($lockedOrder->status !== 'pending') {
+                    throw new DomainException('Only pending orders can be cancelled.');
+                }
+
+                foreach ($lockedOrder->items as $item) {
+                    Product::whereKey($item->product_id)->increment('quantity', $item->quantity);
+                }
+
+                $lockedOrder->update(['status' => 'cancelled']);
+
+                ActivityLog::log($buyer->id, 'Order Cancelled', "Buyer cancelled Order #{$lockedOrder->order_number}.");
+            });
+        } catch (DomainException $exception) {
+            return back()->with('error', $exception->getMessage());
         }
-
-        // Return stock
-        foreach ($order->items as $item) {
-            Product::where('id', $item->product_id)->increment('quantity', $item->quantity);
-        }
-
-        $order->update(['status' => 'cancelled']);
-
-        ActivityLog::log($buyer->id, 'Order Cancelled', "Buyer cancelled Order #{$order->order_number}.");
 
         return back()->with('success', "Order #{$order->order_number} has been cancelled.");
     }
@@ -99,27 +110,27 @@ class BuyerOrderController extends Controller
             abort(403);
         }
 
+        $order->loadMissing('items.product.farmer');
+
         $cart = session()->get('cart', []);
         $reorderedCount = 0;
 
         foreach ($order->items as $item) {
             $product = $item->product;
-            if ($product && $product->is_active && $product->quantity >= $item->quantity) {
-                $cart[$product->id] = [
-                    'id' => $product->id,
-                    'name' => $product->name,
-                    'price' => (float) $product->price,
-                    'kilograms' => (float) $product->kilograms,
-                    'unit' => $product->unit,
-                    'image_path' => $product->image_path,
-                    'farmer_name' => $product->farmer->name,
-                    'farmer_id' => $product->user_id,
-                    'farmer_address' => $product->farmer->address,
-                    'quantity' => $item->quantity,
-                    'order_type' => $order->order_type,
-                ];
-                $reorderedCount++;
+
+            if (! $product || ! $product->is_active || $product->user_id === $buyer->id) {
+                continue;
             }
+
+            $existingQuantity = (int) ($cart[$product->id]['quantity'] ?? 0);
+            $newQuantity = $existingQuantity + $item->quantity;
+
+            if ($newQuantity > $product->quantity) {
+                continue;
+            }
+
+            $cart[$product->id] = $product->cartItemPayload($newQuantity, $order->order_type);
+            $reorderedCount++;
         }
 
         session()->put('cart', $cart);

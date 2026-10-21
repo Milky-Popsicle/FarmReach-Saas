@@ -193,4 +193,52 @@ class Product extends Model
 
         return asset(ltrim($value, '/'));
     }
+
+    /**
+     * Build the session cart payload for this product.
+     *
+     * @return array{
+     *     id: int,
+     *     name: string,
+     *     price: float,
+     *     kilograms: float,
+     *     weight_per_unit: float|null,
+     *     has_weight: bool,
+     *     unit: string|null,
+     *     selling_unit: string|null,
+     *     stock_unit_label: string,
+     *     price_unit_label: string,
+     *     image_path: string,
+     *     farmer_name: string|null,
+     *     farmer_id: int,
+     *     farmer_address: string|null,
+     *     quantity: int,
+     *     order_type: string
+     * }
+     */
+    public function cartItemPayload(int $quantity, ?string $orderType = null): array
+    {
+        if (! in_array($orderType, ['standard', 'bulk'], true)) {
+            $orderType = null;
+        }
+
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'price' => (float) $this->price,
+            'kilograms' => (float) $this->effective_kilograms,
+            'weight_per_unit' => $this->kilograms ? (float) $this->kilograms : null,
+            'has_weight' => $this->has_weight_per_unit,
+            'unit' => $this->unit,
+            'selling_unit' => $this->unit,
+            'stock_unit_label' => $this->stock_unit_label,
+            'price_unit_label' => $this->price_unit_label,
+            'image_path' => $this->image_path,
+            'farmer_name' => $this->farmer?->name,
+            'farmer_id' => $this->user_id,
+            'farmer_address' => $this->farmer?->address,
+            'quantity' => $quantity,
+            'order_type' => $orderType ?? ($quantity >= 20 ? 'bulk' : 'standard'),
+        ];
+    }
 }
