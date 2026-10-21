@@ -28,7 +28,7 @@ class FarmerProductController extends Controller
 
         $farmerOrdersCount = Order::where('farmer_id', $farmer->id)->count();
         $farmerPendingOrders = Order::where('farmer_id', $farmer->id)->where('status', 'pending')->count();
-        $farmerTotalSales = Order::where('farmer_id', $farmer->id)->where('status', 'delivered')->sum('total_amount');
+        $farmerTotalSales = Order::where('farmer_id', $farmer->id)->whereIn('status', Order::COMPLETED_STATUSES)->sum('total_amount');
 
         $featuredProducts = Product::with('farmer')
             ->where('is_active', true)

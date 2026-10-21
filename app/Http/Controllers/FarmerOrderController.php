@@ -34,7 +34,7 @@ class FarmerOrderController extends Controller
         $standardOrdersCount = Order::where('farmer_id', $farmer->id)->where('order_type', 'standard')->count();
         $bulkOrdersCount = Order::where('farmer_id', $farmer->id)->where('order_type', 'bulk')->count();
         $pendingOrdersCount = Order::where('farmer_id', $farmer->id)->where('status', 'pending')->count();
-        $totalSales = Order::where('farmer_id', $farmer->id)->whereIn('status', ['delivered', 'picked_up'])->sum('total_amount');
+        $totalSales = Order::where('farmer_id', $farmer->id)->whereIn('status', Order::COMPLETED_STATUSES)->sum('total_amount');
 
         return view('farmer.orders', compact(
             'orders',

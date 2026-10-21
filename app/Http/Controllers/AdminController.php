@@ -61,51 +61,6 @@ class AdminController extends Controller
         ));
     }
 
-    public function users(Request $request)
-    {
-        $query = User::whereIn('role', ['farmer', 'buyer']);
-
-        if ($request->filled('role') && in_array($request->role, ['farmer', 'buyer'])) {
-            $query->where('role', $request->role);
-        }
-
-        if ($request->filled('search')) {
-            $s = trim($request->search);
-            $query->where(function ($q) use ($s) {
-                $q->where('name', 'LIKE', "%{$s}%")
-                    ->orWhere('email', 'LIKE', "%{$s}%")
-                    ->orWhere('phone_number', 'LIKE', "%{$s}%");
-            });
-        }
-
-        $users = $query->latest()->paginate(15)->withQueryString();
-
-        return view('admin.users', compact('users'));
-    }
-
-    public function deleteUser(User $user)
-    {
-        if ($user->isAdmin()) {
-            return back()->with('error', 'Administrator account cannot be deleted.');
-        }
-
-        if ($user->buyerOrders()->exists() || $user->farmerOrders()->exists()) {
-            return back()->with('error', "User '{$user->name}' has order history and cannot be deleted.");
-        }
-
-        if ($user->products()->exists()) {
-            return back()->with('error', "User '{$user->name}' has product listings and cannot be deleted. Deactivate the listings instead.");
-        }
-
-        $userName = $user->name;
-        $userRole = $user->role;
-        $user->delete();
-
-        ActivityLog::log(Auth::id(), 'User Deleted', "Admin deleted {$userRole} account: {$userName}.");
-
-        return back()->with('success', "User '{$userName}' has been deleted.");
-    }
-
     public function announcements()
     {
         $announcements = Announcement::with('author')->latest()->paginate(10);

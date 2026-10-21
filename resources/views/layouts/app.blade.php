@@ -143,9 +143,9 @@
                                 @if(Auth::user()->isFarmer())
                                     <li><a class="dropdown-item py-2" href="{{ route('farmer.products') }}"><i class="bi bi-box-seam me-2 text-muted"></i> My Products</a></li>
                                     <li><a class="dropdown-item py-2" href="{{ route('farmer.orders') }}"><i class="bi bi-receipt me-2 text-muted"></i> Incoming Orders</a></li>
+                                    <li><a class="dropdown-item py-2" href="{{ route('farmer.sales.index') }}"><i class="bi bi-graph-up-arrow me-2 text-muted"></i> Sales History</a></li>
                                     <li><a class="dropdown-item py-2" href="{{ route('buyer.orders') }}"><i class="bi bi-bag-check me-2 text-muted"></i> My Purchases</a></li>
                                 @elseif(Auth::user()->isAdmin())
-                                    <li><a class="dropdown-item py-2" href="{{ route('admin.users') }}"><i class="bi bi-people me-2 text-muted"></i> Manage Users</a></li>
                                     <li><a class="dropdown-item py-2" href="{{ route('admin.announcements') }}"><i class="bi bi-megaphone me-2 text-muted"></i> Announcements</a></li>
                                     <li><a class="dropdown-item py-2" href="{{ route('admin.recipes') }}"><i class="bi bi-book me-2 text-muted"></i> Recipes</a></li>
                                 @else
@@ -262,6 +262,10 @@
                             <i class="bi bi-receipt"></i>
                             <span>Incoming Orders</span>
                         </a>
+                        <a href="{{ route('farmer.sales.index') }}" class="drawer-nav-link {{ request()->routeIs('farmer.sales.*') ? 'active' : '' }}">
+                            <i class="bi bi-graph-up-arrow"></i>
+                            <span>Sales History</span>
+                        </a>
                         <a href="{{ route('buyer.orders') }}" class="drawer-nav-link {{ request()->routeIs('buyer.orders') ? 'active' : '' }}">
                             <i class="bi bi-bag-check"></i>
                             <span>My Purchases</span>
@@ -273,10 +277,6 @@
                         <a href="{{ route('admin.dashboard') }}" class="drawer-nav-link">
                             <i class="bi bi-shield-lock"></i>
                             <span>Admin Panel</span>
-                        </a>
-                        <a href="{{ route('admin.users') }}" class="drawer-nav-link">
-                            <i class="bi bi-people"></i>
-                            <span>Manage Users</span>
                         </a>
                         <a href="{{ route('admin.announcements') }}" class="drawer-nav-link">
                             <i class="bi bi-megaphone"></i>

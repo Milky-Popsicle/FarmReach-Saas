@@ -9,6 +9,7 @@ use App\Models\Payment;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 class StockAndOrderIntegrityFeatureTest extends TestCase
@@ -285,29 +286,38 @@ class StockAndOrderIntegrityFeatureTest extends TestCase
         $product->delete();
     }
 
-    public function test_admin_cannot_delete_users_with_order_or_product_history(): void
+    public function test_admin_users_management_routes_are_removed_and_user_records_are_preserved(): void
     {
         $admin = User::factory()->admin()->create();
-
         $buyer = User::factory()->buyer()->create();
         $farmer = User::factory()->farmer()->create();
         $product = $this->createProduct($farmer);
-        $this->createOrder($buyer, $farmer, $product, 1);
+        $order = $this->createOrder($buyer, $farmer, $product, 1);
 
-        $response = $this->actingAs($admin)->delete(route('admin.users.delete', $buyer));
-        $response->assertSessionHas('error');
+        $this->assertFalse(Route::has('admin.users'));
+        $this->assertFalse(Route::has('admin.users.delete'));
+
+        $this->get('/admin/users')->assertNotFound();
+        $this->actingAs($admin)->get('/admin/users')->assertNotFound();
+        $this->actingAs($admin)->delete("/admin/users/{$buyer->id}")->assertNotFound();
+
         $this->assertDatabaseHas('users', ['id' => $buyer->id]);
-
-        $response = $this->actingAs($admin)->delete(route('admin.users.delete', $farmer));
-        $response->assertSessionHas('error');
         $this->assertDatabaseHas('users', ['id' => $farmer->id]);
+        $this->assertDatabaseHas('products', ['id' => $product->id]);
+        $this->assertDatabaseHas('orders', ['id' => $order->id]);
 
-        $cleanBuyer = User::factory()->buyer()->create();
+        $this->actingAs($admin)
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertDontSee('Manage Users');
 
-        $response = $this->actingAs($admin)->delete(route('admin.users.delete', $cleanBuyer));
+        $this->actingAs($admin)->get(route('admin.announcements'))->assertOk();
+        $this->actingAs($admin)->get(route('admin.recipes'))->assertOk();
 
-        $response->assertSessionHas('success');
-        $this->assertDatabaseMissing('users', ['id' => $cleanBuyer->id]);
+        $this->actingAs($admin)
+            ->get(route('marketplace'))
+            ->assertOk()
+            ->assertDontSee('Manage Users');
     }
 
     /**

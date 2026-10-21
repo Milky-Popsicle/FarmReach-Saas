@@ -36,7 +36,7 @@
         </div>
         <div class="col-6 col-md-3">
             <div class="stat-card stat-secondary">
-                <span class="text-muted small text-uppercase fw-semibold">Delivered Revenue</span>
+                <span class="text-muted small text-uppercase fw-semibold">Completed Revenue</span>
                 <h3 class="fw-bold mb-0 text-success mt-1">₱{{ number_format($totalSales, 2) }}</h3>
             </div>
         </div>

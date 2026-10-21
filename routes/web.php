@@ -7,6 +7,7 @@ use App\Http\Controllers\BuyerOrderController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\FarmerOrderController;
 use App\Http\Controllers\FarmerProductController;
+use App\Http\Controllers\FarmerSalesHistoryController;
 use App\Http\Controllers\MarketplaceController;
 use App\Http\Controllers\RecipeController;
 use Illuminate\Support\Facades\Route;
@@ -76,13 +77,14 @@ Route::middleware(['auth', 'role:farmer,admin'])->prefix('farmer')->name('farmer
 
     Route::get('/orders', [FarmerOrderController::class, 'index'])->name('orders');
     Route::post('/orders/{order}/status', [FarmerOrderController::class, 'updateStatus'])->name('orders.status');
+
+    Route::get('/sales', [FarmerSalesHistoryController::class, 'index'])->name('sales.index');
+    Route::get('/sales/{order}', [FarmerSalesHistoryController::class, 'show'])->name('sales.show');
 });
 
 // Admin Portal
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
-    Route::get('/users', [AdminController::class, 'users'])->name('users');
-    Route::delete('/users/{user}', [AdminController::class, 'deleteUser'])->name('users.delete');
 
     Route::get('/announcements', [AdminController::class, 'announcements'])->name('announcements');
     Route::post('/announcements', [AdminController::class, 'storeAnnouncement'])->name('announcements.store');
