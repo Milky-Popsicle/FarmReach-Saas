@@ -51,6 +51,80 @@ FarmReach is a Laravel-based agricultural marketplace for Surigao farmers and bu
 
 The main interface uses the checked-in CSS and JavaScript in `public/`. Vite is only used by the default Laravel welcome page, so a frontend build is not required for the normal application pages.
 
+## Mail and Password Recovery
+
+### Local development
+
+FarmReach uses Gmail SMTP for local password-reset emails. Configure it in `.env`:
+
+```env
+MAIL_MAILER=smtp
+MAIL_SCHEME=null
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=your-gmail-address
+MAIL_PASSWORD=your-google-app-password
+MAIL_FROM_ADDRESS=your-gmail-address
+MAIL_FROM_NAME="${APP_NAME}"
+MAIL_URL=null
+```
+
+Use a Google App Password, not the normal Gmail account password. Enable 2-Step Verification on the Google account, create an App Password, and remove any spaces when pasting it. Keep `MAIL_URL=null`; an empty value can break Laravel mail transport resolution.
+
+`.env` is ignored by Git. Never commit it, and never put real credentials in `.env.example` or source code.
+
+Password-reset emails are sent synchronously. If delivery fails, the recovery form shows an error instead of claiming the email was sent. Reset tokens expire after 60 minutes, are single-use, and new passwords are hashed.
+
+### Production
+
+The application does not require Postmark, a paid provider, or a newly purchased domain. Production can use any mail transport supported by Laravel, configured through environment variables or the hosting platform's secret manager.
+
+Set production values in the hosting platform, not in Git:
+
+```env
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://your-production-domain
+
+MAIL_MAILER=smtp
+MAIL_SCHEME=null
+MAIL_HOST=your-provider-smtp-host
+MAIL_PORT=587
+MAIL_USERNAME=your-provider-username
+MAIL_PASSWORD=your-provider-password
+MAIL_FROM_ADDRESS=no-reply@your-sender-domain
+MAIL_FROM_NAME="FarmReach"
+MAIL_URL=null
+```
+
+For API-based providers, use the corresponding Laravel mailer and credential variables. Examples include:
+
+- Amazon SES: `MAIL_MAILER=ses`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION`
+- Postmark: `MAIL_MAILER=postmark`, `POSTMARK_API_KEY`
+- Resend: `MAIL_MAILER=resend`, `RESEND_API_KEY`
+
+These are examples, not requirements. Some API providers require an additional bridge package and mailer configuration: Postmark uses `symfony/postmark-mailer`, Resend uses `resend/resend-php`, and Amazon SES uses `aws/aws-sdk-php`. Those packages are not installed by default. Install only the one you choose, and only after approval. Choose the provider at deployment time based on budget, volume, and whether you already own a suitable domain.
+
+Sender verification requirements depend on the provider:
+
+- If you already own a domain, verify it and configure SPF, DKIM, and DMARC records.
+- If you do not own a domain, use a provider that supports single-sender email verification or an existing domain. Do not buy a domain solely for this feature unless you choose to.
+- Do not use a personal Gmail account as the permanent production sender.
+
+After changing production mail settings, rebuild the configuration cache:
+
+```bash
+php artisan config:cache
+```
+
+Then send a real password-reset email to a test account and check the provider dashboard and recipient inbox. Keep staging and production credentials separate, and rotate any temporary Gmail App Password after the production cutover.
+
+Confirm `.env` remains excluded from Git:
+
+```bash
+git check-ignore .env
+```
+
 ## Demo Accounts
 
 All demo accounts use the password `password`.

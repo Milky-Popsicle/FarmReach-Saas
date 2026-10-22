@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\ActivityLog;
 use App\Models\Order;
 use App\Models\Product;
+use App\Notifications\OrderCancelledNotification;
+use App\Notifications\OrderStatusChangedNotification;
 use DomainException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -65,8 +67,10 @@ class FarmerOrderController extends Controller
             $targetStatus = 'delivered';
         }
 
+        $restockedProductIds = [];
+
         try {
-            $order = DB::transaction(function () use ($order, $targetStatus, $request, $validated, $farmer) {
+            $order = DB::transaction(function () use ($order, $targetStatus, $request, $validated, $farmer, &$restockedProductIds) {
                 $lockedOrder = Order::with(['items', 'payment'])
                     ->lockForUpdate()
                     ->findOrFail($order->id);
@@ -85,6 +89,7 @@ class FarmerOrderController extends Controller
                 if ($targetStatus === 'cancelled') {
                     foreach ($lockedOrder->items as $item) {
                         Product::whereKey($item->product_id)->increment('quantity', $item->quantity);
+                        $restockedProductIds[] = $item->product_id;
                     }
                 }
 
@@ -115,6 +120,50 @@ class FarmerOrderController extends Controller
             });
         } catch (DomainException $exception) {
             return back()->with('error', $exception->getMessage());
+        }
+
+        $buyer = $order->buyer;
+        $buyerName = $buyer?->name ?? 'Buyer';
+
+        if ($targetStatus === 'confirmed') {
+            $buyer?->notify(new OrderStatusChangedNotification(
+                orderNumber: $order->order_number,
+                status: $targetStatus,
+                statusLabel: $order->status_label,
+                audience: 'buyer',
+                farmerName: $farmer->name,
+                buyerName: $buyerName,
+            ));
+        } elseif (in_array($targetStatus, Order::COMPLETED_STATUSES, true)) {
+            $buyer?->notify(new OrderStatusChangedNotification(
+                orderNumber: $order->order_number,
+                status: $targetStatus,
+                statusLabel: $order->status_label,
+                audience: 'buyer',
+                farmerName: $farmer->name,
+                buyerName: $buyerName,
+            ));
+
+            $farmer->notify(new OrderStatusChangedNotification(
+                orderNumber: $order->order_number,
+                status: $targetStatus,
+                statusLabel: $order->status_label,
+                audience: 'farmer',
+                farmerName: $farmer->name,
+                buyerName: $buyerName,
+            ));
+        } elseif ($targetStatus === 'cancelled') {
+            $buyer?->notify(new OrderCancelledNotification(
+                orderNumber: $order->order_number,
+                cancelledBy: 'farmer',
+                counterpartName: $farmer->name,
+            ));
+        }
+
+        if ($restockedProductIds !== []) {
+            Product::whereIn('id', array_unique($restockedProductIds))
+                ->get()
+                ->each(fn (Product $product) => $product->resetLowStockNotificationIfReplenished());
         }
 
         if ($request->ajax()) {

@@ -20,13 +20,15 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        if (User::where('email', 'admin@farmreach.ph')->exists()) {
-            $this->command?->info('FarmReach demo data already exists; skipping seeding.');
+        $demoDataExists = User::where('email', 'admin@farmreach.ph')->exists();
 
-            return;
+        if ($demoDataExists) {
+            $this->command?->info('FarmReach demo data already exists; skipping demo seeding.');
+        } else {
+            DB::transaction(fn () => $this->seedDemoData());
         }
 
-        DB::transaction(fn () => $this->seedDemoData());
+        $this->call(ProductCategorySeeder::class);
     }
 
     private function seedDemoData(): void

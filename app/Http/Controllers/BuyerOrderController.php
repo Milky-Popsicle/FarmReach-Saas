@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ActivityLog;
 use App\Models\Order;
 use App\Models\Product;
+use App\Notifications\OrderCancelledNotification;
 use DomainException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -79,7 +80,9 @@ class BuyerOrderController extends Controller
         }
 
         try {
-            DB::transaction(function () use ($order, $buyer) {
+            $restockedProductIds = [];
+
+            DB::transaction(function () use ($order, $buyer, &$restockedProductIds) {
                 $lockedOrder = Order::with('items')
                     ->lockForUpdate()
                     ->findOrFail($order->id);
@@ -90,6 +93,7 @@ class BuyerOrderController extends Controller
 
                 foreach ($lockedOrder->items as $item) {
                     Product::whereKey($item->product_id)->increment('quantity', $item->quantity);
+                    $restockedProductIds[] = $item->product_id;
                 }
 
                 $lockedOrder->update(['status' => 'cancelled']);
@@ -98,6 +102,18 @@ class BuyerOrderController extends Controller
             });
         } catch (DomainException $exception) {
             return back()->with('error', $exception->getMessage());
+        }
+
+        $order->farmer?->notify(new OrderCancelledNotification(
+            orderNumber: $order->order_number,
+            cancelledBy: 'buyer',
+            counterpartName: $buyer->name,
+        ));
+
+        if ($restockedProductIds !== []) {
+            Product::whereIn('id', array_unique($restockedProductIds))
+                ->get()
+                ->each(fn (Product $product) => $product->resetLowStockNotificationIfReplenished());
         }
 
         return back()->with('success', "Order #{$order->order_number} has been cancelled.");

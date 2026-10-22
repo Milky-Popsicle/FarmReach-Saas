@@ -4,12 +4,29 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
 use App\Models\User;
+use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
+use Illuminate\View\View;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 
 class AuthController extends Controller
 {
+    private const GENERIC_RESET_MESSAGE = 'If an account with that email exists, password reset instructions have been sent.';
+
+    private const DELIVERY_FAILED_MESSAGE = 'We could not send the password reset email right now. Please try again in a few minutes.';
+
+    private const RESET_THROTTLED_MESSAGE = 'If you do not receive the email, please wait a minute before requesting another reset link.';
+
+    private const PHONE_RECOVERY_MESSAGE = 'Password recovery is currently available by email only. Phone recovery requires SMS verification, which is not currently enabled.';
+
+    private const INVALID_RESET_MESSAGE = 'This password reset link is invalid or has expired. Please request a new one.';
+
     public function showLogin()
     {
         if (Auth::check()) {
@@ -110,24 +127,109 @@ class AuthController extends Controller
         return view('auth.forgot-password');
     }
 
-    public function sendResetLink(Request $request)
+    public function sendResetLink(Request $request): RedirectResponse
     {
-        $request->validate([
-            'login_id' => 'required|string',
+        $validated = $request->validate([
+            'login_id' => ['required', 'string', 'email', 'max:190'],
+        ], [
+            'login_id.required' => 'Enter your registered email address.',
+            'login_id.email' => self::PHONE_RECOVERY_MESSAGE,
         ]);
 
-        $loginId = trim($request->login_id);
-        $field = filter_var($loginId, FILTER_VALIDATE_EMAIL) ? 'email' : 'phone_number';
+        $email = $validated['login_id'];
 
-        $user = User::where($field, $loginId)->first();
+        try {
+            $status = Password::sendResetLink(['email' => $email]);
+        } catch (TransportExceptionInterface $exception) {
+            $this->logPasswordResetFailure($exception, 'transport');
 
-        if ($user) {
-            ActivityLog::log($user->id, 'Password Reset Requested', "Password reset link requested for {$user->name}.");
+            return back()
+                ->with('error', self::DELIVERY_FAILED_MESSAGE)
+                ->withInput($request->only('login_id'));
+        } catch (\Throwable $exception) {
+            $this->logPasswordResetFailure($exception, 'unexpected');
 
-            return back()->with('success', 'Password reset instructions have been sent to your registered contact.');
+            return back()
+                ->with('error', self::DELIVERY_FAILED_MESSAGE)
+                ->withInput($request->only('login_id'));
         }
 
-        return back()->withErrors(['login_id' => 'No account found with that email or phone number.']);
+        if ($status === Password::RESET_LINK_SENT) {
+            $user = User::where('email', $email)->first();
+
+            if ($user) {
+                ActivityLog::log($user->id, 'Password Reset Requested', "Password reset link requested for {$user->name}.");
+            }
+        }
+
+        if ($status === Password::RESET_THROTTLED) {
+            return back()->with('success', self::RESET_THROTTLED_MESSAGE);
+        }
+
+        return back()->with('success', self::GENERIC_RESET_MESSAGE);
+    }
+
+    private function logPasswordResetFailure(\Throwable $exception, string $type): void
+    {
+        Log::error('Password reset email delivery failed.', [
+            'type' => $type,
+            'exception' => $exception::class,
+            'mailer' => (string) config('mail.default'),
+            'code' => $exception->getCode(),
+        ]);
+    }
+
+    public function showResetForm(Request $request, string $token): View|RedirectResponse
+    {
+        $email = $request->string('email')->toString();
+        $user = User::where('email', $email)->first();
+
+        if (! $user || ! Password::broker()->tokenExists($user, $token)) {
+            return redirect()->route('password.request')->withErrors([
+                'email' => self::INVALID_RESET_MESSAGE,
+            ]);
+        }
+
+        return view('auth.reset-password', [
+            'token' => $token,
+            'email' => $email,
+        ]);
+    }
+
+    public function resetPassword(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'token' => ['required', 'string'],
+            'email' => ['required', 'string', 'email', 'max:190'],
+            'password' => ['required', 'string', 'min:6', 'confirmed'],
+        ], [
+            'email.required' => 'Enter the email address associated with the reset link.',
+            'password.required' => 'Enter a new password.',
+            'password.min' => 'The new password must be at least 6 characters.',
+            'password.confirmed' => 'The password confirmation does not match.',
+        ]);
+
+        $status = Password::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function (User $user, string $password): void {
+                $user->forceFill([
+                    'password' => Hash::make($password),
+                    'remember_token' => Str::random(60),
+                ])->save();
+
+                ActivityLog::log($user->id, 'Password Reset', 'Password was reset using the recovery link.');
+
+                event(new PasswordReset($user));
+            }
+        );
+
+        if ($status === Password::PASSWORD_RESET) {
+            return redirect()->route('login')->with('success', 'Your password has been reset. You can now sign in with your new password.');
+        }
+
+        return back()->withErrors([
+            'email' => self::INVALID_RESET_MESSAGE,
+        ])->withInput($request->only('email'));
     }
 
     public function editProfile()

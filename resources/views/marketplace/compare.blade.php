@@ -67,7 +67,7 @@
                                 <span class="text-muted small">/ {{ $prod->price_unit_label }}</span>
                             </td>
                             <td>
-                                <span class="badge {{ $prod->quantity > 10 ? 'bg-success' : ($prod->quantity > 0 ? 'bg-warning text-dark' : 'bg-danger') }}">
+                                <span class="badge {{ $prod->quantity <= 0 ? 'bg-danger' : ($prod->isLowOnStock() ? 'bg-warning text-dark' : 'bg-success') }}">
                                     Stock: {{ $prod->stock_with_unit }}
                                 </span>
                             </td>

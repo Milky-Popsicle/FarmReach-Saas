@@ -185,7 +185,7 @@
                             <span class="position-absolute top-0 start-0 m-2 badge bg-dark bg-opacity-75 text-white">
                                 {{ $product->category?->name ?? 'Produce' }}
                             </span>
-                            @if($product->quantity <= 10)
+                            @if($product->isLowOnStock())
                                 <span class="position-absolute top-0 end-0 m-2 badge bg-danger">
                                     Low Stock ({{ $product->stock_with_unit }})
                                 </span>

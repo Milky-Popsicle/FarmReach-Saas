@@ -109,6 +109,8 @@ class FarmerProductController extends Controller
             'is_active' => true,
         ]);
 
+        $product->syncLowStockNotification();
+
         ActivityLog::log($farmer->id, 'Product Created', "Farmer {$farmer->name} listed new product: {$product->name}.");
 
         return back()->with('success', "Product '{$product->name}' has been added successfully!");
@@ -157,6 +159,10 @@ class FarmerProductController extends Controller
         }
 
         $product->update($data);
+
+        if ($product->wasChanged('quantity')) {
+            $product->syncLowStockNotification();
+        }
 
         ActivityLog::log($farmer->id, 'Product Updated', "Farmer {$farmer->name} updated product: {$product->name}.");
 

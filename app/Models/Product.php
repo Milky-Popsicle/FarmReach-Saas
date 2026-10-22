@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Notifications\LowStockNotification;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -42,6 +43,7 @@ class Product extends Model
             'kilograms' => 'decimal:2',
             'quantity' => 'integer',
             'is_active' => 'boolean',
+            'low_stock_notified_at' => 'datetime',
         ];
     }
 
@@ -77,6 +79,9 @@ class Product extends Model
         'grains-rice' => ['kg', 'sack', 'pack'],
         'root-crops' => ['kg', 'pcs', 'sack', 'bundle'],
         'herbs-spices' => ['kg', 'g', 'bundle', 'pack', 'pcs'],
+        'eggs-dairy' => ['pcs', 'pack', 'crate', 'box'],
+        'snacks-processed-farm-products' => ['pack', 'pcs', 'box', 'bundle'],
+        'plants-seedlings' => ['pcs', 'bundle', 'pack', 'crate', 'box'],
     ];
 
     public function getSellingUnitAttribute(): string
@@ -169,16 +174,100 @@ class Product extends Model
         return '₱'.number_format((float) $this->price, 2).' / '.$this->price_unit_label;
     }
 
+    public static function lowStockThreshold(): int
+    {
+        return max(0, (int) config('farmreach.low_stock_threshold', 10));
+    }
+
+    public function isLowOnStock(): bool
+    {
+        return (int) $this->quantity <= static::lowStockThreshold();
+    }
+
+    /**
+     * Notify the product owner once per low-stock cycle.
+     */
+    public function syncLowStockNotification(): void
+    {
+        $this->refresh();
+
+        if (! $this->isLowOnStock()) {
+            $this->clearLowStockNotification();
+
+            return;
+        }
+
+        if ($this->low_stock_notified_at !== null) {
+            return;
+        }
+
+        $farmer = $this->farmer;
+
+        if (! $farmer) {
+            return;
+        }
+
+        $notifiedAt = now();
+
+        $claimed = static::query()
+            ->whereKey($this->getKey())
+            ->whereNull('low_stock_notified_at')
+            ->toBase()
+            ->update(['low_stock_notified_at' => $notifiedAt]);
+
+        if ($claimed < 1) {
+            $this->refresh();
+
+            return;
+        }
+
+        $this->low_stock_notified_at = $notifiedAt;
+
+        $farmer->notify(new LowStockNotification(
+            productName: $this->name,
+            remainingQuantity: max(0, (int) $this->quantity),
+            unitLabel: $this->stock_unit_label,
+            threshold: static::lowStockThreshold(),
+        ));
+    }
+
+    /**
+     * Re-enable future low-stock alerts after the product is replenished.
+     */
+    public function resetLowStockNotificationIfReplenished(): void
+    {
+        $this->refresh();
+
+        if ($this->quantity > static::lowStockThreshold()) {
+            $this->clearLowStockNotification();
+        }
+    }
+
     public function getStockStatusAttribute(): string
     {
         if ($this->quantity <= 0) {
             return 'Out of Stock';
         }
-        if ($this->quantity <= 10) {
+        if ($this->isLowOnStock()) {
             return 'Low Stock';
         }
 
         return 'In Stock';
+    }
+
+    private function clearLowStockNotification(): void
+    {
+        if ($this->low_stock_notified_at === null) {
+            return;
+        }
+
+        static::query()
+            ->whereKey($this->getKey())
+            ->whereNotNull('low_stock_notified_at')
+            ->toBase()
+            ->update(['low_stock_notified_at' => null]);
+
+        $this->low_stock_notified_at = null;
     }
 
     public function getImagePathAttribute(?string $value): string

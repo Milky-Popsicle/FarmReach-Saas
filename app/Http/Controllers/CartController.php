@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\Product;
+use App\Notifications\OrderPlacedNotification;
 use DomainException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -280,8 +281,11 @@ class CartController extends Controller
 
         $buyer = Auth::user();
 
+        $createdOrders = [];
+        $decrementedProductIds = [];
+
         try {
-            DB::transaction(function () use ($requestedItems, $validated, $dbPaymentMethod, $buyer) {
+            DB::transaction(function () use ($requestedItems, $validated, $dbPaymentMethod, $buyer, &$createdOrders, &$decrementedProductIds) {
                 $products = Product::with('farmer')
                     ->whereIn('id', array_keys($requestedItems))
                     ->orderBy('id')
@@ -357,6 +361,8 @@ class CartController extends Controller
                             throw new DomainException("'{$line['product']->name}' no longer has enough stock. Please adjust your cart.");
                         }
 
+                        $decrementedProductIds[] = $line['product']->id;
+
                         OrderItem::create([
                             'order_id' => $order->id,
                             'product_id' => $line['product']->id,
@@ -380,11 +386,31 @@ class CartController extends Controller
                         $isBulk ? 'Bulk Order Placed' : 'Order Placed',
                         "Order #{$orderNumber} placed for ₱".number_format($orderTotal, 2)
                     );
+
+                    $createdOrders[] = [
+                        'order' => $order,
+                        'itemCount' => count($lines),
+                    ];
                 }
             });
         } catch (DomainException $exception) {
             return back()->with('error', $exception->getMessage())->withInput();
         }
+
+        foreach ($createdOrders as $createdOrder) {
+            $order = $createdOrder['order'];
+
+            $order->farmer?->notify(new OrderPlacedNotification(
+                orderNumber: $order->order_number,
+                buyerName: $buyer->name,
+                totalAmount: (float) $order->total_amount,
+                itemCount: $createdOrder['itemCount'],
+            ));
+        }
+
+        Product::whereIn('id', array_unique($decrementedProductIds))
+            ->get()
+            ->each(fn (Product $product) => $product->syncLowStockNotification());
 
         foreach (array_keys($itemsToOrder) as $orderedId) {
             unset($cart[$orderedId]);

@@ -71,7 +71,7 @@
                     <span class="badge bg-farm-primary text-white text-uppercase px-3 py-1">
                         {{ $product->category?->name ?? 'Fresh Produce' }}
                     </span>
-                    <span class="badge {{ $product->quantity > 10 ? 'bg-success' : 'bg-warning text-dark' }} px-3 py-1">
+                    <span class="badge {{ $product->isLowOnStock() ? 'bg-warning text-dark' : 'bg-success' }} px-3 py-1">
                         {{ $product->stock_status }} &bull; Stock: {{ $product->stock_with_unit }}
                     </span>
                 </div>
