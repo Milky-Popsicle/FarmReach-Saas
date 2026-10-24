@@ -169,6 +169,10 @@
         }
 
         $('.recipe-ingredient-check').on('change', function () {
+            $(this).closest('.form-check')
+                .find('input[name$="[quantity]"]')
+                .prop('disabled', !this.checked);
+
             let total = 0;
             let count = 0;
             $('.recipe-ingredient-check:checked').each(function () {

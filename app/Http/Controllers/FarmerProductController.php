@@ -17,6 +17,7 @@ class FarmerProductController extends Controller
 
         $query = Product::with(['farmer', 'category'])
             ->where('is_active', true)
+            ->where('quantity', '>', 0)
             ->whereHas('farmer');
 
         if ($request->filled('search')) {
@@ -28,10 +29,11 @@ class FarmerProductController extends Controller
 
         $farmerOrdersCount = Order::where('farmer_id', $farmer->id)->count();
         $farmerPendingOrders = Order::where('farmer_id', $farmer->id)->where('status', 'pending')->count();
-        $farmerTotalSales = Order::where('farmer_id', $farmer->id)->where('status', 'delivered')->sum('total_amount');
+        $farmerTotalSales = Order::where('farmer_id', $farmer->id)->whereIn('status', Order::COMPLETED_STATUSES)->sum('total_amount');
 
         $featuredProducts = Product::with('farmer')
             ->where('is_active', true)
+            ->where('quantity', '>', 0)
             ->whereHas('farmer')
             ->inRandomOrder()
             ->take(6)
@@ -109,6 +111,8 @@ class FarmerProductController extends Controller
             'is_active' => true,
         ]);
 
+        $product->syncLowStockNotification();
+
         ActivityLog::log($farmer->id, 'Product Created', "Farmer {$farmer->name} listed new product: {$product->name}.");
 
         return back()->with('success', "Product '{$product->name}' has been added successfully!");
@@ -158,6 +162,10 @@ class FarmerProductController extends Controller
 
         $product->update($data);
 
+        if ($product->wasChanged('quantity')) {
+            $product->syncLowStockNotification();
+        }
+
         ActivityLog::log($farmer->id, 'Product Updated', "Farmer {$farmer->name} updated product: {$product->name}.");
 
         return back()->with('success', "Product '{$product->name}' updated successfully!");
@@ -168,6 +176,10 @@ class FarmerProductController extends Controller
         $farmer = Auth::user();
         if ($product->user_id !== $farmer->id) {
             abort(403);
+        }
+
+        if ($product->orderItems()->exists()) {
+            return back()->with('error', "Product '{$product->name}' has order history and cannot be deleted. Deactivate it instead to preserve past orders.");
         }
 
         $name = $product->name;

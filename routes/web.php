@@ -7,7 +7,9 @@ use App\Http\Controllers\BuyerOrderController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\FarmerOrderController;
 use App\Http\Controllers\FarmerProductController;
+use App\Http\Controllers\FarmerSalesHistoryController;
 use App\Http\Controllers\MarketplaceController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\RecipeController;
 use Illuminate\Support\Facades\Route;
 
@@ -23,12 +25,26 @@ Route::get('/register', [AuthController::class, 'showRegister'])->name('register
 Route::post('/register', [AuthController::class, 'register'])->name('register.submit');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
-Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->name('password.email');
+Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])
+    ->middleware('throttle:5,1')
+    ->name('password.email');
+Route::get('/reset-password/{token}', [AuthController::class, 'showResetForm'])->name('password.reset');
+Route::post('/reset-password', [AuthController::class, 'resetPassword'])
+    ->middleware('throttle:10,1')
+    ->name('password.update');
 
 // Profile (All logged-in users)
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [AuthController::class, 'editProfile'])->name('profile.edit');
     Route::post('/profile', [AuthController::class, 'updateProfile'])->name('profile.update');
+});
+
+// In-app notifications (All logged-in users)
+Route::middleware('auth')->group(function () {
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/feed', [NotificationController::class, 'feed'])->name('notifications.feed');
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
+    Route::post('/notifications/{notification}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
 });
 
 // Public Marketplace & Price Comparison
@@ -76,13 +92,14 @@ Route::middleware(['auth', 'role:farmer,admin'])->prefix('farmer')->name('farmer
 
     Route::get('/orders', [FarmerOrderController::class, 'index'])->name('orders');
     Route::post('/orders/{order}/status', [FarmerOrderController::class, 'updateStatus'])->name('orders.status');
+
+    Route::get('/sales', [FarmerSalesHistoryController::class, 'index'])->name('sales.index');
+    Route::get('/sales/{order}', [FarmerSalesHistoryController::class, 'show'])->name('sales.show');
 });
 
 // Admin Portal
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
-    Route::get('/users', [AdminController::class, 'users'])->name('users');
-    Route::delete('/users/{user}', [AdminController::class, 'deleteUser'])->name('users.delete');
 
     Route::get('/announcements', [AdminController::class, 'announcements'])->name('announcements');
     Route::post('/announcements', [AdminController::class, 'storeAnnouncement'])->name('announcements.store');

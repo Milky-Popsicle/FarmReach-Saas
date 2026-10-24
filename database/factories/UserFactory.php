@@ -27,10 +27,42 @@ class UserFactory extends Factory
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
+            'phone_number' => fake()->unique()->numerify('09#########'),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
+            'role' => 'buyer',
             'remember_token' => Str::random(10),
         ];
+    }
+
+    /**
+     * Indicate that the user is an administrator.
+     */
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'admin',
+        ]);
+    }
+
+    /**
+     * Indicate that the user is a farmer.
+     */
+    public function farmer(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'farmer',
+        ]);
+    }
+
+    /**
+     * Indicate that the user is a buyer.
+     */
+    public function buyer(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'buyer',
+        ]);
     }
 
     /**

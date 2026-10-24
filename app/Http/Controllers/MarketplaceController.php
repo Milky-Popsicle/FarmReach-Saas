@@ -13,6 +13,7 @@ class MarketplaceController extends Controller
     {
         $query = Product::with(['farmer', 'category'])
             ->where('is_active', true)
+            ->where('quantity', '>', 0)
             ->whereHas('farmer');
 
         // Search by product name or farmer name
@@ -61,7 +62,7 @@ class MarketplaceController extends Controller
             ->get();
 
         // Total counts for header stats
-        $totalProductsCount = Product::where('is_active', true)->count();
+        $totalProductsCount = Product::where('is_active', true)->where('quantity', '>', 0)->count();
         $totalFarmersCount = $farmers->count();
 
         return view('marketplace.index', compact(
@@ -76,12 +77,17 @@ class MarketplaceController extends Controller
 
     public function show(Product $product)
     {
+        if (! $product->is_active || $product->quantity <= 0) {
+            abort(404);
+        }
+
         $product->load(['farmer', 'category']);
 
         // Other offerings from the same farmer
         $moreFromFarmer = Product::where('user_id', $product->user_id)
             ->where('id', '!=', $product->id)
             ->where('is_active', true)
+            ->where('quantity', '>', 0)
             ->whereHas('farmer')
             ->take(4)
             ->get();
@@ -91,6 +97,7 @@ class MarketplaceController extends Controller
             ->where('id', '!=', $product->id)
             ->where('category_id', $product->category_id)
             ->where('is_active', true)
+            ->where('quantity', '>', 0)
             ->whereHas('farmer')
             ->take(4)
             ->get();
@@ -105,6 +112,7 @@ class MarketplaceController extends Controller
 
         $comparisonProducts = Product::with(['farmer', 'category'])
             ->where('is_active', true)
+            ->where('quantity', '>', 0)
             ->whereHas('farmer')
             ->when($selectedCategory, fn ($q) => $q->where('category_id', $selectedCategory))
             ->orderBy('price', 'asc')

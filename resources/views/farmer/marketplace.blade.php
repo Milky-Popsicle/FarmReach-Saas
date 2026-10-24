@@ -21,6 +21,9 @@
                 <a href="{{ route('farmer.orders') }}" class="btn btn-outline-light">
                     <i class="bi bi-receipt me-1"></i> Incoming Orders
                 </a>
+                <a href="{{ route('farmer.sales.index') }}" class="btn btn-outline-light">
+                    <i class="bi bi-graph-up-arrow me-1"></i> Sales History
+                </a>
             </div>
         </div>
     </div>
