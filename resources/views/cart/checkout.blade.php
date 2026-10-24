@@ -50,9 +50,9 @@
                                     </div>
                                     <small class="text-muted d-block ps-4">
                                         @if($farmerCount > 1)
-                                            Delivered to your doorstep (₱60.00 × {{ $farmerCount }} farmers)
+                                            Delivered to your doorstep (initial shipping ₱0.00; each farmer confirms their fee)
                                         @else
-                                            Delivered to your doorstep (₱60.00)
+                                            Delivered to your doorstep (initial shipping ₱0.00)
                                         @endif
                                     </small>
                                 </div>
@@ -136,21 +136,19 @@
                     </div>
 
                     <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted small">
-                            Shipping / Handling:
-                            @if($farmerCount > 1)
-                                <small class="text-muted d-block" id="farmerShippingNote" style="font-size: 11px;">(₱60.00 × {{ $farmerCount }} farmers)</small>
-                            @endif
-                        </span>
-                        <span class="fw-semibold" id="shippingFeeDisplay">₱{{ number_format($shippingTotal, 2) }}</span>
+                        <span class="text-muted small">Shipping / Handling:</span>
+                        <span class="fw-semibold" id="shippingFeeDisplay">₱0.00</span>
                     </div>
+                    <small class="text-muted d-block mb-2" id="farmerShippingNote" style="font-size: 11px;">
+                        Initial shipping fee is ₱0.00. The assigned farmer will confirm the actual delivery fee after reviewing your order.
+                    </small>
 
                     <hr class="my-2">
 
                     <div class="d-flex justify-content-between align-items-baseline mb-4">
                         <strong class="fs-5 text-dark">Total Amount:</strong>
                         <strong class="fs-4 text-farm-primary" id="totalOrderAmount">
-                            ₱{{ number_format($subtotal + $shippingTotal, 2) }}
+                            ₱{{ number_format($subtotal, 2) }}
                         </strong>
                     </div>
 
@@ -189,15 +187,15 @@
                                 <div class="col-7 fw-bold text-dark" id="modalReviewPaymentMethod">Cash on Delivery (COD)</div>
 
                                 <div class="col-5 text-muted">Shipping Fee:</div>
-                                <div class="col-7 text-dark" id="modalReviewShipping">₱{{ number_format($shippingTotal, 2) }}</div>
+                                <div class="col-7 text-dark" id="modalReviewShipping">₱0.00</div>
 
                                 <div class="col-5 text-muted">Total Amount:</div>
-                                <div class="col-7 fw-bold text-success fs-5" id="modalReviewTotal">₱{{ number_format($subtotal + $shippingTotal, 2) }}</div>
+                                <div class="col-7 fw-bold text-success fs-5" id="modalReviewTotal">₱{{ number_format($subtotal, 2) }}</div>
                             </div>
                         </div>
 
                         <p class="text-muted small mb-0">
-                            <i class="bi bi-info-circle"></i> Once placed, each farmer receives notification of their assigned portion to harvest and prepare.
+                            <i class="bi bi-info-circle"></i> Once placed, each farmer receives notification of their assigned portion to harvest and prepare. Shipping starts at ₱0.00; the farmer will confirm the actual delivery fee, and the updated total will appear in your orders.
                         </p>
                     </div>
                     <div class="modal-footer bg-light">
@@ -216,9 +214,6 @@
 <script>
     $(document).ready(function () {
         const subtotal = {{ $subtotal }};
-        const farmerCount = {{ $farmerCount }};
-        const shippingPerFarmer = {{ $shippingPerFarmer }};
-        const totalDeliveryShipping = farmerCount * shippingPerFarmer;
 
         // Fulfillment radio toggle
         $('input[name="delivery_method"]').on('change', function () {
@@ -229,8 +224,8 @@
             if (method === 'deliver') {
                 $('#deliveryAddressGroup').show();
                 $('#delivery_address').prop('required', true);
-                $('#shippingFeeDisplay').text('₱' + totalDeliveryShipping.toFixed(2));
-                $('#totalOrderAmount').text('₱' + (subtotal + totalDeliveryShipping).toFixed(2));
+                $('#shippingFeeDisplay').text('₱0.00');
+                $('#totalOrderAmount').text('₱' + subtotal.toFixed(2));
                 $('#farmerShippingNote').show();
                 $('#paymentMethodTitle').text('Cash on Delivery (COD)');
                 $('#paymentMethodDesc').text('Pay in cash when your farm produce is delivered to your doorstep.');
@@ -249,13 +244,12 @@
         $('#btnReviewOrder').on('click', function () {
             const method = $('input[name="delivery_method"]:checked').val();
             const address = $('#delivery_address').val();
-            const shipping = method === 'deliver' ? totalDeliveryShipping : 0;
-            const total = subtotal + shipping;
+            const total = subtotal;
 
             $('#modalReviewDeliveryMethod').text(method === 'deliver' ? 'Direct Delivery' : 'Farm Stand Pick Up');
             $('#modalReviewAddress').text(method === 'deliver' ? (address || 'Not specified') : 'Pick up at registered farm location');
             $('#modalReviewPaymentMethod').text(method === 'deliver' ? 'Cash on Delivery (COD)' : 'Cash on Pick Up (COP)');
-            $('#modalReviewShipping').text('₱' + shipping.toFixed(2) + (method === 'deliver' && farmerCount > 1 ? ` (₱60.00 × ${farmerCount} farmers)` : ''));
+            $('#modalReviewShipping').text('₱0.00');
             $('#modalReviewTotal').text('₱' + total.toFixed(2));
 
             const modal = new bootstrap.Modal(document.getElementById('orderReviewModal'));

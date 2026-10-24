@@ -56,7 +56,7 @@ class FarmerOrderController extends Controller
 
         $validated = $request->validate([
             'status' => 'required|in:confirmed,delivered,picked_up,cancelled',
-            'shipping_fee' => 'nullable|numeric|min:0|max:1000',
+            'shipping_fee' => 'nullable|numeric|min:0|max:1000|decimal:0,2',
         ]);
 
         $targetStatus = $validated['status'];
@@ -94,12 +94,22 @@ class FarmerOrderController extends Controller
                 }
 
                 if ($targetStatus === 'confirmed' && $lockedOrder->delivery_method === 'deliver' && $request->filled('shipping_fee')) {
-                    $itemsTotal = $lockedOrder->items->sum('subtotal');
-                    $lockedOrder->shipping_fee = (float) $validated['shipping_fee'];
-                    $lockedOrder->total_amount = $itemsTotal + $lockedOrder->shipping_fee;
+                    $shippingFee = round((float) $validated['shipping_fee'], 2);
+                    $currentShippingFee = round((float) $lockedOrder->shipping_fee, 2);
 
-                    if ($lockedOrder->payment) {
-                        $lockedOrder->payment->update(['amount' => $lockedOrder->total_amount]);
+                    if ($lockedOrder->payment?->payment_status === 'paid') {
+                        if (abs($shippingFee - $currentShippingFee) > 0.001) {
+                            throw new DomainException('Shipping fee cannot be changed after payment has been received.');
+                        }
+                    } else {
+                        $itemsTotal = round((float) $lockedOrder->items->sum('subtotal'), 2);
+
+                        $lockedOrder->shipping_fee = $shippingFee;
+                        $lockedOrder->total_amount = round($itemsTotal + $shippingFee, 2);
+
+                        if ($lockedOrder->payment) {
+                            $lockedOrder->payment->update(['amount' => $lockedOrder->total_amount]);
+                        }
                     }
                 }
 
@@ -126,6 +136,9 @@ class FarmerOrderController extends Controller
         $buyerName = $buyer?->name ?? 'Buyer';
 
         if ($targetStatus === 'confirmed') {
+            $shippingFee = $order->delivery_method === 'deliver' ? (float) $order->shipping_fee : null;
+            $totalAmount = $shippingFee !== null ? (float) $order->total_amount : null;
+
             $buyer?->notify(new OrderStatusChangedNotification(
                 orderNumber: $order->order_number,
                 status: $targetStatus,
@@ -133,6 +146,8 @@ class FarmerOrderController extends Controller
                 audience: 'buyer',
                 farmerName: $farmer->name,
                 buyerName: $buyerName,
+                shippingFee: $shippingFee,
+                totalAmount: $totalAmount,
             ));
         } elseif (in_array($targetStatus, Order::COMPLETED_STATUSES, true)) {
             $buyer?->notify(new OrderStatusChangedNotification(

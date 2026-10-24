@@ -15,6 +15,8 @@ class OrderStatusChangedNotification extends Notification
         public readonly string $audience,
         public readonly string $farmerName,
         public readonly string $buyerName,
+        public readonly ?float $shippingFee = null,
+        public readonly ?float $totalAmount = null,
     ) {}
 
     /**
@@ -42,6 +44,11 @@ class OrderStatusChangedNotification extends Notification
                 ? "Order {$this->orderNumber} from {$this->farmerName} was marked as {$this->statusLabel}. Thank you for buying local!"
                 : "{$this->farmerName} confirmed order {$this->orderNumber}. It is now being prepared.";
             $url = route('buyer.orders', absolute: false);
+
+            if (! $completed && $this->shippingFee !== null && $this->totalAmount !== null) {
+                $message .= ' Shipping fee: ₱'.number_format($this->shippingFee, 2)
+                    .'. Updated total: ₱'.number_format($this->totalAmount, 2).'.';
+            }
         }
 
         return [

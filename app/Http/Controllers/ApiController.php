@@ -20,7 +20,8 @@ class ApiController extends Controller
     public function products(Request $request): JsonResponse
     {
         $query = Product::with(['farmer:id,name,address,phone_number', 'category:id,name,slug'])
-            ->where('is_active', true);
+            ->where('is_active', true)
+            ->where('quantity', '>', 0);
 
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->category_id);
@@ -45,6 +46,10 @@ class ApiController extends Controller
      */
     public function productDetails(Product $product): JsonResponse
     {
+        if (! $product->is_active || $product->quantity <= 0) {
+            abort(404);
+        }
+
         $product->load(['farmer:id,name,address,phone_number,bio', 'category:id,name,slug']);
 
         return response()->json([

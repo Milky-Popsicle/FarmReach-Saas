@@ -211,11 +211,9 @@ class CartController extends Controller
             }
         }
 
-        // Calculate unique farmers and multi-farmer shipping fee
+        // Count unique farmers so the checkout can explain that each farmer sets their own delivery fee.
         $farmerIds = array_unique(array_column($cart, 'farmer_id'));
         $farmerCount = count($farmerIds);
-        $shippingPerFarmer = 60.00;
-        $shippingTotal = $farmerCount * $shippingPerFarmer;
         $selectedItems = array_keys($cart);
 
         return view('cart.checkout', compact(
@@ -225,8 +223,6 @@ class CartController extends Controller
             'totalKg',
             'hasBulkItems',
             'farmerCount',
-            'shippingPerFarmer',
-            'shippingTotal',
             'selectedItems'
         ));
     }
@@ -335,8 +331,9 @@ class CartController extends Controller
                         }
                     }
 
-                    $shippingFee = $validated['delivery_method'] === 'deliver' ? 60.00 : 0.00;
-                    $orderTotal = $farmerOrderSubtotal + $shippingFee;
+                    $farmerOrderSubtotal = round($farmerOrderSubtotal, 2);
+                    $shippingFee = 0.00;
+                    $orderTotal = $farmerOrderSubtotal;
                     $orderNumber = ($isBulk ? 'BLK-' : 'ORD-').date('Ymd').'-'.strtoupper(Str::random(5));
 
                     $order = Order::create([

@@ -17,6 +17,7 @@ class FarmerProductController extends Controller
 
         $query = Product::with(['farmer', 'category'])
             ->where('is_active', true)
+            ->where('quantity', '>', 0)
             ->whereHas('farmer');
 
         if ($request->filled('search')) {
@@ -32,6 +33,7 @@ class FarmerProductController extends Controller
 
         $featuredProducts = Product::with('farmer')
             ->where('is_active', true)
+            ->where('quantity', '>', 0)
             ->whereHas('farmer')
             ->inRandomOrder()
             ->take(6)

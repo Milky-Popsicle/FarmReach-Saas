@@ -48,7 +48,9 @@ class StockAndOrderIntegrityFeatureTest extends TestCase
 
         $order = Order::where('buyer_id', $buyer->id)->firstOrFail();
         $this->assertSame($farmer->id, $order->farmer_id);
-        $this->assertEquals(260.00, (float) $order->total_amount);
+        $this->assertEquals(0.00, (float) $order->shipping_fee);
+        $this->assertEquals(200.00, (float) $order->total_amount);
+        $this->assertEquals(200.00, (float) $order->payment->amount);
 
         $item = $order->items()->firstOrFail();
         $this->assertEquals(100.00, (float) $item->unit_price);
@@ -153,6 +155,220 @@ class StockAndOrderIntegrityFeatureTest extends TestCase
         $response->assertSessionHas('error');
         $this->assertSame('pending', $order->fresh()->status);
         $this->assertSame(10, $product->fresh()->quantity);
+    }
+
+    public function test_marketplace_listings_exclude_products_with_zero_stock(): void
+    {
+        $farmer = User::factory()->farmer()->create();
+        $category = Category::factory()->create();
+
+        $available = $this->createProduct($farmer, [
+            'category_id' => $category->id,
+            'name' => 'Visible Harvest Squash',
+            'quantity' => 2,
+        ]);
+        $soldOut = $this->createProduct($farmer, [
+            'category_id' => $category->id,
+            'name' => 'Hidden Harvest Squash',
+            'quantity' => 0,
+        ]);
+
+        $marketplace = $this->get(route('marketplace'));
+        $marketplace->assertOk();
+        $marketplace->assertSee($available->name);
+        $marketplace->assertDontSee($soldOut->name);
+
+        $farmerMarketplace = $this->actingAs($farmer)->get(route('farmer.marketplace'));
+        $farmerMarketplace->assertOk();
+        $farmerMarketplace->assertSee($available->name);
+        $farmerMarketplace->assertDontSee($soldOut->name);
+
+        $comparison = $this->get(route('marketplace.compare', ['category_id' => $category->id]));
+        $comparison->assertOk();
+        $comparison->assertSee($available->name);
+        $comparison->assertDontSee($soldOut->name);
+
+        $api = $this->getJson('/api/products');
+        $api->assertOk();
+        $api->assertJsonFragment(['name' => $available->name]);
+        $api->assertJsonMissing(['name' => $soldOut->name]);
+
+        $this->get(route('marketplace.show', $soldOut))->assertNotFound();
+        $this->getJson('/api/products/'.$soldOut->id)->assertNotFound();
+    }
+
+    public function test_out_of_stock_product_cannot_be_added_to_cart_or_checked_out(): void
+    {
+        $farmer = User::factory()->farmer()->create();
+        $buyer = User::factory()->buyer()->create();
+        $product = $this->createProduct($farmer, ['quantity' => 0]);
+
+        $this->actingAs($buyer)
+            ->post(route('cart.add'), [
+                'product_id' => $product->id,
+                'quantity' => 1,
+            ])
+            ->assertSessionHas('error');
+
+        $this->assertNull(session('cart'));
+
+        $cart = [
+            $product->id => [
+                'id' => $product->id,
+                'quantity' => 1,
+            ],
+        ];
+
+        $response = $this->actingAs($buyer)
+            ->withSession(['cart' => $cart])
+            ->post(route('checkout.place'), [
+                'delivery_method' => 'pickup',
+                'payment_method' => 'cod',
+                'selected_items' => [$product->id],
+            ]);
+
+        $response->assertSessionHas('error');
+        $this->assertDatabaseCount('orders', 0);
+        $this->assertSame(0, $product->fresh()->quantity);
+    }
+
+    public function test_pending_order_does_not_hide_product_while_stock_remains(): void
+    {
+        $farmer = User::factory()->farmer()->create();
+        $buyer = User::factory()->buyer()->create();
+        $product = $this->createProduct($farmer, [
+            'name' => 'Still Available After Partial Order',
+            'quantity' => 3,
+        ]);
+
+        $cart = [
+            $product->id => [
+                'id' => $product->id,
+                'quantity' => 1,
+            ],
+        ];
+
+        $this->actingAs($buyer)
+            ->withSession(['cart' => $cart])
+            ->post(route('checkout.place'), [
+                'delivery_method' => 'pickup',
+                'payment_method' => 'cod',
+                'selected_items' => [$product->id],
+            ])
+            ->assertRedirect(route('buyer.orders'))
+            ->assertSessionHas('success');
+
+        $this->assertSame(2, $product->fresh()->quantity);
+
+        $order = Order::where('buyer_id', $buyer->id)->firstOrFail();
+        $this->assertSame('pending', $order->status);
+        $this->get(route('marketplace'))->assertSee($product->name);
+    }
+
+    public function test_cancelling_an_order_restores_out_of_stock_product_visibility(): void
+    {
+        $farmer = User::factory()->farmer()->create();
+        $buyer = User::factory()->buyer()->create();
+        $product = $this->createProduct($farmer, [
+            'name' => 'Restocked After Cancellation',
+            'quantity' => 1,
+        ]);
+
+        $cart = [
+            $product->id => [
+                'id' => $product->id,
+                'quantity' => 1,
+            ],
+        ];
+
+        $this->actingAs($buyer)
+            ->withSession(['cart' => $cart])
+            ->post(route('checkout.place'), [
+                'delivery_method' => 'pickup',
+                'payment_method' => 'cod',
+                'selected_items' => [$product->id],
+            ])
+            ->assertRedirect(route('buyer.orders'))
+            ->assertSessionHas('success');
+
+        $this->assertSame(0, $product->fresh()->quantity);
+        $this->get(route('marketplace'))->assertDontSee($product->name);
+
+        $order = Order::where('buyer_id', $buyer->id)->firstOrFail();
+
+        $this->actingAs($buyer)
+            ->post(route('buyer.orders.cancel', $order))
+            ->assertSessionHas('success');
+
+        $this->assertSame(1, $product->fresh()->quantity);
+        $this->get(route('marketplace'))->assertSee($product->name);
+    }
+
+    public function test_farmer_restocking_restores_marketplace_visibility(): void
+    {
+        $farmer = User::factory()->farmer()->create();
+        $product = $this->createProduct($farmer, [
+            'name' => 'Restockable Cabbage',
+            'quantity' => 0,
+        ]);
+
+        $this->get(route('marketplace'))->assertDontSee($product->name);
+
+        $this->actingAs($farmer)
+            ->get(route('farmer.products'))
+            ->assertOk()
+            ->assertSee($product->name)
+            ->assertSee($product->stock_with_unit);
+
+        $this->actingAs($farmer)
+            ->put(route('farmer.products.update', $product), [
+                'name' => $product->name,
+                'category_id' => $product->category_id,
+                'price' => $product->price,
+                'quantity' => 20,
+                'unit' => 'kg',
+                'description' => 'Restocked by the farmer.',
+            ])
+            ->assertSessionHas('success');
+
+        $this->assertSame(20, $product->fresh()->quantity);
+        $this->get(route('marketplace'))->assertSee($product->name);
+    }
+
+    public function test_out_of_stock_product_history_remains_accessible_to_buyer_farmer_and_admin(): void
+    {
+        $farmer = User::factory()->farmer()->create();
+        $buyer = User::factory()->buyer()->create();
+        $admin = User::factory()->admin()->create();
+        $product = $this->createProduct($farmer, [
+            'name' => 'Historic Out Of Stock Crop',
+            'quantity' => 0,
+        ]);
+        $order = $this->createOrder($buyer, $farmer, $product, 1, 'delivered');
+
+        $this->actingAs($buyer)
+            ->get(route('buyer.orders'))
+            ->assertOk()
+            ->assertSee($product->name);
+
+        $this->actingAs($farmer)
+            ->get(route('farmer.orders'))
+            ->assertOk()
+            ->assertSee($product->name);
+
+        $this->actingAs($admin)
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee($product->name);
+
+        $item = $order->items()->firstOrFail();
+        $this->assertSame($product->name, $item->product?->name);
+        $this->assertEquals(100.00, (float) $item->unit_price);
+        $this->assertDatabaseHas('products', ['id' => $product->id, 'quantity' => 0]);
+        $this->assertDatabaseHas('order_items', [
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+        ]);
     }
 
     public function test_reorder_merges_quantities_and_refreshes_product_metadata(): void

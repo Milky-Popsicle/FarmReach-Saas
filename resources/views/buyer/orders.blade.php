@@ -138,6 +138,12 @@
                                     <div class="small text-muted">
                                         Method: <strong>{{ ucfirst($ord->delivery_method) }}</strong> &bull; Payment: <strong class="text-uppercase">{{ $ord->payment?->payment_method ?? 'COD' }}</strong>
                                     </div>
+                                    <div class="small text-muted mt-1">
+                                        Shipping Fee: <strong class="text-dark">₱{{ number_format($ord->shipping_fee, 2) }}</strong>
+                                        @if($ord->delivery_method === 'deliver')
+                                            <span class="d-block" style="font-size: 11px;">Set by the farmer before delivery.</span>
+                                        @endif
+                                    </div>
                                 </div>
 
                                 <div class="col-md-5 text-md-end">
@@ -227,6 +233,7 @@
                                         <td class="small">{{ $ord->items->sum('quantity') }}</td>
                                         <td>
                                             <strong class="text-farm-primary small">₱{{ number_format($ord->total_amount, 2) }}</strong>
+                                            <small class="d-block text-muted" style="font-size: 10px;">Shipping: ₱{{ number_format($ord->shipping_fee, 2) }}</small>
                                         </td>
                                         <td>
                                             <span class="badge {{ $ord->status_badge_class }} small text-capitalize">

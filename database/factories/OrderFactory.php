@@ -26,7 +26,7 @@ class OrderFactory extends Factory
             'total_amount' => 100.00,
             'delivery_method' => 'deliver',
             'delivery_address' => fake()->address(),
-            'shipping_fee' => 60.00,
+            'shipping_fee' => 0.00,
             'status' => 'pending',
             'notes' => null,
         ];
