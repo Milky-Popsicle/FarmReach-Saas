@@ -14,6 +14,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Railway terminates TLS at its edge. Trust only the request's direct
+        // peer; Laravel resolves REMOTE_ADDR per request, so no fixed edge IP is
+        // assumed. Trust only X-Forwarded-For and X-Forwarded-Proto; never
+        // trust X-Forwarded-Host.
+        $middleware->trustProxies(
+            at: ['REMOTE_ADDR'],
+            headers: Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_PROTO,
+        );
+
         $middleware->alias([
             'role' => RoleMiddleware::class,
         ]);
