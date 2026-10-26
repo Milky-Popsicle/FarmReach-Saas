@@ -11,8 +11,9 @@ class ProductStockAndUnitFeatureTest extends TestCase
 {
     public function test_farmer_can_create_product_with_piece_unit_and_optional_weight(): void
     {
-        $farmer = User::where('role', 'farmer')->first();
-        $category = Category::where('slug', 'fruits')->first() ?? Category::first();
+        $this->seed();
+        $farmer = User::where('role', 'farmer')->firstOrFail();
+        $category = Category::where('slug', 'fruits')->firstOrFail();
 
         $response = $this->actingAs($farmer)->post(route('farmer.products.store'), [
             'name' => 'Fuji Apple',
@@ -26,8 +27,7 @@ class ProductStockAndUnitFeatureTest extends TestCase
 
         $response->assertSessionHas('success');
 
-        $product = Product::where('name', 'Fuji Apple')->first();
-        $this->assertNotNull($product);
+        $product = Product::where('name', 'Fuji Apple')->firstOrFail();
         $this->assertSame(25, $product->quantity);
         $this->assertSame('pcs', $product->unit);
         $this->assertEquals(0.20, (float) $product->kilograms);
@@ -40,8 +40,9 @@ class ProductStockAndUnitFeatureTest extends TestCase
 
     public function test_farmer_can_create_weight_based_product_without_separate_weight_per_unit(): void
     {
-        $farmer = User::where('role', 'farmer')->first();
-        $category = Category::where('slug', 'vegetables')->first() ?? Category::first();
+        $this->seed();
+        $farmer = User::where('role', 'farmer')->firstOrFail();
+        $category = Category::where('slug', 'vegetables')->firstOrFail();
 
         $response = $this->actingAs($farmer)->post(route('farmer.products.store'), [
             'name' => 'Organic Fresh Tomatoes',
@@ -54,8 +55,7 @@ class ProductStockAndUnitFeatureTest extends TestCase
 
         $response->assertSessionHas('success');
 
-        $product = Product::where('name', 'Organic Fresh Tomatoes')->first();
-        $this->assertNotNull($product);
+        $product = Product::where('name', 'Organic Fresh Tomatoes')->firstOrFail();
         $this->assertSame(30, $product->quantity);
         $this->assertSame('kg', $product->unit);
         $this->assertNull($product->kilograms);
@@ -68,11 +68,11 @@ class ProductStockAndUnitFeatureTest extends TestCase
 
     public function test_farmer_can_create_bundle_and_sack_products(): void
     {
-        $farmer = User::where('role', 'farmer')->first();
-        $vegCat = Category::where('slug', 'vegetables')->first() ?? Category::first();
-        $grainCat = Category::where('slug', 'grains-rice')->first() ?? Category::first();
+        $this->seed();
+        $farmer = User::where('role', 'farmer')->firstOrFail();
+        $vegCat = Category::where('slug', 'vegetables')->firstOrFail();
+        $grainCat = Category::where('slug', 'grains-rice')->firstOrFail();
 
-        // Pechay in bundles (no separate weight)
         $this->actingAs($farmer)->post(route('farmer.products.store'), [
             'name' => 'Organic Pechay Test',
             'category_id' => $vegCat->id,
@@ -81,13 +81,11 @@ class ProductStockAndUnitFeatureTest extends TestCase
             'unit' => 'bundle',
         ]);
 
-        $pechay = Product::where('name', 'Organic Pechay Test')->first();
-        $this->assertNotNull($pechay);
+        $pechay = Product::where('name', 'Organic Pechay Test')->firstOrFail();
         $this->assertSame('20 bundles', $pechay->stock_with_unit);
         $this->assertSame('₱30.00 / bundle', $pechay->formatted_price_per_unit);
         $this->assertFalse($pechay->has_weight_per_unit);
 
-        // Rice in sacks (with 50kg weight)
         $this->actingAs($farmer)->post(route('farmer.products.store'), [
             'name' => 'Special Rice Test',
             'category_id' => $grainCat->id,
@@ -97,8 +95,7 @@ class ProductStockAndUnitFeatureTest extends TestCase
             'kilograms' => 50.00,
         ]);
 
-        $rice = Product::where('name', 'Special Rice Test')->first();
-        $this->assertNotNull($rice);
+        $rice = Product::where('name', 'Special Rice Test')->firstOrFail();
         $this->assertSame('10 sacks', $rice->stock_with_unit);
         $this->assertSame('₱2,500.00 / sack', $rice->formatted_price_per_unit);
         $this->assertTrue($rice->has_weight_per_unit);
@@ -107,9 +104,9 @@ class ProductStockAndUnitFeatureTest extends TestCase
 
     public function test_farmer_can_update_product_stock_and_selling_unit(): void
     {
-        $farmer = User::where('role', 'farmer')->first();
-        $product = Product::where('user_id', $farmer->id)->first();
-        $this->assertNotNull($product);
+        $this->seed();
+        $farmer = User::where('role', 'farmer')->firstOrFail();
+        $product = Product::where('user_id', $farmer->id)->firstOrFail();
 
         $response = $this->actingAs($farmer)->put(route('farmer.products.update', $product), [
             'name' => $product->name,
@@ -133,8 +130,9 @@ class ProductStockAndUnitFeatureTest extends TestCase
 
     public function test_product_views_display_stock_and_proper_labels(): void
     {
-        $farmer = User::where('role', 'farmer')->first();
-        $cat = Category::first();
+        $this->seed();
+        $farmer = User::where('role', 'farmer')->firstOrFail();
+        $cat = Category::firstOrFail();
 
         $cabbage = Product::create([
             'user_id' => $farmer->id,
@@ -158,7 +156,6 @@ class ProductStockAndUnitFeatureTest extends TestCase
             'is_active' => true,
         ]);
 
-        // 1. Farmer Products Page
         $farmerPage = $this->actingAs($farmer)->get(route('farmer.products'));
         $farmerPage->assertStatus(200);
         $farmerPage->assertSee('Stock:');
@@ -167,7 +164,6 @@ class ProductStockAndUnitFeatureTest extends TestCase
         $farmerPage->assertSee('Weight per Unit:');
         $farmerPage->assertSee('1.50 kg');
 
-        // 2. Marketplace Show Page for Cabbage (with weight)
         $cabbagePage = $this->get(route('marketplace.show', $cabbage));
         $cabbagePage->assertStatus(200);
         $cabbagePage->assertSee('Stock: 30 pcs');
@@ -175,14 +171,12 @@ class ProductStockAndUnitFeatureTest extends TestCase
         $cabbagePage->assertSee('Weight per Unit:');
         $cabbagePage->assertSee('1.50 kg');
 
-        // 3. Marketplace Show Page for Grapes (sold by kg, no separate weight per unit)
         $grapesPage = $this->get(route('marketplace.show', $grapes));
         $grapesPage->assertStatus(200);
         $grapesPage->assertSee('Stock: 11 kg');
         $grapesPage->assertSee('/ kg');
         $grapesPage->assertDontSee('Weight per Unit: <strong>');
 
-        // 4. Compare Page
         $comparePage = $this->get(route('marketplace.compare', ['category_id' => $cat->id]));
         $comparePage->assertStatus(200);
         $comparePage->assertSee('Selling Unit & Weight', false);

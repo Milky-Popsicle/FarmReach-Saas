@@ -150,6 +150,21 @@ $(document).ready(function () {
             name: 'Herbs & Spices',
             units: ['kg', 'g', 'bundle', 'pack', 'pcs'],
             examples: 'Examples: Garlic — 10 kg • Ginger — 5 kg • Basil — 20 bundles • Chili — 3 kg'
+        },
+        'eggs-dairy': {
+            name: 'Eggs & Dairy',
+            units: ['pcs', 'pack', 'crate', 'box'],
+            examples: 'Examples: Chicken eggs — 30 pcs • Duck eggs — 20 pcs • Fresh milk — 12 packs'
+        },
+        'snacks-processed-farm-products': {
+            name: 'Snacks & Processed Farm Products',
+            units: ['pack', 'pcs', 'box', 'bundle'],
+            examples: 'Examples: Banana chips — 25 packs • Dried mangoes — 15 packs • Puto — 30 pcs'
+        },
+        'plants-seedlings': {
+            name: 'Plants & Seedlings',
+            units: ['pcs', 'bundle', 'pack', 'crate', 'box'],
+            examples: 'Examples: Tomato seedlings — 50 pcs • Mango seedlings — 20 pcs • Potted herbs — 15 pcs'
         }
     };
 

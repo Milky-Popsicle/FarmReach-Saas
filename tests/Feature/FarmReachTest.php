@@ -11,22 +11,28 @@ use Tests\TestCase;
 
 class FarmReachTest extends TestCase
 {
-    public function test_marketplace_page_loads_successfully()
+    public function test_marketplace_page_loads_successfully(): void
     {
+        $this->seed();
+
         $response = $this->get('/marketplace');
+
         $response->assertStatus(200);
         $response->assertSee('FarmReach');
         $response->assertSee('Direct From Surigao Farmers');
     }
 
-    public function test_root_redirects_to_marketplace()
+    public function test_root_redirects_to_marketplace(): void
     {
         $response = $this->get('/');
+
         $response->assertRedirect('/marketplace');
     }
 
-    public function test_admin_can_login_using_email()
+    public function test_admin_can_login_using_email(): void
     {
+        $this->seed();
+
         $response = $this->post('/login', [
             'login_id' => 'admin@farmreach.ph',
             'password' => 'password',
@@ -36,8 +42,10 @@ class FarmReachTest extends TestCase
         $this->assertAuthenticated();
     }
 
-    public function test_farmer_can_login_using_phone_number()
+    public function test_farmer_can_login_using_phone_number(): void
     {
+        $this->seed();
+
         $response = $this->post('/login', [
             'login_id' => '09876543210',
             'password' => 'password',
@@ -47,9 +55,11 @@ class FarmReachTest extends TestCase
         $this->assertAuthenticated();
     }
 
-    public function test_buyer_can_login_and_view_my_orders()
+    public function test_buyer_can_login_and_view_my_orders(): void
     {
-        $buyer = User::where('email', 'shery@buyer.ph')->first();
+        $this->seed();
+        $buyer = User::where('email', 'shery@buyer.ph')->firstOrFail();
+
         $this->actingAs($buyer);
 
         $response = $this->get('/buyer/orders');
@@ -59,8 +69,10 @@ class FarmReachTest extends TestCase
         $response->assertSee('Table View');
     }
 
-    public function test_single_admin_constraint_blocks_second_admin_registration()
+    public function test_single_admin_constraint_blocks_second_admin_registration(): void
     {
+        $this->seed();
+
         $response = $this->post('/register', [
             'name' => 'Second Admin Attempt',
             'email' => 'secondadmin@farmreach.ph',
@@ -73,31 +85,31 @@ class FarmReachTest extends TestCase
         $response->assertSessionHasErrors(['role']);
     }
 
-    public function test_recipe_to_product_matching_view()
+    public function test_recipe_to_product_matching_view(): void
     {
-        $recipe = Recipe::first();
-        $this->assertNotNull($recipe);
+        $this->seed();
+        $recipe = Recipe::firstOrFail();
 
         $response = $this->get(route('recipes.show', $recipe));
+
         $response->assertStatus(200);
         $response->assertSee('Ingredient-to-Marketplace Matcher');
     }
 
-    public function test_buyer_can_add_to_cart_and_place_order()
+    public function test_buyer_can_add_to_cart_and_place_order(): void
     {
-        $buyer = User::where('email', 'shery@buyer.ph')->first();
+        $this->seed();
+        $buyer = User::where('email', 'shery@buyer.ph')->firstOrFail();
+        $product = Product::where('quantity', '>', 5)->where('is_active', true)->firstOrFail();
+
         $this->actingAs($buyer);
 
-        $product = Product::where('quantity', '>', 5)->first();
-
-        // 1. Add to cart
         $cartResponse = $this->post('/cart/add', [
             'product_id' => $product->id,
             'quantity' => 2,
         ]);
         $cartResponse->assertSessionHas('cart');
 
-        // 2. Checkout & Place Order
         $checkoutResponse = $this->post('/checkout', [
             'delivery_method' => 'deliver',
             'delivery_address' => 'Test Delivery St., Surigao City',
@@ -113,23 +125,24 @@ class FarmReachTest extends TestCase
         ]);
     }
 
-    public function test_farmer_can_confirm_order()
+    public function test_farmer_can_confirm_order(): void
     {
-        $farmer = User::where('role', 'farmer')->first();
-        $this->actingAs($farmer);
+        $this->seed();
+        $order = Order::where('status', 'pending')->firstOrFail();
+        $farmer = $order->farmer;
 
-        $order = Order::where('farmer_id', $farmer->id)->where('status', 'pending')->first();
-        if ($order) {
-            $response = $this->post(route('farmer.orders.status', $order), [
-                'status' => 'confirmed',
-            ]);
-            $response->assertSessionHas('success');
-            $this->assertEquals('confirmed', $order->fresh()->status);
-        }
+        $response = $this->actingAs($farmer)->post(route('farmer.orders.status', $order), [
+            'status' => 'confirmed',
+        ]);
+
+        $response->assertSessionHas('success');
+        $this->assertSame('confirmed', $order->fresh()->status);
     }
 
-    public function test_rest_api_endpoints()
+    public function test_rest_api_endpoints(): void
     {
+        $this->seed();
+
         $prodResponse = $this->getJson('/api/products');
         $prodResponse->assertStatus(200);
         $prodResponse->assertJson(['status' => 'success']);
@@ -143,65 +156,61 @@ class FarmReachTest extends TestCase
         $farmerResponse->assertJson(['status' => 'success']);
     }
 
-    public function test_marketplace_product_detail_page_loads_successfully()
+    public function test_marketplace_product_detail_page_loads_successfully(): void
     {
-        $product = Product::where('is_active', true)->first();
-        if ($product) {
-            $response = $this->get(route('marketplace.show', $product));
-            $response->assertStatus(200);
-            $response->assertSee($product->name);
-        }
+        $this->seed();
+        $product = Product::where('is_active', true)->firstOrFail();
+
+        $response = $this->get(route('marketplace.show', $product));
+
+        $response->assertStatus(200);
+        $response->assertSee($product->name);
     }
 
-    public function test_admin_can_update_announcement()
+    public function test_admin_can_update_announcement(): void
     {
-        $admin = User::where('role', 'admin')->first();
-        $this->actingAs($admin);
+        $this->seed();
+        $admin = User::where('role', 'admin')->firstOrFail();
+        $announcement = Announcement::firstOrFail();
 
-        $announcement = Announcement::first();
-        if ($announcement) {
-            $response = $this->put(route('admin.announcements.update', $announcement), [
-                'title' => 'Updated Test Announcement Title',
-                'location' => 'Surigao City Hall',
-                'event_date' => 'Next Month',
-                'description' => 'Updated announcement description text.',
-            ]);
+        $response = $this->actingAs($admin)->put(route('admin.announcements.update', $announcement), [
+            'title' => 'Updated Test Announcement Title',
+            'location' => 'Surigao City Hall',
+            'event_date' => 'Next Month',
+            'description' => 'Updated announcement description text.',
+        ]);
 
-            $response->assertSessionHas('success');
-            $this->assertEquals('Updated Test Announcement Title', $announcement->fresh()->title);
-        }
+        $response->assertSessionHas('success');
+        $this->assertSame('Updated Test Announcement Title', $announcement->fresh()->title);
     }
 
-    public function test_farmer_cannot_purchase_own_crop_listing()
+    public function test_farmer_cannot_purchase_own_crop_listing(): void
     {
-        $farmer = User::where('role', 'farmer')->first();
-        $this->actingAs($farmer);
+        $this->seed();
+        $farmer = User::where('role', 'farmer')->firstOrFail();
+        $ownProduct = Product::where('user_id', $farmer->id)->firstOrFail();
 
-        $ownProduct = Product::where('user_id', $farmer->id)->first();
-        if ($ownProduct) {
-            $response = $this->post('/cart/add', [
-                'product_id' => $ownProduct->id,
-                'quantity' => 1,
-            ]);
+        $response = $this->actingAs($farmer)->post('/cart/add', [
+            'product_id' => $ownProduct->id,
+            'quantity' => 1,
+        ]);
 
-            $response->assertSessionHas('error');
-        }
+        $response->assertSessionHas('error');
     }
 
-    public function test_farmer_can_purchase_produce_from_another_farmer()
+    public function test_farmer_can_purchase_produce_from_another_farmer(): void
     {
-        $farmer = User::where('role', 'farmer')->first();
-        $otherFarmerProduct = Product::where('user_id', '!=', $farmer->id)->where('quantity', '>', 5)->first();
+        $this->seed();
+        $farmer = User::where('role', 'farmer')->firstOrFail();
+        $otherFarmerProduct = Product::where('user_id', '!=', $farmer->id)
+            ->where('quantity', '>', 5)
+            ->firstOrFail();
 
-        if ($otherFarmerProduct) {
-            $this->actingAs($farmer);
+        $response = $this->actingAs($farmer)->post('/cart/add', [
+            'product_id' => $otherFarmerProduct->id,
+            'quantity' => 1,
+        ]);
 
-            $response = $this->post('/cart/add', [
-                'product_id' => $otherFarmerProduct->id,
-                'quantity' => 1,
-            ]);
-
-            $response->assertSessionHas('cart');
-        }
+        $response->assertSessionHas('cart');
     }
 }

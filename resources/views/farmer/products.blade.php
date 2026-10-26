@@ -245,12 +245,12 @@
                                                             <p class="small text-muted mb-2">
                                                                 Set your shipping fee for Order <strong>#{{ $ord->order_number }}</strong> based on distance to the buyer:
                                                             </p>
-                                                            <label class="form-label fw-bold small">Your Delivery Rate (₱)</label>
+                                                            <label class="form-label fw-bold small">Shipping Fee (₱)</label>
                                                             <div class="input-group input-group-sm mb-2">
                                                                 <span class="input-group-text">₱</span>
-                                                                <input type="number" step="0.50" min="0" max="1000" name="shipping_fee" class="form-control" value="{{ $ord->shipping_fee > 0 ? $ord->shipping_fee : 60 }}" required>
+                                                                <input type="number" step="0.01" min="0" max="1000" name="shipping_fee" class="form-control" value="{{ number_format((float) $ord->shipping_fee, 2, '.', '') }}" required>
                                                             </div>
-                                                            <small class="text-muted" style="font-size: 11px;">Standard default is ₱60.00. You may reduce it if the buyer lives nearby.</small>
+                                                            <small class="text-muted" style="font-size: 11px;">New orders start at ₱0.00. Enter the actual delivery cost; the buyer will see the updated total.</small>
                                                         </div>
                                                         <div class="modal-footer py-2 bg-light">
                                                             <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>

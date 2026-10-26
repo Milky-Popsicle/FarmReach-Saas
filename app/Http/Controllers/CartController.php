@@ -7,6 +7,8 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\Product;
+use App\Notifications\OrderPlacedNotification;
+use DomainException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -16,7 +18,9 @@ class CartController extends Controller
 {
     public function index()
     {
-        $cart = session()->get('cart', []);
+        $cart = $this->refreshCart(session()->get('cart', []));
+        session()->put('cart', $cart);
+
         $subtotal = 0;
         $totalKilograms = 0;
 
@@ -83,26 +87,12 @@ class CartController extends Controller
 
                 return back()->with('error', "Cannot exceed available stock of {$product->quantity} {$product->unit}(s).");
             }
-            $cart[$productId]['quantity'] = $newQty;
+            $cart[$productId] = $product->cartItemPayload($newQty);
         } else {
-            $cart[$productId] = [
-                'id' => $product->id,
-                'name' => $product->name,
-                'price' => (float) $product->price,
-                'kilograms' => (float) $product->effective_kilograms,
-                'weight_per_unit' => $product->kilograms ? (float) $product->kilograms : null,
-                'has_weight' => $product->has_weight_per_unit,
-                'unit' => $product->unit,
-                'selling_unit' => $product->unit,
-                'stock_unit_label' => $product->stock_unit_label,
-                'price_unit_label' => $product->price_unit_label,
-                'image_path' => $product->image_path,
-                'farmer_name' => $product->farmer->name,
-                'farmer_id' => $product->user_id,
-                'farmer_address' => $product->farmer->address,
-                'quantity' => $requestedQty,
-                'order_type' => $request->get('order_type', $requestedQty >= 20 ? 'bulk' : 'standard'),
-            ];
+            $cart[$productId] = $product->cartItemPayload(
+                $requestedQty,
+                $request->get('order_type', $requestedQty >= 20 ? 'bulk' : 'standard')
+            );
         }
 
         session()->put('cart', $cart);
@@ -131,7 +121,7 @@ class CartController extends Controller
             'quantity' => 'required|integer|min:1',
         ]);
 
-        $product = Product::findOrFail($request->product_id);
+        $product = Product::with('farmer')->findOrFail($request->product_id);
         $cart = session()->get('cart', []);
 
         if (isset($cart[$product->id])) {
@@ -142,8 +132,10 @@ class CartController extends Controller
                 ], 422);
             }
 
-            $cart[$product->id]['quantity'] = (int) $request->quantity;
-            $cart[$product->id]['order_type'] = $request->quantity >= 20 ? 'bulk' : 'standard';
+            $cart[$product->id] = $product->cartItemPayload(
+                (int) $request->quantity,
+                $request->quantity >= 20 ? 'bulk' : 'standard'
+            );
             session()->put('cart', $cart);
 
             $itemSubtotal = $cart[$product->id]['price'] * $cart[$product->id]['quantity'];
@@ -189,7 +181,9 @@ class CartController extends Controller
 
     public function checkout(Request $request)
     {
-        $cart = session()->get('cart', []);
+        $cart = $this->refreshCart(session()->get('cart', []));
+        session()->put('cart', $cart);
+
         if (empty($cart)) {
             return redirect()->route('marketplace')->with('info', 'Your cart is empty. Please add agricultural products first.');
         }
@@ -217,11 +211,9 @@ class CartController extends Controller
             }
         }
 
-        // Calculate unique farmers and multi-farmer shipping fee
+        // Count unique farmers so the checkout can explain that each farmer sets their own delivery fee.
         $farmerIds = array_unique(array_column($cart, 'farmer_id'));
         $farmerCount = count($farmerIds);
-        $shippingPerFarmer = 60.00;
-        $shippingTotal = $farmerCount * $shippingPerFarmer;
         $selectedItems = array_keys($cart);
 
         return view('cart.checkout', compact(
@@ -231,20 +223,19 @@ class CartController extends Controller
             'totalKg',
             'hasBulkItems',
             'farmerCount',
-            'shippingPerFarmer',
-            'shippingTotal',
             'selectedItems'
         ));
     }
 
     public function placeOrder(Request $request)
     {
-        $cart = session()->get('cart', []);
+        $cart = $this->refreshCart(session()->get('cart', []));
+        session()->put('cart', $cart);
+
         if (empty($cart)) {
             return redirect()->route('marketplace')->with('error', 'Your shopping cart is empty.');
         }
 
-        // Filter to selected items if provided
         $selectedIds = $request->input('selected_items');
         $itemsToOrder = $cart;
         if (! empty($selectedIds) && is_array($selectedIds)) {
@@ -265,98 +256,159 @@ class CartController extends Controller
             'selected_items.*' => 'integer',
         ]);
 
-        // Payment method mapping: COD or COP are saved as 'cod' in db enum
         $dbPaymentMethod = 'cod';
         if (in_array($validated['payment_method'], ['bank_transfer', 'gcash'], true)) {
             $dbPaymentMethod = $validated['payment_method'];
         }
 
+        $requestedItems = [];
+        foreach ($itemsToOrder as $productId => $item) {
+            $quantity = (int) ($item['quantity'] ?? 0);
+            if ($quantity < 1) {
+                return redirect()->route('cart.index')->with('error', 'One of the selected items has an invalid quantity.');
+            }
+
+            $requestedItems[(int) $productId] = $quantity;
+        }
+
+        if (empty($requestedItems)) {
+            return redirect()->route('cart.index')->with('error', 'No valid crops selected for checkout.');
+        }
+
         $buyer = Auth::user();
 
-        // Check stock for all items before proceeding
-        foreach ($itemsToOrder as $productId => $item) {
-            $prod = Product::lockForUpdate()->find($productId);
-            if (! $prod || $prod->quantity < $item['quantity']) {
-                return back()->with('error', "Sorry, '{$item['name']}' only has {$prod?->quantity} units left. Please adjust your cart.")->withInput();
-            }
-        }
-
-        // Group items by farmer so each farmer gets an order
-        $farmerItems = [];
-        foreach ($itemsToOrder as $productId => $item) {
-            $farmerId = $item['farmer_id'];
-            if (Auth::check() && $farmerId === Auth::id()) {
-                return back()->with('error', "You cannot place an order for your own farm produce ('{$item['name']}').");
-            }
-            $farmerItems[$farmerId][] = $item;
-        }
-
         $createdOrders = [];
+        $decrementedProductIds = [];
 
-        DB::transaction(function () use ($farmerItems, $validated, $dbPaymentMethod, $buyer, &$createdOrders) {
-            foreach ($farmerItems as $farmerId => $items) {
-                $farmerOrderSubtotal = 0;
-                $isBulk = false;
+        try {
+            DB::transaction(function () use ($requestedItems, $validated, $dbPaymentMethod, $buyer, &$createdOrders, &$decrementedProductIds) {
+                $products = Product::with('farmer')
+                    ->whereIn('id', array_keys($requestedItems))
+                    ->orderBy('id')
+                    ->lockForUpdate()
+                    ->get()
+                    ->keyBy('id');
 
-                foreach ($items as $it) {
-                    $farmerOrderSubtotal += $it['price'] * $it['quantity'];
-                    if ($it['quantity'] >= 20 || ($it['order_type'] ?? '') === 'bulk') {
-                        $isBulk = true;
+                $normalizedItems = [];
+                foreach ($requestedItems as $productId => $quantity) {
+                    $product = $products->get($productId);
+
+                    if (! $product) {
+                        throw new DomainException('One of the selected products is no longer available. Please refresh your cart.');
                     }
+
+                    if (! $product->is_active) {
+                        throw new DomainException("'{$product->name}' is no longer available.");
+                    }
+
+                    if ($product->user_id === $buyer->id) {
+                        throw new DomainException("You cannot place an order for your own farm produce ('{$product->name}').");
+                    }
+
+                    if ($product->quantity < $quantity) {
+                        throw new DomainException("Sorry, '{$product->name}' only has {$product->quantity} {$product->stock_unit_label} left. Please adjust your cart.");
+                    }
+
+                    $normalizedItems[] = [
+                        'product' => $product,
+                        'quantity' => $quantity,
+                    ];
                 }
 
-                $shippingFee = $validated['delivery_method'] === 'deliver' ? 60.00 : 0.00;
-                $orderTotal = $farmerOrderSubtotal + $shippingFee;
+                $farmerItems = [];
+                foreach ($normalizedItems as $line) {
+                    $farmerItems[$line['product']->user_id][] = $line;
+                }
 
-                $orderNumber = ($isBulk ? 'BLK-' : 'ORD-').date('Ymd').'-'.strtoupper(Str::random(5));
+                foreach ($farmerItems as $farmerId => $lines) {
+                    $farmerOrderSubtotal = 0;
+                    $isBulk = false;
 
-                $order = Order::create([
-                    'order_number' => $orderNumber,
-                    'buyer_id' => $buyer->id,
-                    'farmer_id' => $farmerId,
-                    'order_type' => $isBulk ? 'bulk' : 'standard',
-                    'total_amount' => $orderTotal,
-                    'delivery_method' => $validated['delivery_method'],
-                    'delivery_address' => $validated['delivery_method'] === 'deliver' ? $validated['delivery_address'] : 'Pick up at Farm Location',
-                    'shipping_fee' => $shippingFee,
-                    'status' => 'pending',
-                    'notes' => $validated['notes'] ?? null,
-                ]);
+                    foreach ($lines as $line) {
+                        $farmerOrderSubtotal += (float) $line['product']->price * $line['quantity'];
+                        if ($line['quantity'] >= 20) {
+                            $isBulk = true;
+                        }
+                    }
 
-                foreach ($items as $it) {
-                    OrderItem::create([
-                        'order_id' => $order->id,
-                        'product_id' => $it['id'],
-                        'quantity' => $it['quantity'],
-                        'unit_price' => $it['price'],
-                        'subtotal' => $it['price'] * $it['quantity'],
+                    $farmerOrderSubtotal = round($farmerOrderSubtotal, 2);
+                    $shippingFee = 0.00;
+                    $orderTotal = $farmerOrderSubtotal;
+                    $orderNumber = ($isBulk ? 'BLK-' : 'ORD-').date('Ymd').'-'.strtoupper(Str::random(5));
+
+                    $order = Order::create([
+                        'order_number' => $orderNumber,
+                        'buyer_id' => $buyer->id,
+                        'farmer_id' => $farmerId,
+                        'order_type' => $isBulk ? 'bulk' : 'standard',
+                        'total_amount' => $orderTotal,
+                        'delivery_method' => $validated['delivery_method'],
+                        'delivery_address' => $validated['delivery_method'] === 'deliver' ? $validated['delivery_address'] : 'Pick up at Farm Location',
+                        'shipping_fee' => $shippingFee,
+                        'status' => 'pending',
+                        'notes' => $validated['notes'] ?? null,
                     ]);
 
-                    // Deduct product inventory
-                    Product::where('id', $it['id'])->decrement('quantity', $it['quantity']);
+                    foreach ($lines as $line) {
+                        $affected = Product::whereKey($line['product']->id)
+                            ->where('quantity', '>=', $line['quantity'])
+                            ->decrement('quantity', $line['quantity']);
+
+                        if ($affected < 1) {
+                            throw new DomainException("'{$line['product']->name}' no longer has enough stock. Please adjust your cart.");
+                        }
+
+                        $decrementedProductIds[] = $line['product']->id;
+
+                        OrderItem::create([
+                            'order_id' => $order->id,
+                            'product_id' => $line['product']->id,
+                            'quantity' => $line['quantity'],
+                            'unit_price' => $line['product']->price,
+                            'subtotal' => (float) $line['product']->price * $line['quantity'],
+                        ]);
+                    }
+
+                    Payment::create([
+                        'order_id' => $order->id,
+                        'payment_method' => $dbPaymentMethod,
+                        'payment_status' => 'pending',
+                        'reference_number' => $validated['reference_number'] ?? null,
+                        'amount' => $orderTotal,
+                        'payment_date' => now(),
+                    ]);
+
+                    ActivityLog::log(
+                        $buyer->id,
+                        $isBulk ? 'Bulk Order Placed' : 'Order Placed',
+                        "Order #{$orderNumber} placed for ₱".number_format($orderTotal, 2)
+                    );
+
+                    $createdOrders[] = [
+                        'order' => $order,
+                        'itemCount' => count($lines),
+                    ];
                 }
+            });
+        } catch (DomainException $exception) {
+            return back()->with('error', $exception->getMessage())->withInput();
+        }
 
-                // Create Payment record
-                Payment::create([
-                    'order_id' => $order->id,
-                    'payment_method' => $dbPaymentMethod,
-                    'payment_status' => 'pending',
-                    'reference_number' => $validated['reference_number'] ?? null,
-                    'amount' => $orderTotal,
-                    'payment_date' => now(),
-                ]);
+        foreach ($createdOrders as $createdOrder) {
+            $order = $createdOrder['order'];
 
-                ActivityLog::log(
-                    $buyer->id,
-                    $isBulk ? 'Bulk Order Placed' : 'Order Placed',
-                    "Order #{$orderNumber} placed for ₱".number_format($orderTotal, 2)
-                );
+            $order->farmer?->notify(new OrderPlacedNotification(
+                orderNumber: $order->order_number,
+                buyerName: $buyer->name,
+                totalAmount: (float) $order->total_amount,
+                itemCount: $createdOrder['itemCount'],
+            ));
+        }
 
-                $createdOrders[] = $order;
-            }
-        });
+        Product::whereIn('id', array_unique($decrementedProductIds))
+            ->get()
+            ->each(fn (Product $product) => $product->syncLowStockNotification());
 
-        // Remove only the ordered items from cart session
         foreach (array_keys($itemsToOrder) as $orderedId) {
             unset($cart[$orderedId]);
         }
@@ -368,5 +420,43 @@ class CartController extends Controller
         }
 
         return redirect()->route('buyer.orders')->with('success', 'Your order has been placed successfully! You can track its status below.');
+    }
+
+    /**
+     * Refresh session cart prices and product metadata from the database.
+     *
+     * @param  array<int|string, array<string, mixed>>  $cart
+     * @return array<int, array<string, mixed>>
+     */
+    private function refreshCart(array $cart): array
+    {
+        if (empty($cart)) {
+            return [];
+        }
+
+        $productIds = array_filter(array_keys($cart), fn (int|string $id): bool => is_numeric($id));
+
+        $products = Product::with('farmer')
+            ->whereIn('id', $productIds)
+            ->get()
+            ->keyBy('id');
+
+        foreach ($cart as $productId => $item) {
+            $product = $products->get($productId);
+
+            if (! $product) {
+                unset($cart[$productId]);
+
+                continue;
+            }
+
+            $quantity = max(1, (int) ($item['quantity'] ?? 1));
+            $cart[$productId] = $product->cartItemPayload(
+                $quantity,
+                $item['order_type'] ?? null
+            );
+        }
+
+        return $cart;
     }
 }

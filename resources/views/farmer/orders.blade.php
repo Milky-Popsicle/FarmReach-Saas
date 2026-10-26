@@ -36,7 +36,7 @@
         </div>
         <div class="col-6 col-md-3">
             <div class="stat-card stat-secondary">
-                <span class="text-muted small text-uppercase fw-semibold">Delivered Revenue</span>
+                <span class="text-muted small text-uppercase fw-semibold">Completed Revenue</span>
                 <h3 class="fw-bold mb-0 text-success mt-1">₱{{ number_format($totalSales, 2) }}</h3>
             </div>
         </div>
@@ -147,12 +147,12 @@
                                                                 <p class="small text-muted mb-2">
                                                                     Set your shipping fee for Order <strong>#{{ $ord->order_number }}</strong> based on distance to the buyer:
                                                                 </p>
-                                                                <label class="form-label fw-bold small">Your Delivery Rate (₱)</label>
+                                                                <label class="form-label fw-bold small">Shipping Fee (₱)</label>
                                                                 <div class="input-group input-group-sm mb-2">
                                                                     <span class="input-group-text">₱</span>
-                                                                    <input type="number" step="0.50" min="0" max="1000" name="shipping_fee" class="form-control" value="{{ $ord->shipping_fee > 0 ? $ord->shipping_fee : 60 }}" required>
+                                                                    <input type="number" step="0.01" min="0" max="1000" name="shipping_fee" class="form-control" value="{{ number_format((float) $ord->shipping_fee, 2, '.', '') }}" required>
                                                                 </div>
-                                                                <small class="text-muted" style="font-size: 11px;">Standard default is ₱60.00. You may adjust according to distance.</small>
+                                                                <small class="text-muted" style="font-size: 11px;">New orders start at ₱0.00. Enter the actual delivery cost; the buyer will see the updated total.</small>
                                                             </div>
                                                             <div class="modal-footer py-2 bg-light">
                                                                 <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -171,6 +171,14 @@
                                                 </button>
                                             </form>
                                         @endif
+
+                                        <form action="{{ route('farmer.orders.status', $ord) }}" method="POST" class="swal-confirm m-0" data-confirm="Cancel order #{{ $ord->order_number }}? The reserved stock will be returned to your inventory." data-confirm-btn="Yes, cancel">
+                                            @csrf
+                                            <input type="hidden" name="status" value="cancelled">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Cancel Order">
+                                                <i class="bi bi-x-circle me-1"></i> Cancel
+                                            </button>
+                                        </form>
                                     @elseif($ord->status === 'confirmed')
                                         @if($ord->delivery_method === 'pickup')
                                             <form action="{{ route('farmer.orders.status', $ord) }}" method="POST" class="m-0">
@@ -189,6 +197,14 @@
                                                 </button>
                                             </form>
                                         @endif
+
+                                        <form action="{{ route('farmer.orders.status', $ord) }}" method="POST" class="swal-confirm m-0" data-confirm="Cancel order #{{ $ord->order_number }}? The reserved stock will be returned to your inventory." data-confirm-btn="Yes, cancel">
+                                            @csrf
+                                            <input type="hidden" name="status" value="cancelled">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Cancel Order">
+                                                <i class="bi bi-x-circle me-1"></i> Cancel
+                                            </button>
+                                        </form>
                                     @elseif(in_array($ord->status, ['delivered', 'picked_up'], true))
                                         <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
                                             <i class="bi bi-check2-all me-1"></i>{{ $ord->status_label }}
