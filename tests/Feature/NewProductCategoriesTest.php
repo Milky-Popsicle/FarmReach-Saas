@@ -11,11 +11,59 @@ use Tests\TestCase;
 
 class NewProductCategoriesTest extends TestCase
 {
-    public function test_new_product_categories_are_seeded_with_expected_names_and_slugs(): void
+    /**
+     * @var array<int, string>
+     */
+    private const NEW_CATEGORY_SLUGS = [
+        'eggs-dairy',
+        'snacks-processed-farm-products',
+        'plants-seedlings',
+    ];
+
+    /**
+     * @var array<int, string>
+     */
+    private const ALL_CATEGORY_SLUGS = [
+        'vegetables',
+        'fruits',
+        'grains-rice',
+        'root-crops',
+        'herbs-spices',
+        'eggs-dairy',
+        'snacks-processed-farm-products',
+        'plants-seedlings',
+    ];
+
+    public function test_product_categories_are_seeded_with_expected_names_and_slugs(): void
     {
         $this->seed(ProductCategorySeeder::class);
 
-        $this->assertDatabaseCount('categories', 3);
+        $this->assertDatabaseCount('categories', 8);
+        $this->assertDatabaseHas('categories', [
+            'name' => 'Vegetables',
+            'slug' => 'vegetables',
+            'icon' => 'bi-flower1',
+        ]);
+        $this->assertDatabaseHas('categories', [
+            'name' => 'Fruits',
+            'slug' => 'fruits',
+            'icon' => 'bi-apple',
+        ]);
+        $this->assertDatabaseHas('categories', [
+            'name' => 'Grains & Rice',
+            'slug' => 'grains-rice',
+            'icon' => 'bi-layers',
+        ]);
+        $this->assertDatabaseHas('categories', [
+            'name' => 'Root Crops',
+            'slug' => 'root-crops',
+            'icon' => 'bi-box-seam',
+        ]);
+        $this->assertDatabaseHas('categories', [
+            'name' => 'Herbs & Spices',
+            'slug' => 'herbs-spices',
+            'icon' => 'bi-fire',
+        ]);
         $this->assertDatabaseHas('categories', [
             'name' => 'Eggs & Dairy',
             'slug' => 'eggs-dairy',
@@ -33,15 +81,34 @@ class NewProductCategoriesTest extends TestCase
         ]);
     }
 
+    public function test_product_category_seeder_initializes_all_categories_for_existing_production_admin(): void
+    {
+        User::factory()->admin()->create([
+            'email' => 'owner@farmreach.ph',
+        ]);
+
+        $this->assertDatabaseMissing('users', ['email' => 'admin@farmreach.ph']);
+        $this->assertDatabaseCount('categories', 0);
+
+        $this->seed(ProductCategorySeeder::class);
+
+        $this->assertDatabaseCount('categories', 8);
+
+        foreach (self::ALL_CATEGORY_SLUGS as $slug) {
+            $this->assertDatabaseHas('categories', ['slug' => $slug]);
+        }
+    }
+
     public function test_product_category_seeder_does_not_create_duplicates(): void
     {
         $this->seed(ProductCategorySeeder::class);
         $this->seed(ProductCategorySeeder::class);
 
-        $this->assertDatabaseCount('categories', 3);
-        $this->assertSame(1, Category::where('slug', 'eggs-dairy')->count());
-        $this->assertSame(1, Category::where('slug', 'snacks-processed-farm-products')->count());
-        $this->assertSame(1, Category::where('slug', 'plants-seedlings')->count());
+        $this->assertDatabaseCount('categories', 8);
+
+        foreach (self::ALL_CATEGORY_SLUGS as $slug) {
+            $this->assertSame(1, Category::where('slug', $slug)->count());
+        }
     }
 
     public function test_product_category_seeder_skips_existing_category_with_same_name(): void
@@ -55,7 +122,7 @@ class NewProductCategoriesTest extends TestCase
 
         $this->seed(ProductCategorySeeder::class);
 
-        $this->assertDatabaseCount('categories', 3);
+        $this->assertDatabaseCount('categories', 8);
         $this->assertDatabaseHas('categories', [
             'name' => 'Eggs & Dairy',
             'slug' => 'custom-eggs-dairy',
@@ -77,7 +144,7 @@ class NewProductCategoriesTest extends TestCase
 
         $this->seed(ProductCategorySeeder::class);
 
-        $this->assertDatabaseCount('categories', 3);
+        $this->assertDatabaseCount('categories', 8);
         $this->assertDatabaseHas('categories', [
             'name' => 'Existing Eggs Category',
             'slug' => 'eggs-dairy',
@@ -92,13 +159,7 @@ class NewProductCategoriesTest extends TestCase
     {
         $this->seed();
 
-        $newCategorySlugs = [
-            'eggs-dairy',
-            'snacks-processed-farm-products',
-            'plants-seedlings',
-        ];
-
-        Category::whereIn('slug', $newCategorySlugs)->delete();
+        Category::whereIn('slug', self::NEW_CATEGORY_SLUGS)->delete();
 
         $this->assertDatabaseCount('categories', 5);
         $existingProductCount = Product::count();
@@ -112,9 +173,33 @@ class NewProductCategoriesTest extends TestCase
             'slug' => 'vegetables',
         ]);
 
-        foreach ($newCategorySlugs as $slug) {
+        foreach (self::NEW_CATEGORY_SLUGS as $slug) {
             $this->assertDatabaseHas('categories', ['slug' => $slug]);
         }
+    }
+
+    public function test_database_seeder_resolves_base_category_with_custom_slug(): void
+    {
+        $this->seed(ProductCategorySeeder::class);
+
+        $vegetables = Category::where('slug', 'vegetables')->firstOrFail();
+        $vegetables->update(['slug' => 'veg']);
+
+        $this->assertDatabaseMissing('categories', ['slug' => 'vegetables']);
+
+        // The admin account does not exist yet, so DatabaseSeeder runs the demo
+        // data path that resolves the five base categories.
+        $this->seed();
+
+        $this->assertDatabaseCount('categories', 8);
+        $this->assertDatabaseHas('categories', [
+            'id' => $vegetables->id,
+            'name' => 'Vegetables',
+            'slug' => 'veg',
+        ]);
+        $this->assertDatabaseMissing('categories', ['slug' => 'vegetables']);
+        $this->assertSame(1, Category::where('name', 'Vegetables')->count());
+        $this->assertTrue(Product::where('category_id', $vegetables->id)->exists());
     }
 
     public function test_farmer_product_page_lists_new_categories(): void

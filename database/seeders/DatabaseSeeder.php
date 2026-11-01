@@ -15,11 +15,14 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use RuntimeException;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        $this->call(ProductCategorySeeder::class);
+
         $demoDataExists = User::where('email', 'admin@farmreach.ph')->exists();
 
         if ($demoDataExists) {
@@ -27,8 +30,6 @@ class DatabaseSeeder extends Seeder
         } else {
             DB::transaction(fn () => $this->seedDemoData());
         }
-
-        $this->call(ProductCategorySeeder::class);
     }
 
     private function seedDemoData(): void
@@ -120,41 +121,12 @@ class DatabaseSeeder extends Seeder
             'bio' => 'Culinary enthusiast searching for local recipe ingredients and weekly fresh harvest.',
         ]);
 
-        // 4. Create Categories
-        $catVegetables = Category::create([
-            'name' => 'Vegetables',
-            'slug' => 'vegetables',
-            'icon' => 'bi-flower1',
-            'description' => 'Crisp, garden-fresh highland and lowland vegetables directly harvested from local farms.',
-        ]);
-
-        $catFruits = Category::create([
-            'name' => 'Fruits',
-            'slug' => 'fruits',
-            'icon' => 'bi-apple',
-            'description' => 'Sweet, juicy tropical fruits harvested at peak ripeness.',
-        ]);
-
-        $catGrains = Category::create([
-            'name' => 'Grains & Rice',
-            'slug' => 'grains-rice',
-            'icon' => 'bi-layers',
-            'description' => 'Locally milled premium Dinorado, Sinandomeng, and upland heirloom grains.',
-        ]);
-
-        $catRootCrops = Category::create([
-            'name' => 'Root Crops',
-            'slug' => 'root-crops',
-            'icon' => 'bi-box-seam',
-            'description' => 'Nutrient-rich tubers, sweet potatoes, and highland potatoes.',
-        ]);
-
-        $catHerbs = Category::create([
-            'name' => 'Herbs & Spices',
-            'slug' => 'herbs-spices',
-            'icon' => 'bi-fire',
-            'description' => 'Fresh native garlic, ginger, chili, and culinary aromatics.',
-        ]);
+        // 4. Load Categories (created first by ProductCategorySeeder)
+        $catVegetables = $this->resolveBaseCategory('vegetables', 'Vegetables');
+        $catFruits = $this->resolveBaseCategory('fruits', 'Fruits');
+        $catGrains = $this->resolveBaseCategory('grains-rice', 'Grains & Rice');
+        $catRootCrops = $this->resolveBaseCategory('root-crops', 'Root Crops');
+        $catHerbs = $this->resolveBaseCategory('herbs-spices', 'Herbs & Spices');
 
         // 5. Create Products
         $pSayote = Product::create([
@@ -571,5 +543,20 @@ class DatabaseSeeder extends Seeder
         ActivityLog::log($buyerShery->id, 'Order Placed', 'Buyer Shery placed Order #ORD-20260904-001 for Chayote.');
         ActivityLog::log($buyerRynard->id, 'Bulk Order Placed', 'Buyer Rynard placed Bulk Order #BLK-20260904-002 for 100kg Dinorado Rice.');
         ActivityLog::log($farmerJustin->id, 'Order Confirmed', 'Farmer Justin confirmed Order #ORD-20260904-001.');
+    }
+
+    /**
+     * Resolve a base category using the same identity rule as ProductCategorySeeder.
+     *
+     * ProductCategorySeeder preserves an existing row when either its slug or
+     * its name matches, so resolving by the default slug alone would fail for a
+     * renamed slug such as `veg`.
+     */
+    private function resolveBaseCategory(string $slug, string $name): Category
+    {
+        return ProductCategorySeeder::findMatchingCategory($slug, $name)
+            ?? throw new RuntimeException(
+                "Category [{$name}] with canonical slug [{$slug}] is missing after ProductCategorySeeder ran."
+            );
     }
 }
