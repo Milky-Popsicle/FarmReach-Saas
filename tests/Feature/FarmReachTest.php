@@ -139,21 +139,27 @@ class FarmReachTest extends TestCase
         $this->assertSame('confirmed', $order->fresh()->status);
     }
 
-    public function test_rest_api_endpoints(): void
+    public function test_public_rest_api_endpoints_return_catalog_data(): void
     {
         $this->seed();
 
-        $prodResponse = $this->getJson('/api/products');
-        $prodResponse->assertStatus(200);
-        $prodResponse->assertJson(['status' => 'success']);
+        $this->getJson('/api/products')
+            ->assertOk()
+            ->assertJson(['status' => 'success']);
 
-        $salesResponse = $this->getJson('/api/sales-data');
-        $salesResponse->assertStatus(200);
-        $salesResponse->assertJson(['status' => 'success']);
+        $this->getJson('/api/recipes')
+            ->assertOk()
+            ->assertJson(['status' => 'success']);
+    }
 
-        $farmerResponse = $this->getJson('/api/farmer-locations');
-        $farmerResponse->assertStatus(200);
-        $farmerResponse->assertJson(['status' => 'success']);
+    public function test_sensitive_rest_api_endpoints_require_authentication(): void
+    {
+        $this->seed();
+
+        $this->getJson('/api/sales-data')->assertUnauthorized();
+        $this->getJson('/api/farmer-locations')->assertUnauthorized();
+        $this->getJson('/api/orders')->assertUnauthorized();
+        $this->getJson('/api/recent-activities')->assertUnauthorized();
     }
 
     public function test_marketplace_product_detail_page_loads_successfully(): void

@@ -24,6 +24,8 @@ return Application::configure(basePath: dirname(__DIR__))
             headers: Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_PROTO,
         );
 
+        $middleware->throttleApi();
+
         $middleware->alias([
             'role' => RoleMiddleware::class,
         ]);
