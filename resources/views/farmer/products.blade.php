@@ -220,11 +220,17 @@
                                             @endif
                                             <li><hr class="dropdown-divider"></li>
                                             <li>
-                                                <form action="{{ route('farmer.orders.status', $ord) }}" method="POST" class="swal-confirm" data-confirm="Are you sure you want to cancel or reject order #{{ $ord->order_number }}?" data-confirm-btn="Yes, reject order">
-                                                    @csrf
-                                                    <input type="hidden" name="status" value="cancelled">
-                                                    <button type="submit" class="dropdown-item text-danger"><i class="bi bi-x-circle me-1"></i> Cancel / Reject</button>
-                                                </form>
+                                                @if($ord->payment?->payment_status === 'paid')
+                                                    <span class="dropdown-item-text small text-muted">
+                                                        <i class="bi bi-lock-fill me-1"></i>This order has already been paid. Please contact support for assistance with cancellation and refund.
+                                                    </span>
+                                                @else
+                                                    <form action="{{ route('farmer.orders.status', $ord) }}" method="POST" class="swal-confirm" data-confirm="Are you sure you want to cancel or reject order #{{ $ord->order_number }}?" data-confirm-btn="Yes, reject order">
+                                                        @csrf
+                                                        <input type="hidden" name="status" value="cancelled">
+                                                        <button type="submit" class="dropdown-item text-danger"><i class="bi bi-x-circle me-1"></i> Cancel / Reject</button>
+                                                    </form>
+                                                @endif
                                             </li>
                                         </ul>
                                     </div>

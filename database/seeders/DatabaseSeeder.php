@@ -488,7 +488,7 @@ class DatabaseSeeder extends Seeder
             'payment_status' => 'pending',
             'reference_number' => 'BDO-TRX-449102',
             'amount' => 5350.00,
-            'payment_date' => now(),
+            'payment_date' => null,
         ]);
 
         // Order 3: Delivered Order from Ana to Farmer Maria

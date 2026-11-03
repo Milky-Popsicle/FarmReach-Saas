@@ -37,6 +37,7 @@ class Order extends Model
         return [
             'total_amount' => 'decimal:2',
             'shipping_fee' => 'decimal:2',
+            'completed_at' => 'datetime',
         ];
     }
 

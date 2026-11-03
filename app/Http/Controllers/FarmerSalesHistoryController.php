@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -41,7 +42,11 @@ class FarmerSalesHistoryController extends Controller
 
         $this->applyFilters($salesQuery, $status, $search, $from, $to);
 
-        $sales = $salesQuery->latest()->paginate(15)->withQueryString();
+        $sales = $salesQuery
+            ->orderByRaw('COALESCE(completed_at, created_at) DESC')
+            ->orderByDesc('id')
+            ->paginate(15)
+            ->withQueryString();
 
         $completedOrders = $this->completedOrdersQuery($farmerId);
         $completedItems = $this->completedItemsQuery($farmerId);
@@ -54,13 +59,16 @@ class FarmerSalesHistoryController extends Controller
 
         $todaySales = (float) $this->completedItemsQuery($farmerId)
             ->whereHas('order', function (Builder $query): void {
-                $query->whereDate('created_at', today());
+                $query->whereDate(DB::raw('COALESCE(completed_at, created_at)'), today());
             })
             ->sum('subtotal');
 
         $monthSales = (float) $this->completedItemsQuery($farmerId)
             ->whereHas('order', function (Builder $query): void {
-                $query->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()]);
+                $query->whereBetween(DB::raw('COALESCE(completed_at, created_at)'), [
+                    now()->startOfMonth(),
+                    now()->endOfMonth(),
+                ]);
             })
             ->sum('subtotal');
 
@@ -110,11 +118,11 @@ class FarmerSalesHistoryController extends Controller
         }
 
         if ($from !== null) {
-            $query->whereDate('created_at', '>=', $from);
+            $query->whereDate(DB::raw('COALESCE(completed_at, created_at)'), '>=', $from);
         }
 
         if ($to !== null) {
-            $query->whereDate('created_at', '<=', $to);
+            $query->whereDate(DB::raw('COALESCE(completed_at, created_at)'), '<=', $to);
         }
     }
 

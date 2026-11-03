@@ -141,6 +141,124 @@ class StockAndOrderIntegrityFeatureTest extends TestCase
         $this->assertSame(13, $product->fresh()->quantity);
     }
 
+    public function test_buyer_cannot_cancel_a_paid_pending_order(): void
+    {
+        $farmer = User::factory()->farmer()->create();
+        $buyer = User::factory()->buyer()->create();
+        $product = $this->createProduct($farmer, ['quantity' => 10]);
+        $order = $this->createOrder($buyer, $farmer, $product, 2);
+
+        $order->payment->update([
+            'payment_status' => 'paid',
+            'payment_date' => now(),
+        ]);
+
+        $paymentDate = $order->fresh()->payment->payment_date->toDateTimeString();
+
+        $response = $this->actingAs($buyer)->post(route('buyer.orders.cancel', $order));
+
+        $response->assertSessionHas('error');
+
+        $order->refresh();
+
+        $this->assertSame('pending', $order->status);
+        $this->assertSame(10, $product->fresh()->quantity);
+        $this->assertSame('paid', $order->payment->payment_status);
+        $this->assertSame($paymentDate, $order->payment->payment_date->toDateTimeString());
+        $this->assertSame(0, $farmer->notifications()->count());
+    }
+
+    public function test_farmer_cannot_cancel_a_paid_pending_order(): void
+    {
+        $farmer = User::factory()->farmer()->create();
+        $buyer = User::factory()->buyer()->create();
+        $product = $this->createProduct($farmer, ['quantity' => 10]);
+        $order = $this->createOrder($buyer, $farmer, $product, 2);
+
+        $order->payment->update([
+            'payment_status' => 'paid',
+            'payment_date' => now(),
+        ]);
+
+        $paymentDate = $order->fresh()->payment->payment_date->toDateTimeString();
+
+        $response = $this->actingAs($farmer)->post(route('farmer.orders.status', $order), [
+            'status' => 'cancelled',
+        ]);
+
+        $response->assertSessionHas('error');
+
+        $order->refresh();
+
+        $this->assertSame('pending', $order->status);
+        $this->assertSame(10, $product->fresh()->quantity);
+        $this->assertSame('paid', $order->payment->payment_status);
+        $this->assertSame($paymentDate, $order->payment->payment_date->toDateTimeString());
+        $this->assertSame(0, $buyer->notifications()->count());
+    }
+
+    public function test_farmer_cannot_cancel_a_paid_confirmed_order(): void
+    {
+        $farmer = User::factory()->farmer()->create();
+        $buyer = User::factory()->buyer()->create();
+        $product = $this->createProduct($farmer, ['quantity' => 10]);
+        $order = $this->createOrder($buyer, $farmer, $product, 3, 'confirmed');
+
+        $order->payment->update([
+            'payment_status' => 'paid',
+            'payment_date' => now(),
+        ]);
+
+        $paymentDate = $order->fresh()->payment->payment_date->toDateTimeString();
+
+        $response = $this->actingAs($farmer)->post(route('farmer.orders.status', $order), [
+            'status' => 'cancelled',
+        ]);
+
+        $response->assertSessionHas('error');
+
+        $order->refresh();
+
+        $this->assertSame('confirmed', $order->status);
+        $this->assertSame(10, $product->fresh()->quantity);
+        $this->assertSame('paid', $order->payment->payment_status);
+        $this->assertSame($paymentDate, $order->payment->payment_date->toDateTimeString());
+        $this->assertSame(0, $buyer->notifications()->count());
+    }
+
+    public function test_paid_orders_do_not_offer_cancellation_controls(): void
+    {
+        $farmer = User::factory()->farmer()->create();
+        $buyer = User::factory()->buyer()->create();
+        $product = $this->createProduct($farmer, ['quantity' => 10]);
+        $order = $this->createOrder($buyer, $farmer, $product, 2);
+
+        $order->payment->update([
+            'payment_status' => 'paid',
+            'payment_date' => now(),
+        ]);
+
+        $message = 'This order has already been paid. Please contact support for assistance with cancellation and refund.';
+
+        $buyerResponse = $this->actingAs($buyer)->get(route('buyer.orders'));
+
+        $buyerResponse->assertOk();
+        $buyerResponse->assertSee($message);
+        $buyerResponse->assertDontSee('Cancel Order');
+
+        $farmerResponse = $this->actingAs($farmer)->get(route('farmer.orders'));
+
+        $farmerResponse->assertOk();
+        $farmerResponse->assertSee($message);
+        $farmerResponse->assertDontSee('Cancel Order');
+
+        $productsResponse = $this->actingAs($farmer)->get(route('farmer.products'));
+
+        $productsResponse->assertOk();
+        $productsResponse->assertSee($message);
+        $productsResponse->assertDontSee('Cancel / Reject');
+    }
+
     public function test_farmer_cannot_skip_required_order_status_transitions(): void
     {
         $farmer = User::factory()->farmer()->create();

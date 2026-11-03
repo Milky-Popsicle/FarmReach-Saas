@@ -71,9 +71,15 @@ class FarmerOrderController extends Controller
 
         try {
             $order = DB::transaction(function () use ($order, $targetStatus, $request, $validated, $farmer, &$restockedProductIds) {
-                $lockedOrder = Order::with(['items', 'payment'])
+                $lockedOrder = Order::with('items')
                     ->lockForUpdate()
                     ->findOrFail($order->id);
+
+                $lockedPayment = $lockedOrder->payment()
+                    ->lockForUpdate()
+                    ->first();
+
+                $lockedOrder->setRelation('payment', $lockedPayment);
 
                 $allowedTransitions = [
                     'pending' => ['confirmed', 'cancelled'],
@@ -85,6 +91,10 @@ class FarmerOrderController extends Controller
                 }
 
                 $oldStatus = $lockedOrder->status;
+
+                if ($targetStatus === 'cancelled' && $lockedPayment?->payment_status === 'paid') {
+                    throw new DomainException('This order has already been paid. Please contact support for assistance with cancellation and refund.');
+                }
 
                 if ($targetStatus === 'cancelled') {
                     foreach ($lockedOrder->items as $item) {
@@ -113,11 +123,20 @@ class FarmerOrderController extends Controller
                     }
                 }
 
+                $isCompletion = in_array($targetStatus, Order::COMPLETED_STATUSES, true);
+
                 $lockedOrder->status = $targetStatus;
+
+                if ($isCompletion && $lockedOrder->completed_at === null) {
+                    $lockedOrder->completed_at = now();
+                }
+
                 $lockedOrder->save();
 
-                if (in_array($targetStatus, ['delivered', 'picked_up'], true) && $lockedOrder->payment) {
-                    $lockedOrder->payment->update(['payment_status' => 'paid']);
+                if ($isCompletion && $lockedPayment && $lockedPayment->payment_status !== 'paid') {
+                    $lockedPayment->payment_status = 'paid';
+                    $lockedPayment->payment_date = now();
+                    $lockedPayment->save();
                 }
 
                 ActivityLog::log(

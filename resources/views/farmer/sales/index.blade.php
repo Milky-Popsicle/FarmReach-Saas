@@ -27,7 +27,7 @@
             <div class="stat-card h-100">
                 <span class="text-muted small text-uppercase fw-semibold">Gross Product Sales</span>
                 <h3 class="fw-bold mb-1 text-farm-primary mt-1">₱{{ number_format($totalProductSales, 2) }}</h3>
-                <small class="text-muted d-block">Order value incl. shipping: ₱{{ number_format($totalOrderValue, 2) }}</small>
+                <small class="text-muted d-block">Product sales only (shipping excluded). Order value incl. shipping: ₱{{ number_format($totalOrderValue, 2) }}</small>
             </div>
         </div>
         <div class="col-12 col-sm-6 col-xl">
@@ -48,14 +48,14 @@
             <div class="stat-card h-100">
                 <span class="text-muted small text-uppercase fw-semibold">Sales Today</span>
                 <h3 class="fw-bold mb-1 text-farm-primary mt-1">₱{{ number_format($todaySales, 2) }}</h3>
-                <small class="text-muted d-block">Completed orders created today</small>
+                <small class="text-muted d-block">Completed sales dated today</small>
             </div>
         </div>
         <div class="col-12 col-sm-6 col-xl">
             <div class="stat-card h-100">
                 <span class="text-muted small text-uppercase fw-semibold">Sales This Month</span>
                 <h3 class="fw-bold mb-1 text-farm-primary mt-1">₱{{ number_format($monthSales, 2) }}</h3>
-                <small class="text-muted d-block">Completed orders created this month</small>
+                <small class="text-muted d-block">Completed sales dated this month</small>
             </div>
         </div>
     </div>
@@ -64,8 +64,8 @@
         <i class="bi bi-info-circle mt-1"></i>
         <div>
             <strong>Gross product sales only.</strong>
-            Shipping fees are shown separately in the transaction details; no commissions, discounts, or refunds are recorded in this system.
-            This is not a net take-home figure. Sale dates use the order creation time because no completion timestamp is stored.
+            Product sales exclude shipping fees, which are shown separately in the transaction details. Total order value includes shipping. No commissions, discounts, or refunds are recorded in this system. This is not a net take-home figure.
+            Sale dates use the order completion date. Historical completed orders without a recorded completion date fall back to the order placement date and are marked as legacy dates.
             Summary cards reflect all completed sales, regardless of the table filters below.
         </div>
     </div>
@@ -164,7 +164,7 @@
             <table class="table table-hover align-middle farm-table mb-0" style="min-width: 1050px;">
                 <thead>
                     <tr>
-                        <th>Date &amp; Sale</th>
+                        <th>Sale Date</th>
                         <th>Product</th>
                         <th>Quantity</th>
                         <th>Price per Unit</th>
@@ -177,10 +177,17 @@
                 <tbody>
                     @forelse($sales as $sale)
                         @if($sale->items->isEmpty())
+                            @php
+                                $saleDate = $sale->completed_at ?? $sale->created_at;
+                                $isLegacySaleDate = $sale->completed_at === null && in_array($sale->status, \App\Models\Order::COMPLETED_STATUSES, true);
+                            @endphp
                             <tr>
                                 <td>
                                     <strong class="text-dark small">#{{ $sale->order_number }}</strong>
-                                    <small class="text-muted d-block">{{ $sale->created_at->format('M d, Y h:i A') }}</small>
+                                    <small class="text-muted d-block">{{ $saleDate->format('M d, Y h:i A') }}</small>
+                                    @if($isLegacySaleDate)
+                                        <span class="badge bg-light text-muted border mt-1" title="Completion date unavailable; showing the order placement date.">Legacy: order placed</span>
+                                    @endif
                                 </td>
                                 <td colspan="4" class="text-muted small">No product lines recorded for this transaction.</td>
                                 <td><strong class="text-farm-primary">₱{{ number_format($sale->total_amount, 2) }}</strong></td>
@@ -194,14 +201,21 @@
                                 </td>
                             </tr>
                         @else
-                            @php $lineCount = $sale->items->count(); @endphp
+                            @php
+                                $lineCount = $sale->items->count();
+                                $saleDate = $sale->completed_at ?? $sale->created_at;
+                                $isLegacySaleDate = $sale->completed_at === null && in_array($sale->status, \App\Models\Order::COMPLETED_STATUSES, true);
+                            @endphp
 
                             @foreach($sale->items as $item)
                                 <tr>
                                     @if($loop->first)
                                         <td rowspan="{{ $lineCount }}">
                                             <strong class="text-dark small">#{{ $sale->order_number }}</strong>
-                                            <small class="text-muted d-block">{{ $sale->created_at->format('M d, Y h:i A') }}</small>
+                                            <small class="text-muted d-block">{{ $saleDate->format('M d, Y h:i A') }}</small>
+                                            @if($isLegacySaleDate)
+                                                <span class="badge bg-light text-muted border mt-1" title="Completion date unavailable; showing the order placement date.">Legacy: order placed</span>
+                                            @endif
                                             @if($sale->isBulk())
                                                 <span class="badge bg-warning text-dark mt-1"><i class="bi bi-box-fill me-1"></i>Bulk</span>
                                             @endif

@@ -375,7 +375,7 @@ class CartController extends Controller
                         'payment_status' => 'pending',
                         'reference_number' => $validated['reference_number'] ?? null,
                         'amount' => $orderTotal,
-                        'payment_date' => now(),
+                        'payment_date' => null,
                     ]);
 
                     ActivityLog::log(

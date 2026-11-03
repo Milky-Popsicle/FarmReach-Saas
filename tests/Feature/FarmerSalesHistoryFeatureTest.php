@@ -13,6 +13,13 @@ use Tests\TestCase;
 
 class FarmerSalesHistoryFeatureTest extends TestCase
 {
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+
+        parent::tearDown();
+    }
+
     public function test_farmer_sees_only_their_completed_sales_in_the_default_view(): void
     {
         $farmer = User::factory()->farmer()->create();
@@ -266,6 +273,113 @@ class FarmerSalesHistoryFeatureTest extends TestCase
         $response->assertViewHas('farmerTotalSales', 760.0);
     }
 
+    public function test_completed_sales_are_attributed_to_the_completion_month(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-10-15 12:00:00'));
+
+        $farmer = User::factory()->farmer()->create();
+        $buyer = User::factory()->buyer()->create();
+        $product = $this->createProduct($farmer, 'October Harvest', 50.00);
+
+        $this->createSale($buyer, $farmer, [
+            ['product' => $product, 'quantity' => 10, 'unit_price' => 50.00],
+        ], 'delivered', 0.00, Carbon::parse('2026-09-01 10:00:00'), Carbon::parse('2026-10-15 09:00:00'));
+
+        $response = $this->actingAs($farmer)->get(route('farmer.sales.index'));
+
+        $response->assertOk();
+        $response->assertViewHas('todaySales', 500.0);
+        $response->assertViewHas('monthSales', 500.0);
+    }
+
+    public function test_today_sales_use_the_completion_date_instead_of_the_order_creation_date(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-10-15 12:00:00'));
+
+        $farmer = User::factory()->farmer()->create();
+        $buyer = User::factory()->buyer()->create();
+        $completedToday = $this->createProduct($farmer, 'Completed Today Crop', 10.00);
+        $completedYesterday = $this->createProduct($farmer, 'Completed Yesterday Crop', 20.00);
+
+        $this->createSale($buyer, $farmer, [
+            ['product' => $completedToday, 'quantity' => 10, 'unit_price' => 10.00],
+        ], 'delivered', 0.00, Carbon::parse('2026-10-14 09:00:00'), Carbon::parse('2026-10-15 08:00:00'));
+
+        $this->createSale($buyer, $farmer, [
+            ['product' => $completedYesterday, 'quantity' => 3, 'unit_price' => 20.00],
+        ], 'delivered', 0.00, Carbon::parse('2026-10-15 09:00:00'), Carbon::parse('2026-10-14 08:00:00'));
+
+        $response = $this->actingAs($farmer)->get(route('farmer.sales.index'));
+
+        $response->assertOk();
+        $response->assertViewHas('todaySales', 100.0);
+        $response->assertViewHas('monthSales', 160.0);
+    }
+
+    public function test_date_filters_use_the_completion_date_with_a_creation_date_fallback(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-10-15 12:00:00'));
+
+        $farmer = User::factory()->farmer()->create();
+        $buyer = User::factory()->buyer()->create();
+        $completedInOctober = $this->createProduct($farmer, 'Completed In October', 50.00);
+        $legacySaleCrop = $this->createProduct($farmer, 'Legacy Completed Crop', 30.00);
+
+        $octoberSale = $this->createSale($buyer, $farmer, [
+            ['product' => $completedInOctober, 'quantity' => 2, 'unit_price' => 50.00],
+        ], 'delivered', 0.00, Carbon::parse('2026-09-01 10:00:00'), Carbon::parse('2026-10-05 09:00:00'));
+
+        $legacySale = $this->createSale($buyer, $farmer, [
+            ['product' => $legacySaleCrop, 'quantity' => 1, 'unit_price' => 30.00],
+        ], 'delivered', 0.00, Carbon::parse('2026-09-10 10:00:00'));
+
+        $octoberResponse = $this->actingAs($farmer)->get(route('farmer.sales.index', [
+            'from' => '2026-10-05',
+            'to' => '2026-10-05',
+        ]));
+
+        $octoberResponse->assertOk();
+        $octoberResponse->assertSee($octoberSale->order_number);
+        $octoberResponse->assertDontSee($legacySale->order_number);
+
+        $legacyResponse = $this->actingAs($farmer)->get(route('farmer.sales.index', [
+            'from' => '2026-09-10',
+            'to' => '2026-09-10',
+        ]));
+
+        $legacyResponse->assertOk();
+        $legacyResponse->assertSee($legacySale->order_number);
+        $legacyResponse->assertSee('Legacy: order placed');
+        $legacyResponse->assertDontSee($octoberSale->order_number);
+    }
+
+    public function test_completion_period_metrics_remain_isolated_per_farmer(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-10-15 12:00:00'));
+
+        $farmer = User::factory()->farmer()->create();
+        $otherFarmer = User::factory()->farmer()->create();
+        $buyer = User::factory()->buyer()->create();
+        $ownProduct = $this->createProduct($farmer, 'Own October Crop', 50.00);
+        $otherProduct = $this->createProduct($otherFarmer, 'Other October Crop', 100.00);
+
+        $this->createSale($buyer, $farmer, [
+            ['product' => $ownProduct, 'quantity' => 4, 'unit_price' => 50.00],
+        ], 'delivered', 0.00, Carbon::parse('2026-10-15 08:00:00'), Carbon::parse('2026-10-15 09:00:00'));
+
+        $this->createSale($buyer, $otherFarmer, [
+            ['product' => $otherProduct, 'quantity' => 9, 'unit_price' => 100.00],
+        ], 'delivered', 0.00, Carbon::parse('2026-10-15 08:00:00'), Carbon::parse('2026-10-15 09:00:00'));
+
+        $response = $this->actingAs($farmer)->get(route('farmer.sales.index'));
+
+        $response->assertOk();
+        $response->assertViewHas('todaySales', 200.0);
+        $response->assertViewHas('monthSales', 200.0);
+        $response->assertViewHas('totalProductSales', 200.0);
+        $response->assertViewHas('totalOrderValue', 200.0);
+    }
+
     private function createProduct(User $farmer, string $name, float $price): Product
     {
         return Product::factory()->create([
@@ -288,7 +402,8 @@ class FarmerSalesHistoryFeatureTest extends TestCase
         array $lines,
         string $status,
         float $shippingFee,
-        ?Carbon $createdAt = null
+        ?Carbon $createdAt = null,
+        ?Carbon $completedAt = null
     ): Order {
         $itemsSubtotal = collect($lines)->sum(
             fn (array $line): float => $line['unit_price'] * $line['quantity']
@@ -305,6 +420,7 @@ class FarmerSalesHistoryFeatureTest extends TestCase
             'status' => $status,
             'created_at' => $createdAt ?? now(),
             'updated_at' => $createdAt ?? now(),
+            'completed_at' => $completedAt,
         ]);
 
         foreach ($lines as $line) {

@@ -8,11 +8,19 @@ use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class OrderShippingFeeFeatureTest extends TestCase
 {
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+
+        parent::tearDown();
+    }
+
     public function test_delivery_checkout_starts_with_zero_shipping_and_subtotal_total(): void
     {
         $farmer = User::factory()->farmer()->create();
@@ -280,6 +288,103 @@ class OrderShippingFeeFeatureTest extends TestCase
         $this->assertSame('delivered', $order->status);
         $this->assertSame('paid', $order->payment->payment_status);
         $this->assertEquals(240.00, (float) $order->payment->amount);
+    }
+
+    public function test_new_pending_payment_has_no_payment_date_until_the_order_is_completed(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-10-15 10:00:00'));
+
+        $farmer = User::factory()->farmer()->create();
+        $buyer = User::factory()->buyer()->create();
+        $product = $this->createProduct($farmer, [
+            'price' => 100.00,
+            'quantity' => 10,
+        ]);
+
+        $this->actingAs($buyer)
+            ->withSession(['cart' => $this->cartFor($product, 2)])
+            ->post(route('checkout.place'), [
+                'delivery_method' => 'deliver',
+                'delivery_address' => 'Test Delivery Street, Surigao City',
+                'payment_method' => 'cod',
+                'selected_items' => [$product->id],
+            ])
+            ->assertSessionHas('success');
+
+        $order = Order::where('buyer_id', $buyer->id)->firstOrFail();
+
+        $this->assertSame('pending', $order->payment->payment_status);
+        $this->assertNull($order->payment->payment_date);
+
+        $this->actingAs($farmer)
+            ->post(route('farmer.orders.status', $order), ['status' => 'confirmed'])
+            ->assertSessionHas('success');
+
+        $order->refresh();
+
+        $this->assertSame('confirmed', $order->status);
+        $this->assertSame('pending', $order->payment->payment_status);
+        $this->assertNull($order->payment->payment_date);
+
+        Carbon::setTestNow(Carbon::parse('2026-10-15 15:00:00'));
+
+        $this->actingAs($farmer)
+            ->post(route('farmer.orders.status', $order), ['status' => 'delivered'])
+            ->assertSessionHas('success');
+
+        $order->refresh();
+
+        $this->assertSame('paid', $order->payment->payment_status);
+        $this->assertSame('2026-10-15 15:00:00', $order->payment->payment_date->toDateTimeString());
+    }
+
+    public function test_an_existing_payment_date_is_not_overwritten_when_an_order_completes(): void
+    {
+        $farmer = User::factory()->farmer()->create();
+        $buyer = User::factory()->buyer()->create();
+        $product = $this->createProduct($farmer);
+        $order = $this->createOrder($buyer, $farmer, $product);
+        $existingPaymentDate = Carbon::parse('2026-09-01 08:00:00');
+
+        $order->payment->update([
+            'payment_status' => 'paid',
+            'payment_date' => $existingPaymentDate,
+        ]);
+        $order->update(['status' => 'confirmed']);
+
+        $this->actingAs($farmer)
+            ->post(route('farmer.orders.status', $order), ['status' => 'delivered'])
+            ->assertSessionHas('success');
+
+        $order->refresh();
+
+        $this->assertSame('delivered', $order->status);
+        $this->assertSame('paid', $order->payment->payment_status);
+        $this->assertSame('2026-09-01 08:00:00', $order->payment->payment_date->toDateTimeString());
+    }
+
+    public function test_a_legacy_paid_payment_without_a_date_is_not_given_a_fabricated_date(): void
+    {
+        $farmer = User::factory()->farmer()->create();
+        $buyer = User::factory()->buyer()->create();
+        $product = $this->createProduct($farmer);
+        $order = $this->createOrder($buyer, $farmer, $product);
+
+        $order->payment->update([
+            'payment_status' => 'paid',
+            'payment_date' => null,
+        ]);
+        $order->update(['status' => 'confirmed']);
+
+        $this->actingAs($farmer)
+            ->post(route('farmer.orders.status', $order), ['status' => 'delivered'])
+            ->assertSessionHas('success');
+
+        $order->refresh();
+
+        $this->assertSame('delivered', $order->status);
+        $this->assertSame('paid', $order->payment->payment_status);
+        $this->assertNull($order->payment->payment_date);
     }
 
     /**

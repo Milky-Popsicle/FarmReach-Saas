@@ -2,16 +2,25 @@
 
 namespace Tests\Feature;
 
+use App\Models\Category;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class OrderWorkflowAndSelectiveCheckoutFeatureTest extends TestCase
 {
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+
+        parent::tearDown();
+    }
+
     public function test_farmer_pickup_order_marks_as_picked_up(): void
     {
         $this->seed();
@@ -264,5 +273,135 @@ class OrderWorkflowAndSelectiveCheckoutFeatureTest extends TestCase
         $this->assertArrayNotHasKey($prod1->id, $sessionCart);
         $this->assertArrayHasKey($prod2->id, $sessionCart);
         $this->assertSame(3, $sessionCart[$prod2->id]['quantity']);
+    }
+
+    public function test_confirming_an_order_does_not_set_a_completion_timestamp(): void
+    {
+        $farmer = User::factory()->farmer()->create();
+        $buyer = User::factory()->buyer()->create();
+        $order = $this->createOrderForCompletion($buyer, $farmer);
+
+        $this->actingAs($farmer)
+            ->post(route('farmer.orders.status', $order), ['status' => 'confirmed'])
+            ->assertSessionHas('success');
+
+        $this->assertNull($order->fresh()->completed_at);
+    }
+
+    public function test_delivering_an_order_sets_the_completion_timestamp(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-10-15 09:30:00'));
+
+        $farmer = User::factory()->farmer()->create();
+        $buyer = User::factory()->buyer()->create();
+        $order = $this->createOrderForCompletion($buyer, $farmer, 'confirmed');
+
+        $this->actingAs($farmer)
+            ->post(route('farmer.orders.status', $order), ['status' => 'delivered'])
+            ->assertSessionHas('success');
+
+        $this->assertSame('2026-10-15 09:30:00', $order->fresh()->completed_at->toDateTimeString());
+    }
+
+    public function test_picking_up_an_order_sets_the_completion_timestamp(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-10-15 11:45:00'));
+
+        $farmer = User::factory()->farmer()->create();
+        $buyer = User::factory()->buyer()->create();
+        $order = $this->createOrderForCompletion($buyer, $farmer, 'confirmed', 'pickup');
+
+        $this->actingAs($farmer)
+            ->post(route('farmer.orders.status', $order), ['status' => 'picked_up'])
+            ->assertSessionHas('success');
+
+        $this->assertSame('2026-10-15 11:45:00', $order->fresh()->completed_at->toDateTimeString());
+    }
+
+    public function test_an_existing_completion_timestamp_is_not_overwritten(): void
+    {
+        $farmer = User::factory()->farmer()->create();
+        $buyer = User::factory()->buyer()->create();
+        $existingCompletion = Carbon::parse('2026-09-01 08:00:00');
+        $order = $this->createOrderForCompletion($buyer, $farmer, 'confirmed', 'deliver', $existingCompletion);
+
+        $this->actingAs($farmer)
+            ->post(route('farmer.orders.status', $order), ['status' => 'delivered'])
+            ->assertSessionHas('success');
+
+        $this->assertSame('2026-09-01 08:00:00', $order->fresh()->completed_at->toDateTimeString());
+    }
+
+    public function test_cancelling_an_order_does_not_set_a_completion_timestamp(): void
+    {
+        $farmer = User::factory()->farmer()->create();
+        $buyer = User::factory()->buyer()->create();
+        $order = $this->createOrderForCompletion($buyer, $farmer);
+
+        $this->actingAs($farmer)
+            ->post(route('farmer.orders.status', $order), ['status' => 'cancelled'])
+            ->assertSessionHas('success');
+
+        $this->assertNull($order->fresh()->completed_at);
+    }
+
+    public function test_database_seeder_creates_pending_payments_without_a_payment_date(): void
+    {
+        $this->seed();
+
+        $pendingPayments = Payment::where('payment_status', 'pending')->get();
+
+        $this->assertNotEmpty($pendingPayments);
+
+        foreach ($pendingPayments as $payment) {
+            $this->assertNull(
+                $payment->payment_date,
+                "Pending payment {$payment->id} must not record a payment date."
+            );
+        }
+    }
+
+    private function createOrderForCompletion(
+        User $buyer,
+        User $farmer,
+        string $status = 'pending',
+        string $deliveryMethod = 'deliver',
+        ?Carbon $completedAt = null,
+    ): Order {
+        $product = Product::factory()->create([
+            'user_id' => $farmer->id,
+            'category_id' => Category::factory(),
+            'price' => 100.00,
+            'quantity' => 100,
+            'unit' => 'kg',
+            'is_active' => true,
+        ]);
+
+        $order = Order::factory()->create([
+            'buyer_id' => $buyer->id,
+            'farmer_id' => $farmer->id,
+            'order_type' => 'standard',
+            'total_amount' => 200.00,
+            'delivery_method' => $deliveryMethod,
+            'delivery_address' => $deliveryMethod === 'pickup' ? 'Pick up at Farm Location' : 'Test Delivery Street, Surigao City',
+            'shipping_fee' => 0.00,
+            'status' => $status,
+            'completed_at' => $completedAt,
+        ]);
+
+        OrderItem::factory()->create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 2,
+            'unit_price' => 100.00,
+            'subtotal' => 200.00,
+        ]);
+
+        Payment::factory()->create([
+            'order_id' => $order->id,
+            'amount' => 200.00,
+        ]);
+
+        return $order;
     }
 }

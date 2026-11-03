@@ -87,8 +87,16 @@ class BuyerOrderController extends Controller
                     ->lockForUpdate()
                     ->findOrFail($order->id);
 
+                $lockedPayment = $lockedOrder->payment()
+                    ->lockForUpdate()
+                    ->first();
+
                 if ($lockedOrder->status !== 'pending') {
                     throw new DomainException('Only pending orders can be cancelled.');
+                }
+
+                if ($lockedPayment?->payment_status === 'paid') {
+                    throw new DomainException('This order has already been paid. Please contact support for assistance with cancellation and refund.');
                 }
 
                 foreach ($lockedOrder->items as $item) {

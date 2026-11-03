@@ -6,6 +6,8 @@
 @php
     $itemsSubtotal = $order->items->sum(fn ($item) => (float) $item->subtotal);
     $isCompleted = in_array($order->status, \App\Models\Order::COMPLETED_STATUSES, true);
+    $saleDate = $order->completed_at ?? $order->created_at;
+    $usesLegacySaleDate = $order->completed_at === null && $isCompleted;
 @endphp
 
 <div class="container py-4">
@@ -16,7 +18,10 @@
             </h2>
             <p class="text-muted small mb-0">
                 Transaction <strong>#{{ $order->order_number }}</strong>
-                &bull; {{ $order->created_at->format('M d, Y h:i A') }}
+                &bull; Sale date {{ $saleDate->format('M d, Y h:i A') }}
+                @if($usesLegacySaleDate)
+                    <span class="badge bg-light text-muted border ms-1">Legacy: order placed</span>
+                @endif
             </p>
         </div>
         <div class="d-flex flex-wrap gap-2">
@@ -45,7 +50,16 @@
                     <div>
                         <span class="text-muted small text-uppercase fw-semibold">Sale Reference</span>
                         <h4 class="fw-bold mb-1">#{{ $order->order_number }}</h4>
-                        <small class="text-muted">{{ $order->created_at->format('F d, Y \a\t h:i A') }}</small>
+                        <small class="text-muted d-block">Order placed: {{ $order->created_at->format('F d, Y \a\t h:i A') }}</small>
+                        <small class="text-muted d-block">
+                            @if($order->completed_at)
+                                Completed: {{ $order->completed_at->format('F d, Y \a\t h:i A') }}
+                            @elseif($isCompleted)
+                                Completed: date unavailable &mdash; showing order placement date
+                            @else
+                                Completed: not yet
+                            @endif
+                        </small>
                     </div>
                     <span class="badge {{ $order->status_badge_class }} text-capitalize px-3 py-2">
                         {{ $order->status_label }}
@@ -129,7 +143,7 @@
 
                 <div class="alert alert-light border small text-muted mt-4 mb-0">
                     <i class="bi bi-info-circle me-1"></i>
-                    Prices and subtotals above are the values stored when the sale was recorded. They are not recalculated from the current product catalog.
+                    Prices and subtotals above are the values stored when the sale was recorded. They are not recalculated from the current product catalog. Product subtotals exclude shipping; the order total includes shipping.
                 </div>
             </div>
         </div>
@@ -150,6 +164,17 @@
                     <div class="d-flex justify-content-between mb-2">
                         <span class="text-muted">Reference</span>
                         <strong class="text-break text-end">{{ $order->payment->reference_number }}</strong>
+                    </div>
+                @endif
+                @if($order->payment?->payment_date)
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Payment recorded as paid</span>
+                            <strong>{{ $order->payment->payment_date->format('M d, Y h:i A') }}</strong>
+                        </div>
+                        <div class="text-muted small mt-1">
+                            Date and time FarmReach recorded the payment as paid; this is not independent bank-transfer verification.
+                        </div>
                     </div>
                 @endif
                 <div class="d-flex justify-content-between mb-2">
