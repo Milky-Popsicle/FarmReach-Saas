@@ -69,7 +69,7 @@ class FarmReachTest extends TestCase
         $response->assertSee('Table View');
     }
 
-    public function test_single_admin_constraint_blocks_second_admin_registration(): void
+    public function test_public_registration_rejects_administrator_role_even_when_one_exists(): void
     {
         $this->seed();
 
@@ -82,7 +82,77 @@ class FarmReachTest extends TestCase
             'role' => 'admin',
         ]);
 
+        $response->assertSessionHasErrors([
+            'role' => 'Administrator accounts cannot be created through public registration.',
+        ]);
+    }
+
+    public function test_public_registration_cannot_create_an_administrator_when_none_exists(): void
+    {
+        $this->assertDatabaseCount('users', 0);
+
+        $response = $this->post('/register', [
+            'name' => 'Unauthorized Admin Attempt',
+            'email' => 'firstadmin@farmreach.ph',
+            'phone_number' => '09991112222',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'role' => 'admin',
+        ]);
+
         $response->assertSessionHasErrors(['role']);
+        $this->assertGuest();
+        $this->assertDatabaseMissing('users', ['email' => 'firstadmin@farmreach.ph']);
+        $this->assertDatabaseMissing('users', ['role' => 'admin']);
+        $this->assertDatabaseCount('users', 0);
+    }
+
+    public function test_registration_page_does_not_offer_administrator_registration(): void
+    {
+        $response = $this->get('/register');
+
+        $response->assertOk();
+        $response->assertDontSee('value="admin"', false);
+        $response->assertDontSee('System Owner');
+        $response->assertSee('value="buyer"', false);
+        $response->assertSee('value="farmer"', false);
+    }
+
+    public function test_public_registration_still_creates_buyer_and_farmer_accounts(): void
+    {
+        $this->post('/register', [
+            'name' => 'New Buyer',
+            'email' => 'new-buyer@farmreach.ph',
+            'phone_number' => '09990001111',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'role' => 'buyer',
+            'address' => 'Surigao City',
+        ])->assertRedirect(route('marketplace'));
+
+        $this->assertAuthenticated();
+        $this->assertDatabaseHas('users', [
+            'email' => 'new-buyer@farmreach.ph',
+            'role' => 'buyer',
+        ]);
+
+        $this->post('/logout');
+
+        $this->post('/register', [
+            'name' => 'New Farmer',
+            'email' => 'new-farmer@farmreach.ph',
+            'phone_number' => '09990002222',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'role' => 'farmer',
+            'address' => 'Surigao del Norte',
+        ])->assertRedirect(route('farmer.marketplace'));
+
+        $this->assertAuthenticated();
+        $this->assertDatabaseHas('users', [
+            'email' => 'new-farmer@farmreach.ph',
+            'role' => 'farmer',
+        ]);
     }
 
     public function test_recipe_to_product_matching_view(): void

@@ -37,15 +37,10 @@
             <select class="form-select border-start-0" id="role" name="role" required>
                 <option value="buyer" {{ old('role') == 'buyer' ? 'selected' : '' }}>Buyer (Household or Business Customer)</option>
                 <option value="farmer" {{ old('role') == 'farmer' ? 'selected' : '' }}>Farmer (Grower / Crop Producer)</option>
-                @if(!$adminExists)
-                    <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Administrator (System Owner)</option>
-                @else
-                    <option value="" disabled>Administrator (Already registered - limit 1)</option>
-                @endif
             </select>
         </div>
         <small class="text-muted d-block mt-1">
-            <i class="bi bi-info-circle"></i> In FarmReach, Administrator accounts are restricted to single ownership.
+            <i class="bi bi-info-circle"></i> Administrator accounts are provisioned separately by the system operator.
         </small>
     </div>
 

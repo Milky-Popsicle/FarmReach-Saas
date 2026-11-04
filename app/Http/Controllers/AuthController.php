@@ -69,10 +69,7 @@ class AuthController extends Controller
             return $this->redirectBasedOnRole(Auth::user());
         }
 
-        // Check if an admin already exists (spec requirement: Admin can only be created once)
-        $adminExists = User::where('role', 'admin')->exists();
-
-        return view('auth.register', compact('adminExists'));
+        return view('auth.register');
     }
 
     public function register(Request $request)
@@ -82,16 +79,11 @@ class AuthController extends Controller
             'email' => 'required|string|email|max:190|unique:users',
             'phone_number' => 'required|string|max:20|unique:users',
             'password' => 'required|string|min:6|confirmed',
-            'role' => 'required|in:buyer,farmer,admin',
+            'role' => 'required|in:buyer,farmer',
             'address' => 'nullable|string|max:500',
+        ], [
+            'role.in' => 'Administrator accounts cannot be created through public registration.',
         ]);
-
-        // Enforce rule: Admin can only be created once
-        if ($validated['role'] === 'admin') {
-            if (User::where('role', 'admin')->exists()) {
-                return back()->withErrors(['role' => 'An Administrator account already exists. Only one Admin is permitted.'])->withInput();
-            }
-        }
 
         $user = User::create([
             'name' => $validated['name'],

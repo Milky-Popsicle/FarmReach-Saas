@@ -4,7 +4,7 @@ FarmReach is a Laravel-based agricultural marketplace for Surigao farmers and bu
 
 ## Requirements
 
-- PHP 8.3 or newer
+- PHP 8.4 or newer
 - Composer
 - MySQL 8.x (the local WAMP MySQL 8.4 installation is supported)
 - Node.js and npm (only needed for the optional Vite build)
@@ -33,7 +33,7 @@ FarmReach is a Laravel-based agricultural marketplace for Surigao farmers and bu
    php artisan migrate --seed
    ```
 
-   The seeder creates the demo accounts below. It is safe to run again: if the demo administrator already exists, seeding is skipped instead of creating duplicates.
+   The seeder creates the demo accounts below. It is safe to run again: if the demo administrator already exists, seeding is skipped instead of creating duplicates. Demo data is only created when `APP_ENV` is `local` or `testing`; see [Database Seeding and Administrator Provisioning](#database-seeding-and-administrator-provisioning).
 
 5. Link uploaded product images if the application uses local uploads:
 
@@ -50,6 +50,31 @@ FarmReach is a Laravel-based agricultural marketplace for Surigao farmers and bu
    Open <http://127.0.0.1:8000>. A WAMP virtual host can be used instead of `artisan serve`.
 
 The main interface uses the checked-in CSS and JavaScript in `public/`. Vite is only used by the default Laravel welcome page, so a frontend build is not required for the normal application pages.
+
+## Database Seeding and Administrator Provisioning
+
+Seeding is split by environment so that demo data cannot reach production.
+
+- **Production schema only**: `php artisan migrate --force`. This creates or updates the schema and never creates demo users, products, or orders.
+- **Production categories only**: `php artisan db:seed --class=ProductCategorySeeder --force`. This is the preferred production command: it is idempotent and only ensures the eight catalogue categories. `DatabaseSeeder` calls it first, so a plain `php artisan db:seed --force` also ensures categories and then stops.
+- **Local or testing demo data**: `php artisan migrate --seed` (or `php artisan db:seed`). `DatabaseSeeder` creates the demo accounts, products, recipes, announcements, orders, and payments only when `APP_ENV` is `local` or `testing`.
+
+`DatabaseSeeder` refuses to create demo data in every other environment (`production`, `staging`, and so on), even when invoked directly. Never run the demo seeder against a production database.
+
+> **Warning:** on Railway (and every production host), confirm `APP_ENV=production` before running any seeding command. If `APP_ENV` is `local` or `testing`, `DatabaseSeeder` will create the demo accounts, products, recipes, announcements, orders, and payments. Demo accounts and their passwords are for local development only and must never be used in production.
+
+### Creating the first administrator
+
+Public registration only accepts `buyer` and `farmer` accounts; it cannot create an administrator. Provision the first administrator as an operator with server access:
+
+1. Register a normal account through the site, or create the user through an operator-only process.
+2. Promote that account over a secure server shell:
+
+   ```bash
+   php artisan tinker --execute 'App\Models\User::where("email", "owner@example.com")->firstOrFail()->update(["role" => "admin"]);'
+   ```
+
+   Replace the email with the operator's address. Do not share credentials and do not add a public bootstrap endpoint.
 
 ## Mail and Password Recovery
 
@@ -127,7 +152,7 @@ git check-ignore .env
 
 ## Demo Accounts
 
-All demo accounts use the password `password`.
+The demo accounts below are created only in `local` and `testing` environments. All use the password `password`. Never use these demo accounts or passwords in production.
 
 | Role | Email | Phone |
 | --- | --- | --- |
@@ -181,7 +206,7 @@ Never commit `.env`, database dumps, or uploaded private files to Git.
 - `/cart` and `/checkout` - cart and order placement
 - `/buyer/orders` - buyer and peer order tracking
 - `/farmer` - farmer product and order management
-- `/admin` - administrator dashboard, users, announcements, and recipes
+- `/admin` - administrator dashboard, announcements, and recipes
 - `/api` - JSON endpoints for products, orders, profiles, sales data, recipes, and farmer locations
 
 ## Project Structure

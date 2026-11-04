@@ -21,7 +21,19 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        // Categories are real catalogue data and are safe to ensure everywhere,
+        // including production.
         $this->call(ProductCategorySeeder::class);
+
+        // Demo users, products, recipes, announcements, and orders must never be
+        // created outside local development or the test suite.
+        if (! app()->environment(['local', 'testing'])) {
+            $this->command?->warn(
+                'Demo data seeding is disabled outside the local and testing environments; only product categories were ensured.'
+            );
+
+            return;
+        }
 
         $demoDataExists = User::where('email', 'admin@farmreach.ph')->exists();
 
