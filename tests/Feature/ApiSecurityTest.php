@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\Recipe;
 use App\Models\RecipeIngredient;
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\Sanctum;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -43,6 +44,51 @@ class ApiSecurityTest extends TestCase
         $user = User::factory()->buyer()->create();
 
         $this->getJson('/api/profiles/'.$user->id)->assertUnauthorized();
+    }
+
+    public function test_website_session_cookie_authenticates_stateful_api_requests(): void
+    {
+        $buyer = User::factory()->buyer()->create([
+            'email' => 'session-auth@example.test',
+            'password' => Hash::make('session-password'),
+        ]);
+        $otherBuyer = User::factory()->buyer()->create();
+        $farmer = User::factory()->farmer()->create();
+
+        $ownOrder = Order::factory()->create([
+            'buyer_id' => $buyer->id,
+            'farmer_id' => $farmer->id,
+            'order_number' => 'SESSION-OWN-ORDER',
+        ]);
+
+        $otherOrder = Order::factory()->create([
+            'buyer_id' => $otherBuyer->id,
+            'farmer_id' => $farmer->id,
+            'order_number' => 'SESSION-OTHER-ORDER',
+        ]);
+
+        $statefulOrigin = 'http://'.config('sanctum.stateful.0');
+
+        $loginResponse = $this->post(route('login.submit'), [
+            'login_id' => $buyer->email,
+            'password' => 'session-password',
+        ]);
+
+        $loginResponse
+            ->assertRedirect(route('marketplace'))
+            ->assertCookie(config('session.cookie'));
+
+        $sessionCookie = $loginResponse->getCookie(config('session.cookie'));
+
+        $this->assertNotNull($sessionCookie);
+
+        $this->withCookie($sessionCookie->getName(), $sessionCookie->getValue())
+            ->withCredentials()
+            ->getJson('/api/orders', ['Origin' => $statefulOrigin])
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.order_number', $ownOrder->order_number)
+            ->assertJsonMissing(['order_number' => $otherOrder->order_number]);
     }
 
     public function test_buyers_only_see_their_own_orders(): void
