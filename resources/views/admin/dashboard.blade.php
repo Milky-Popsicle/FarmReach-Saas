@@ -15,9 +15,6 @@
             <p class="text-muted small mb-0">System performance, trade analytics, user activity, and announcements</p>
         </div>
         <div class="d-flex gap-2">
-            <a href="{{ route('admin.users') }}" class="btn btn-outline-secondary btn-sm">
-                <i class="bi bi-people me-1"></i> Manage Users
-            </a>
             <a href="{{ route('admin.announcements') }}" class="btn btn-farm-primary btn-sm">
                 <i class="bi bi-megaphone me-1"></i> Post Announcement
             </a>

@@ -43,16 +43,16 @@
                             <div class="col-6">
                                 <div class="p-3 border rounded-3 cursor-pointer delivery-option active" data-method="deliver" style="border-color: #1B4332 !important; background-color: #f7fdf9;">
                                     <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="delivery_method" id="method_deliver" value="deliver" checked>
+                                        <input class="form-check-input" type="radio" name="delivery_method" id="method_deliver" value="deliver" @checked(old('delivery_method', 'deliver') === 'deliver')>
                                         <label class="form-check-label fw-bold" for="method_deliver">
                                             <i class="bi bi-truck me-1"></i> Direct Delivery
                                         </label>
                                     </div>
                                     <small class="text-muted d-block ps-4">
                                         @if($farmerCount > 1)
-                                            Delivered to your doorstep (₱60.00 × {{ $farmerCount }} farmers)
+                                            Delivered to your doorstep (initial shipping ₱0.00; each farmer confirms their fee)
                                         @else
-                                            Delivered to your doorstep (₱60.00)
+                                            Delivered to your doorstep (initial shipping ₱0.00)
                                         @endif
                                     </small>
                                 </div>
@@ -60,7 +60,7 @@
                             <div class="col-6">
                                 <div class="p-3 border rounded-3 cursor-pointer delivery-option" data-method="pickup">
                                     <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="delivery_method" id="method_pickup" value="pickup">
+                                        <input class="form-check-input" type="radio" name="delivery_method" id="method_pickup" value="pickup" @checked(old('delivery_method') === 'pickup')>
                                         <label class="form-check-label fw-bold" for="method_pickup">
                                             <i class="bi bi-shop me-1"></i> Farm Pick Up
                                         </label>
@@ -74,6 +74,32 @@
                     <div class="mb-3" id="deliveryAddressGroup">
                         <label for="delivery_address" class="form-label fw-bold small">Delivery Address</label>
                         <textarea class="form-control" id="delivery_address" name="delivery_address" rows="2" placeholder="Street name, Barangay, City, landmarks..." required>{{ old('delivery_address', $user->address) }}</textarea>
+                    </div>
+
+                    <div class="mb-3 d-none" id="pickupLocationsGroup">
+                        <label class="form-label fw-bold small">Farmer Pickup Location</label>
+
+                        @foreach($pickupLocations as $location)
+                            <div class="p-3 border rounded-3 mb-2 bg-light">
+                                <div class="fw-bold text-dark">{{ $location['farmer_name'] }}</div>
+                                @if($location['address'])
+                                    <div class="text-muted small">
+                                        <i class="bi bi-geo-alt-fill text-danger"></i> {{ $location['address'] }}
+                                    </div>
+                                @else
+                                    <div class="text-danger small">
+                                        <i class="bi bi-exclamation-triangle-fill"></i> This farmer has not provided a pickup address.
+                                    </div>
+                                @endif
+                            </div>
+                        @endforeach
+
+                        @if($hasMissingPickupAddress)
+                            <div class="alert alert-danger py-2 small mb-0" id="pickupAddressError">
+                                <i class="bi bi-exclamation-octagon-fill me-1"></i>
+                                Pickup cannot be completed because one or more farmers have not provided a pickup address. Choose Direct Delivery or contact the farmer.
+                            </div>
+                        @endif
                     </div>
 
                     <div class="mb-3">
@@ -136,21 +162,19 @@
                     </div>
 
                     <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted small">
-                            Shipping / Handling:
-                            @if($farmerCount > 1)
-                                <small class="text-muted d-block" id="farmerShippingNote" style="font-size: 11px;">(₱60.00 × {{ $farmerCount }} farmers)</small>
-                            @endif
-                        </span>
-                        <span class="fw-semibold" id="shippingFeeDisplay">₱{{ number_format($shippingTotal, 2) }}</span>
+                        <span class="text-muted small">Shipping / Handling:</span>
+                        <span class="fw-semibold" id="shippingFeeDisplay">₱0.00</span>
                     </div>
+                    <small class="text-muted d-block mb-2" id="farmerShippingNote" style="font-size: 11px;">
+                        Initial shipping fee is ₱0.00. The assigned farmer will confirm the actual delivery fee after reviewing your order.
+                    </small>
 
                     <hr class="my-2">
 
                     <div class="d-flex justify-content-between align-items-baseline mb-4">
                         <strong class="fs-5 text-dark">Total Amount:</strong>
                         <strong class="fs-4 text-farm-primary" id="totalOrderAmount">
-                            ₱{{ number_format($subtotal + $shippingTotal, 2) }}
+                            ₱{{ number_format($subtotal, 2) }}
                         </strong>
                     </div>
 
@@ -179,7 +203,7 @@
                                 <div class="col-5 text-muted">Delivery Method:</div>
                                 <div class="col-7 fw-bold text-dark" id="modalReviewDeliveryMethod">Direct Delivery</div>
 
-                                <div class="col-5 text-muted">Delivery Address:</div>
+                                <div class="col-5 text-muted" id="modalReviewAddressLabel">Delivery Address:</div>
                                 <div class="col-7 text-dark" id="modalReviewAddress">{{ $user->address }}</div>
 
                                 <div class="col-5 text-muted">Total Quantity:</div>
@@ -189,15 +213,15 @@
                                 <div class="col-7 fw-bold text-dark" id="modalReviewPaymentMethod">Cash on Delivery (COD)</div>
 
                                 <div class="col-5 text-muted">Shipping Fee:</div>
-                                <div class="col-7 text-dark" id="modalReviewShipping">₱{{ number_format($shippingTotal, 2) }}</div>
+                                <div class="col-7 text-dark" id="modalReviewShipping">₱0.00</div>
 
                                 <div class="col-5 text-muted">Total Amount:</div>
-                                <div class="col-7 fw-bold text-success fs-5" id="modalReviewTotal">₱{{ number_format($subtotal + $shippingTotal, 2) }}</div>
+                                <div class="col-7 fw-bold text-success fs-5" id="modalReviewTotal">₱{{ number_format($subtotal, 2) }}</div>
                             </div>
                         </div>
 
                         <p class="text-muted small mb-0">
-                            <i class="bi bi-info-circle"></i> Once placed, each farmer receives notification of their assigned portion to harvest and prepare.
+                            <i class="bi bi-info-circle"></i> Once placed, each farmer receives notification of their assigned portion to harvest and prepare. Shipping starts at ₱0.00; the farmer will confirm the actual delivery fee, and the updated total will appear in your orders.
                         </p>
                     </div>
                     <div class="modal-footer bg-light">
@@ -216,46 +240,60 @@
 <script>
     $(document).ready(function () {
         const subtotal = {{ $subtotal }};
-        const farmerCount = {{ $farmerCount }};
-        const shippingPerFarmer = {{ $shippingPerFarmer }};
-        const totalDeliveryShipping = farmerCount * shippingPerFarmer;
+        const pickupLocations = @json($pickupLocations);
+        const hasMissingPickupAddress = @json($hasMissingPickupAddress);
 
-        // Fulfillment radio toggle
-        $('input[name="delivery_method"]').on('change', function () {
-            const method = $(this).val();
+        function pickupLocationSummary() {
+            return pickupLocations.map(function (location) {
+                return location.farmer_name + ': ' + (location.address || 'No pickup address on file');
+            }).join(' | ');
+        }
+
+        function syncFulfillmentUi(method) {
+            const isPickup = method === 'pickup';
+
             $('.delivery-option').removeClass('active').css({'border-color': '#E2E8F0', 'background-color': '#ffffff'});
-            $(this).closest('.delivery-option').addClass('active').css({'border-color': '#1B4332', 'background-color': '#f7fdf9'});
+            $('input[name="delivery_method"][value="' + method + '"]')
+                .closest('.delivery-option')
+                .addClass('active')
+                .css({'border-color': '#1B4332', 'background-color': '#f7fdf9'});
 
-            if (method === 'deliver') {
-                $('#deliveryAddressGroup').show();
-                $('#delivery_address').prop('required', true);
-                $('#shippingFeeDisplay').text('₱' + totalDeliveryShipping.toFixed(2));
-                $('#totalOrderAmount').text('₱' + (subtotal + totalDeliveryShipping).toFixed(2));
-                $('#farmerShippingNote').show();
-                $('#paymentMethodTitle').text('Cash on Delivery (COD)');
-                $('#paymentMethodDesc').text('Pay in cash when your farm produce is delivered to your doorstep.');
-            } else {
-                $('#deliveryAddressGroup').hide();
-                $('#delivery_address').prop('required', false);
-                $('#shippingFeeDisplay').text('₱0.00');
-                $('#totalOrderAmount').text('₱' + subtotal.toFixed(2));
-                $('#farmerShippingNote').hide();
+            $('#deliveryAddressGroup').toggleClass('d-none', isPickup);
+            $('#pickupLocationsGroup').toggleClass('d-none', !isPickup);
+            $('#delivery_address').prop('required', !isPickup);
+            $('#farmerShippingNote').toggle(!isPickup);
+            $('#btnReviewOrder').prop('disabled', isPickup && hasMissingPickupAddress);
+
+            $('#shippingFeeDisplay').text('₱0.00');
+            $('#totalOrderAmount').text('₱' + subtotal.toFixed(2));
+
+            if (isPickup) {
                 $('#paymentMethodTitle').text('Cash on Pick Up (COP)');
                 $('#paymentMethodDesc').text('Pay in cash directly to the farmer when picking up your crops at the farm.');
+            } else {
+                $('#paymentMethodTitle').text('Cash on Delivery (COD)');
+                $('#paymentMethodDesc').text('Pay in cash when your farm produce is delivered to your doorstep.');
             }
+        }
+
+        $('input[name="delivery_method"]').on('change', function () {
+            syncFulfillmentUi($(this).val());
         });
+
+        syncFulfillmentUi($('input[name="delivery_method"]:checked').val() || 'deliver');
 
         // Review Modal
         $('#btnReviewOrder').on('click', function () {
             const method = $('input[name="delivery_method"]:checked').val();
             const address = $('#delivery_address').val();
-            const shipping = method === 'deliver' ? totalDeliveryShipping : 0;
-            const total = subtotal + shipping;
+            const total = subtotal;
+            const isPickup = method === 'pickup';
 
-            $('#modalReviewDeliveryMethod').text(method === 'deliver' ? 'Direct Delivery' : 'Farm Stand Pick Up');
-            $('#modalReviewAddress').text(method === 'deliver' ? (address || 'Not specified') : 'Pick up at registered farm location');
-            $('#modalReviewPaymentMethod').text(method === 'deliver' ? 'Cash on Delivery (COD)' : 'Cash on Pick Up (COP)');
-            $('#modalReviewShipping').text('₱' + shipping.toFixed(2) + (method === 'deliver' && farmerCount > 1 ? ` (₱60.00 × ${farmerCount} farmers)` : ''));
+            $('#modalReviewDeliveryMethod').text(isPickup ? 'Farm Stand Pick Up' : 'Direct Delivery');
+            $('#modalReviewAddressLabel').text(isPickup ? 'Pickup Location:' : 'Delivery Address:');
+            $('#modalReviewAddress').text(isPickup ? pickupLocationSummary() : (address || 'Not specified'));
+            $('#modalReviewPaymentMethod').text(isPickup ? 'Cash on Pick Up (COP)' : 'Cash on Delivery (COD)');
+            $('#modalReviewShipping').text('₱0.00');
             $('#modalReviewTotal').text('₱' + total.toFixed(2));
 
             const modal = new bootstrap.Modal(document.getElementById('orderReviewModal'));

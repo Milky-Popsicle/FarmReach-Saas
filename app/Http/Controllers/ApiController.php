@@ -2,12 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\OrderResource;
+use App\Http\Resources\ProductResource;
+use App\Http\Resources\RecipeResource;
+use App\Http\Resources\UserProfileResource;
 use App\Models\ActivityLog;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Recipe;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,8 +24,9 @@ class ApiController extends Controller
      */
     public function products(Request $request): JsonResponse
     {
-        $query = Product::with(['farmer:id,name,address,phone_number', 'category:id,name,slug'])
-            ->where('is_active', true);
+        $query = Product::with(['farmer:id,name,bio', 'category:id,name,slug'])
+            ->where('is_active', true)
+            ->where('quantity', '>', 0);
 
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->category_id);
@@ -36,7 +42,7 @@ class ApiController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'data' => $query->get(),
+            'data' => ProductResource::collection($query->get()),
         ]);
     }
 
@@ -45,58 +51,64 @@ class ApiController extends Controller
      */
     public function productDetails(Product $product): JsonResponse
     {
-        $product->load(['farmer:id,name,address,phone_number,bio', 'category:id,name,slug']);
+        if (! $product->is_active || $product->quantity <= 0) {
+            abort(404);
+        }
+
+        $product->load(['farmer:id,name,bio', 'category:id,name,slug']);
 
         return response()->json([
             'status' => 'success',
-            'data' => $product,
+            'data' => new ProductResource($product),
         ]);
     }
 
     /**
-     * JSON API for Orders
+     * JSON API for Orders, scoped to the authenticated viewer.
      */
     public function orders(Request $request): JsonResponse
     {
-        $query = Order::with(['buyer:id,name,phone_number', 'farmer:id,name,phone_number', 'items.product', 'payment']);
+        $viewer = $request->user();
 
-        if ($request->filled('buyer_id')) {
-            $query->where('buyer_id', $request->buyer_id);
-        }
+        $query = Order::with([
+            'buyer:id,name,phone_number,address',
+            'farmer:id,name,phone_number,address',
+            'items.product:id,name,price,unit,image_path',
+            'payment',
+        ]);
 
-        if ($request->filled('farmer_id')) {
-            $query->where('farmer_id', $request->farmer_id);
-        }
+        $this->scopeOrdersToViewer($query, $viewer);
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
+        if ($viewer->isAdmin()) {
+            if ($request->filled('buyer_id')) {
+                $query->where('buyer_id', $request->integer('buyer_id'));
+            }
+
+            if ($request->filled('farmer_id')) {
+                $query->where('farmer_id', $request->integer('farmer_id'));
+            }
+        }
+
         return response()->json([
             'status' => 'success',
-            'data' => $query->latest()->get(),
+            'data' => OrderResource::collection($query->latest()->get()),
         ]);
     }
 
     /**
      * JSON API for Profiles
      */
-    public function profile(User $user): JsonResponse
+    public function profile(Request $request, User $user): JsonResponse
     {
+        $includePrivateFields = $request->user()->can('viewPrivate', $user);
+
         return response()->json([
             'status' => 'success',
-            'data' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'phone_number' => $user->phone_number,
-                'role' => $user->role,
-                'gender' => $user->gender,
-                'birthday' => $user->birthday?->format('Y-m-d'),
-                'address' => $user->address,
-                'bio' => $user->bio,
-                'avatar_path' => $user->avatar_path,
-            ],
+            'data' => new UserProfileResource($user, $includePrivateFields),
         ]);
     }
 
@@ -113,7 +125,12 @@ class ApiController extends Controller
             ->where('created_at', '>=', now()->subDays(30))
             ->groupBy('date')
             ->orderBy('date', 'asc')
-            ->get();
+            ->get()
+            ->map(fn ($row): array => [
+                'date' => $row->date,
+                'total_sales' => (float) $row->total_sales,
+                'order_count' => (int) $row->order_count,
+            ]);
 
         return response()->json([
             'status' => 'success',
@@ -135,7 +152,23 @@ class ApiController extends Controller
             ->groupBy('product_id')
             ->orderByDesc('total_quantity_sold')
             ->take(10)
-            ->get();
+            ->get()
+            ->map(fn ($row): array => [
+                'product_id' => $row->product_id,
+                'total_quantity_sold' => (int) $row->total_quantity_sold,
+                'total_revenue' => (float) $row->total_revenue,
+                'product' => $row->product === null ? null : [
+                    'id' => $row->product->id,
+                    'name' => $row->product->name,
+                    'price' => (float) $row->product->price,
+                    'image_path' => $row->product->image_path,
+                    'farmer' => $row->product->farmer === null ? null : [
+                        'id' => $row->product->farmer->id,
+                        'name' => $row->product->farmer->name,
+                        'address' => $row->product->farmer->address,
+                    ],
+                ],
+            ]);
 
         return response()->json([
             'status' => 'success',
@@ -148,7 +181,22 @@ class ApiController extends Controller
      */
     public function recentActivities(): JsonResponse
     {
-        $logs = ActivityLog::with('user:id,name,role')->latest()->take(25)->get();
+        $logs = ActivityLog::with('user:id,name,role')
+            ->latest()
+            ->take(25)
+            ->get()
+            ->map(fn ($log): array => [
+                'id' => $log->id,
+                'action' => $log->action,
+                'description' => $log->description,
+                'ip_address' => $log->ip_address,
+                'created_at' => $log->created_at?->toIso8601String(),
+                'user' => $log->user === null ? null : [
+                    'id' => $log->user->id,
+                    'name' => $log->user->name,
+                    'role' => $log->user->role,
+                ],
+            ]);
 
         return response()->json([
             'status' => 'success',
@@ -165,20 +213,39 @@ class ApiController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'data' => $recipes,
+            'data' => RecipeResource::collection($recipes),
         ]);
     }
 
     /**
      * JSON API for Recipe-to-Product Matching
      */
-    public function recipeMatch(Recipe $recipe): JsonResponse
+    public function recipeMatch(Request $request, Recipe $recipe): JsonResponse
     {
+        $validated = $request->validate([
+            'ingredient_id' => ['nullable', 'integer'],
+        ]);
+
         $recipe->load('ingredients.category');
+
+        $ingredients = $recipe->ingredients;
+
+        if (($validated['ingredient_id'] ?? null) !== null) {
+            $selectedIngredient = $recipe->ingredients->firstWhere('id', (int) $validated['ingredient_id']);
+
+            if ($selectedIngredient === null) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'The selected ingredient does not belong to this recipe.',
+                ], 422);
+            }
+
+            $ingredients = collect([$selectedIngredient]);
+        }
 
         $ingredientMatches = [];
 
-        foreach ($recipe->ingredients as $ingredient) {
+        foreach ($ingredients as $ingredient) {
             $matchedProducts = $ingredient->getAvailableProducts();
 
             $ingredientMatches[] = [
@@ -201,7 +268,6 @@ class ApiController extends Controller
                     'formatted_weight_per_unit' => $p->formatted_weight_per_unit,
                     'quantity_in_stock' => $p->quantity,
                     'farmer_name' => $p->farmer?->name ?? 'Local Farmer',
-                    'farmer_address' => $p->farmer?->address ?? 'Surigao del Norte',
                     'farmer_id' => $p->user_id,
                 ]),
             ];
@@ -220,18 +286,25 @@ class ApiController extends Controller
     }
 
     /**
-     * JSON API for Bulk Orders
+     * JSON API for Bulk Orders, scoped to the authenticated viewer.
      */
-    public function bulkOrders(): JsonResponse
+    public function bulkOrders(Request $request): JsonResponse
     {
-        $bulk = Order::with(['buyer:id,name,phone_number,address', 'farmer:id,name,address', 'items.product', 'payment'])
-            ->where('order_type', 'bulk')
-            ->latest()
-            ->get();
+        $viewer = $request->user();
+
+        $query = Order::with([
+            'buyer:id,name,phone_number,address',
+            'farmer:id,name,phone_number,address',
+            'items.product:id,name,price,unit,image_path',
+            'payment',
+        ])
+            ->where('order_type', 'bulk');
+
+        $this->scopeOrdersToViewer($query, $viewer);
 
         return response()->json([
             'status' => 'success',
-            'data' => $bulk,
+            'data' => OrderResource::collection($query->latest()->get()),
         ]);
     }
 
@@ -241,13 +314,51 @@ class ApiController extends Controller
     public function farmerLocations(): JsonResponse
     {
         $farmers = User::where('role', 'farmer')
-            ->select('id', 'name', 'address', 'phone_number', 'bio')
+            ->select('id', 'name', 'bio')
             ->withCount('products')
-            ->get();
+            ->get()
+            ->map(fn (User $farmer): array => [
+                'id' => $farmer->id,
+                'name' => $farmer->name,
+                'bio' => $farmer->bio,
+                'products_count' => (int) $farmer->products_count,
+            ]);
 
         return response()->json([
             'status' => 'success',
             'data' => $farmers,
         ]);
+    }
+
+    /**
+     * Constrain an order query to the records the viewer is allowed to read.
+     *
+     * Client-supplied buyer_id/farmer_id filters cannot widen this scope
+     * because non-administrators are always constrained before any filter is
+     * applied.
+     *
+     * Unsupported roles are rejected rather than being treated as buyers.
+     *
+     * @param  Builder<Order>  $query
+     */
+    private function scopeOrdersToViewer(Builder $query, User $viewer): void
+    {
+        if ($viewer->isAdmin()) {
+            return;
+        }
+
+        if ($viewer->isFarmer()) {
+            $query->where('farmer_id', $viewer->id);
+
+            return;
+        }
+
+        if ($viewer->isBuyer()) {
+            $query->where('buyer_id', $viewer->id);
+
+            return;
+        }
+
+        abort(403, 'Unsupported account role.');
     }
 }

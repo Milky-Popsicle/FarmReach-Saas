@@ -138,6 +138,12 @@
                                     <div class="small text-muted">
                                         Method: <strong>{{ ucfirst($ord->delivery_method) }}</strong> &bull; Payment: <strong class="text-uppercase">{{ $ord->payment?->payment_method ?? 'COD' }}</strong>
                                     </div>
+                                    <div class="small text-muted mt-1">
+                                        Shipping Fee: <strong class="text-dark">₱{{ number_format($ord->shipping_fee, 2) }}</strong>
+                                        @if($ord->delivery_method === 'deliver')
+                                            <span class="d-block" style="font-size: 11px;">Set by the farmer before delivery.</span>
+                                        @endif
+                                    </div>
                                 </div>
 
                                 <div class="col-md-5 text-md-end">
@@ -147,10 +153,16 @@
                                     </div>
                                     <div class="d-flex gap-2 justify-content-md-end align-items-center">
                                         @if($ord->status === 'pending')
-                                            <form action="{{ route('buyer.orders.cancel', $ord) }}" method="POST" class="swal-confirm m-0" data-confirm="Are you sure you want to cancel order #{{ $ord->order_number }}? The reserved crops will be returned to the farmer's inventory." data-confirm-btn="Yes, cancel order">
-                                                @csrf
-                                                <button type="submit" class="btn btn-sm btn-outline-danger">Cancel Order</button>
-                                            </form>
+                                            @if($ord->payment?->payment_status === 'paid')
+                                                <div class="text-muted small text-md-end" style="max-width: 260px;">
+                                                    <i class="bi bi-lock-fill me-1"></i>This order has already been paid. Please contact support for assistance with cancellation and refund.
+                                                </div>
+                                            @else
+                                                <form action="{{ route('buyer.orders.cancel', $ord) }}" method="POST" class="swal-confirm m-0" data-confirm="Are you sure you want to cancel order #{{ $ord->order_number }}? The reserved crops will be returned to the farmer's inventory." data-confirm-btn="Yes, cancel order">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger">Cancel Order</button>
+                                                </form>
+                                            @endif
                                         @endif
                                         @if($ord->status === 'cancelled')
                                             <form action="{{ route('buyer.orders.destroy', $ord) }}" method="POST" class="swal-confirm m-0" data-confirm="Are you sure you want to delete cancelled order #{{ $ord->order_number }}?" data-confirm-btn="Yes, delete order">
@@ -227,6 +239,7 @@
                                         <td class="small">{{ $ord->items->sum('quantity') }}</td>
                                         <td>
                                             <strong class="text-farm-primary small">₱{{ number_format($ord->total_amount, 2) }}</strong>
+                                            <small class="d-block text-muted" style="font-size: 10px;">Shipping: ₱{{ number_format($ord->shipping_fee, 2) }}</small>
                                         </td>
                                         <td>
                                             <span class="badge {{ $ord->status_badge_class }} small text-capitalize">
@@ -236,12 +249,18 @@
                                         <td>
                                             <div class="d-flex gap-1 align-items-center">
                                                 @if($ord->status === 'pending')
-                                                    <form action="{{ route('buyer.orders.cancel', $ord) }}" method="POST" class="swal-confirm m-0" data-confirm="Cancel order #{{ $ord->order_number }}?" data-confirm-btn="Yes, cancel">
-                                                        @csrf
-                                                        <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2" title="Cancel">
-                                                            <i class="bi bi-x"></i>
-                                                        </button>
-                                                    </form>
+                                                    @if($ord->payment?->payment_status === 'paid')
+                                                        <span class="text-muted small" title="This order has already been paid. Please contact support for assistance with cancellation and refund.">
+                                                            <i class="bi bi-lock-fill"></i>
+                                                        </span>
+                                                    @else
+                                                        <form action="{{ route('buyer.orders.cancel', $ord) }}" method="POST" class="swal-confirm m-0" data-confirm="Cancel order #{{ $ord->order_number }}?" data-confirm-btn="Yes, cancel">
+                                                            @csrf
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2" title="Cancel">
+                                                                <i class="bi bi-x"></i>
+                                                            </button>
+                                                        </form>
+                                                    @endif
                                                 @endif
                                                 @if($ord->status === 'cancelled')
                                                     <form action="{{ route('buyer.orders.destroy', $ord) }}" method="POST" class="swal-confirm m-0" data-confirm="Delete cancelled order #{{ $ord->order_number }}?" data-confirm-btn="Yes, delete">

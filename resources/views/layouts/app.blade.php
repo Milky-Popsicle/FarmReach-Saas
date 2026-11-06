@@ -18,7 +18,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
     <!-- FarmReach Custom Theme CSS -->
-    <link rel="stylesheet" href="/css/farmreach-theme.css?v=2.1">
+    <link rel="stylesheet" href="/css/farmreach-theme.css?v=2.2">
 
     @stack('styles')
 </head>
@@ -35,6 +35,12 @@
             <!-- Mobile Quick Actions & Drawer Toggle (Right-aligned on mobile/tablet) -->
             <div class="d-flex align-items-center gap-2 d-xl-none ms-auto">
                 @php $cartCount = count(session('cart', [])); @endphp
+                @auth
+                    <a href="{{ route('notifications.index') }}" class="btn btn-sm btn-outline-light position-relative px-2 py-1 rounded-pill" title="Notifications" aria-label="Notifications">
+                        <i class="bi bi-bell"></i>
+                        <span class="notification-badge{{ $unreadNotificationsCount > 0 ? '' : ' d-none' }}" data-notification-unread-badge>{{ $unreadNotificationsCount > 99 ? '99+' : $unreadNotificationsCount }}</span>
+                    </a>
+                @endauth
                 <a href="{{ route('cart.index') }}" class="btn btn-sm btn-outline-light position-relative px-2 py-1 rounded-pill" title="Cart">
                     <i class="bi bi-cart3"></i>
                     <span class="cart-badge-count badge rounded-pill bg-warning text-dark ms-1" style="{{ $cartCount > 0 ? '' : 'display:none;' }}">
@@ -92,6 +98,16 @@
                             <a href="{{ route('register') }}" class="btn btn-sm btn-farm-accent rounded-pill px-3 py-1 text-dark fw-bold text-nowrap">Register</a>
                         </li>
                     @else
+                        <li class="nav-item dropdown ms-1">
+                            <a class="nav-link notification-bell py-1 px-2 rounded-pill text-white d-flex align-items-center justify-content-center" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notifications" title="Notifications">
+                                <i class="bi bi-bell"></i>
+                                <span class="notification-badge{{ $unreadNotificationsCount > 0 ? '' : ' d-none' }}" data-notification-unread-badge>{{ $unreadNotificationsCount > 99 ? '99+' : $unreadNotificationsCount }}</span>
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-end notification-dropdown shadow border-0 mt-2">
+                                @include('notifications.partials.dropdown')
+                            </div>
+                        </li>
+
                         @if(Auth::user()->isFarmer())
                             <li class="nav-item">
                                 <a href="{{ route('farmer.marketplace') }}" class="btn btn-sm btn-farm-accent rounded-pill px-3 py-1 text-dark fw-bold d-flex align-items-center gap-1 text-nowrap">
@@ -140,12 +156,18 @@
                                         <i class="bi bi-person-gear me-2 text-muted"></i> My Profile
                                     </a>
                                 </li>
+                                <li>
+                                    <a class="dropdown-item py-2" href="{{ route('notifications.index') }}">
+                                        <i class="bi bi-bell me-2 text-muted"></i> Notifications
+                                        <span class="badge bg-warning text-dark ms-1{{ $unreadNotificationsCount > 0 ? '' : ' d-none' }}" data-notification-unread-badge>{{ $unreadNotificationsCount }}</span>
+                                    </a>
+                                </li>
                                 @if(Auth::user()->isFarmer())
                                     <li><a class="dropdown-item py-2" href="{{ route('farmer.products') }}"><i class="bi bi-box-seam me-2 text-muted"></i> My Products</a></li>
                                     <li><a class="dropdown-item py-2" href="{{ route('farmer.orders') }}"><i class="bi bi-receipt me-2 text-muted"></i> Incoming Orders</a></li>
+                                    <li><a class="dropdown-item py-2" href="{{ route('farmer.sales.index') }}"><i class="bi bi-graph-up-arrow me-2 text-muted"></i> Sales History</a></li>
                                     <li><a class="dropdown-item py-2" href="{{ route('buyer.orders') }}"><i class="bi bi-bag-check me-2 text-muted"></i> My Purchases</a></li>
                                 @elseif(Auth::user()->isAdmin())
-                                    <li><a class="dropdown-item py-2" href="{{ route('admin.users') }}"><i class="bi bi-people me-2 text-muted"></i> Manage Users</a></li>
                                     <li><a class="dropdown-item py-2" href="{{ route('admin.announcements') }}"><i class="bi bi-megaphone me-2 text-muted"></i> Announcements</a></li>
                                     <li><a class="dropdown-item py-2" href="{{ route('admin.recipes') }}"><i class="bi bi-book me-2 text-muted"></i> Recipes</a></li>
                                 @else
@@ -243,6 +265,13 @@
                     @php $drawerCart = count(session('cart', [])); @endphp
                     <span class="cart-badge-count badge rounded-pill bg-warning text-dark ms-auto" style="{{ $drawerCart > 0 ? '' : 'display:none;' }}">{{ $drawerCart }}</span>
                 </a>
+                @auth
+                    <a class="drawer-nav-link {{ request()->routeIs('notifications.*') ? 'active' : '' }}" href="{{ route('notifications.index') }}">
+                        <i class="bi bi-bell"></i>
+                        <span>Notifications</span>
+                        <span class="notification-count-pill badge rounded-pill bg-warning text-dark ms-auto{{ $unreadNotificationsCount > 0 ? '' : ' d-none' }}" data-notification-count-pill>{{ $unreadNotificationsCount }}</span>
+                    </a>
+                @endauth
             </nav>
 
             <!-- Role-Specific Shortcuts (No Dropdowns!) -->
@@ -262,6 +291,10 @@
                             <i class="bi bi-receipt"></i>
                             <span>Incoming Orders</span>
                         </a>
+                        <a href="{{ route('farmer.sales.index') }}" class="drawer-nav-link {{ request()->routeIs('farmer.sales.*') ? 'active' : '' }}">
+                            <i class="bi bi-graph-up-arrow"></i>
+                            <span>Sales History</span>
+                        </a>
                         <a href="{{ route('buyer.orders') }}" class="drawer-nav-link {{ request()->routeIs('buyer.orders') ? 'active' : '' }}">
                             <i class="bi bi-bag-check"></i>
                             <span>My Purchases</span>
@@ -273,10 +306,6 @@
                         <a href="{{ route('admin.dashboard') }}" class="drawer-nav-link">
                             <i class="bi bi-shield-lock"></i>
                             <span>Admin Panel</span>
-                        </a>
-                        <a href="{{ route('admin.users') }}" class="drawer-nav-link">
-                            <i class="bi bi-people"></i>
-                            <span>Manage Users</span>
                         </a>
                         <a href="{{ route('admin.announcements') }}" class="drawer-nav-link">
                             <i class="bi bi-megaphone"></i>
@@ -451,6 +480,25 @@
             }
         });
     </script>
+
+    @auth
+        <script>
+            window.FarmReachRealtime = {{ Js::from([
+                'key' => config('broadcasting.connections.reverb.key'),
+                'wsHost' => config('broadcasting.connections.reverb.options.host') ?: request()->getHost(),
+                'wsPort' => (int) config('broadcasting.connections.reverb.options.port', 8080),
+                'scheme' => config('broadcasting.connections.reverb.options.scheme', 'http'),
+                'channel' => 'App.Models.User.'.Auth::id(),
+                'feedUrl' => route('notifications.feed', absolute: false),
+                'readUrlTemplate' => route('notifications.read', ['notification' => '__NOTIFICATION__'], absolute: false),
+                'authEndpoint' => '/broadcasting/auth',
+                'unreadCount' => (int) $unreadNotificationsCount,
+            ]) }};
+        </script>
+        <script src="https://cdn.jsdelivr.net/npm/pusher-js@8.6.0/dist/web/pusher.min.js" integrity="sha384-yz6oLe92Sren05O3WPhu8DK05E9PEkh7kTQJ819acmwKwcCMwJXGu9Kta5wYhfaJ" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/laravel-echo@2.6.1/dist/echo.iife.js" integrity="sha384-K6kdmE0o3GdjwErtBUyWaut16zKhbm4xEEA4NnBHMkHXZBmdKKdLnKRhdVxIfppb" crossorigin="anonymous"></script>
+        <script src="/js/realtime-notifications.js?v=1.0"></script>
+    @endauth
 
     @stack('scripts')
 </body>

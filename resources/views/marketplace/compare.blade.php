@@ -54,7 +54,6 @@
                             </td>
                             <td>
                                 <div class="fw-semibold">{{ $prod->farmer?->name ?? 'Local Farmer' }}</div>
-                                <div class="text-muted small"><i class="bi bi-geo-alt-fill text-danger"></i> {{ $prod->farmer?->address ?? 'Surigao del Norte' }}</div>
                             </td>
                             <td>
                                 <span class="badge bg-light text-dark border">{{ $prod->unit }}</span>
@@ -67,7 +66,7 @@
                                 <span class="text-muted small">/ {{ $prod->price_unit_label }}</span>
                             </td>
                             <td>
-                                <span class="badge {{ $prod->quantity > 10 ? 'bg-success' : ($prod->quantity > 0 ? 'bg-warning text-dark' : 'bg-danger') }}">
+                                <span class="badge {{ $prod->quantity <= 0 ? 'bg-danger' : ($prod->isLowOnStock() ? 'bg-warning text-dark' : 'bg-success') }}">
                                     Stock: {{ $prod->stock_with_unit }}
                                 </span>
                             </td>

@@ -83,7 +83,7 @@
                                         <td>
                                             <div class="small fw-semibold">{{ $item['farmer_name'] }}</div>
                                             <div class="text-muted" style="font-size: 11px;">
-                                                <i class="bi bi-geo-alt"></i> {{ $item['farmer_address'] }}
+                                                Pickup location shown at checkout
                                             </div>
                                         </td>
                                         <td class="fw-semibold">

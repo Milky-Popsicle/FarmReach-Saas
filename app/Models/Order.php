@@ -12,6 +12,13 @@ class Order extends Model
 {
     use HasFactory;
 
+    /**
+     * Order statuses that represent a completed sale.
+     *
+     * @var array<int, string>
+     */
+    public const COMPLETED_STATUSES = ['delivered', 'picked_up'];
+
     protected $fillable = [
         'order_number',
         'buyer_id',
@@ -30,6 +37,7 @@ class Order extends Model
         return [
             'total_amount' => 'decimal:2',
             'shipping_fee' => 'decimal:2',
+            'completed_at' => 'datetime',
         ];
     }
 
@@ -60,7 +68,7 @@ class Order extends Model
 
     public function getStatusLabelAttribute(): string
     {
-        if (in_array($this->status, ['delivered', 'picked_up'], true)) {
+        if (in_array($this->status, self::COMPLETED_STATUSES, true)) {
             return $this->delivery_method === 'pickup' ? 'Picked Up' : 'Delivered';
         }
 

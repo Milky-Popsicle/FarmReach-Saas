@@ -67,7 +67,7 @@
                                 </label>
                                 <input type="text" class="form-control" id="address" name="address" value="{{ old('address', $user->address) }}" placeholder="e.g. Brgy. Cagdianao, Surigao City" required>
                                 @if($user->isFarmer())
-                                    <small class="text-muted"><i class="bi bi-info-circle"></i> This address is automatically displayed on your marketplace crop listings so buyers can locate local produce.</small>
+                                    <small class="text-muted"><i class="bi bi-info-circle"></i> This address is only shared in authorized pickup and order contexts.</small>
                                 @endif
                             </div>
 

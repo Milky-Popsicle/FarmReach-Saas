@@ -200,13 +200,6 @@
             </li>
 
             <li class="admin-nav-item">
-                <a href="{{ route('admin.users') }}" class="admin-nav-link {{ request()->routeIs('admin.users') ? 'active' : '' }}">
-                    <i class="bi bi-people-fill"></i>
-                    <span>Manage Users</span>
-                </a>
-            </li>
-
-            <li class="admin-nav-item">
                 <a href="{{ route('admin.announcements') }}" class="admin-nav-link {{ request()->routeIs('admin.announcements') ? 'active' : '' }}">
                     <i class="bi bi-megaphone-fill"></i>
                     <span>Announcements</span>

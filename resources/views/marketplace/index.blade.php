@@ -74,7 +74,7 @@
         <div class="col-6 col-md-3">
             <div class="stat-card">
                 <span class="text-muted small text-uppercase fw-semibold">Payment Options</span>
-                <h3 class="fw-bold mb-0 text-farm-primary mt-1">COD & GCash</h3>
+                <h3 class="fw-bold mb-0 text-farm-primary mt-1">Cash On Delivery</h3>
             </div>
         </div>
     </div>
@@ -185,7 +185,7 @@
                             <span class="position-absolute top-0 start-0 m-2 badge bg-dark bg-opacity-75 text-white">
                                 {{ $product->category?->name ?? 'Produce' }}
                             </span>
-                            @if($product->quantity <= 10)
+                            @if($product->isLowOnStock())
                                 <span class="position-absolute top-0 end-0 m-2 badge bg-danger">
                                     Low Stock ({{ $product->stock_with_unit }})
                                 </span>
@@ -203,13 +203,10 @@
                                 {{ $product->description }}
                             </p>
 
-                            <!-- Farmer Location Badge (as required by specifications) -->
+                            <!-- Farmer Badge -->
                             <div class="p-2 rounded bg-light border small mb-3">
                                 <div class="fw-semibold text-dark text-truncate">
                                     <i class="bi bi-person-fill text-success"></i> {{ $product->farmer?->name ?? 'Local Farm' }}
-                                </div>
-                                <div class="text-muted text-truncate" style="font-size: 11px;">
-                                    <i class="bi bi-geo-alt-fill text-danger"></i> {{ $product->farmer?->address ?? 'Surigao del Norte' }}
                                 </div>
                             </div>
 

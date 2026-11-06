@@ -2,21 +2,31 @@
 
 namespace Tests\Feature;
 
+use App\Models\Category;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class OrderWorkflowAndSelectiveCheckoutFeatureTest extends TestCase
 {
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+
+        parent::tearDown();
+    }
+
     public function test_farmer_pickup_order_marks_as_picked_up(): void
     {
-        $farmer = User::where('role', 'farmer')->first();
-        $buyer = User::where('role', 'buyer')->first();
-        $product = Product::where('user_id', $farmer->id)->first();
+        $this->seed();
+        $farmer = User::where('role', 'farmer')->firstOrFail();
+        $buyer = User::where('role', 'buyer')->firstOrFail();
+        $product = Product::where('user_id', $farmer->id)->firstOrFail();
 
         $order = Order::create([
             'order_number' => 'ORD-'.date('Ymd').'-'.strtoupper(Str::random(5)),
@@ -45,7 +55,6 @@ class OrderWorkflowAndSelectiveCheckoutFeatureTest extends TestCase
             'amount' => 150.00,
         ]);
 
-        // Farmer confirms order
         $response = $this->actingAs($farmer)->post(route('farmer.orders.status', $order), [
             'status' => 'confirmed',
         ]);
@@ -53,7 +62,6 @@ class OrderWorkflowAndSelectiveCheckoutFeatureTest extends TestCase
         $order->refresh();
         $this->assertSame('confirmed', $order->status);
 
-        // Farmer marks as picked up (sending delivered or picked_up for pickup order)
         $response = $this->actingAs($farmer)->post(route('farmer.orders.status', $order), [
             'status' => 'delivered',
         ]);
@@ -67,9 +75,10 @@ class OrderWorkflowAndSelectiveCheckoutFeatureTest extends TestCase
 
     public function test_farmer_can_adjust_shipping_fee_when_confirming_delivery_order(): void
     {
-        $farmer = User::where('role', 'farmer')->first();
-        $buyer = User::where('role', 'buyer')->first();
-        $product = Product::where('user_id', $farmer->id)->first();
+        $this->seed();
+        $farmer = User::where('role', 'farmer')->firstOrFail();
+        $buyer = User::where('role', 'buyer')->firstOrFail();
+        $product = Product::where('user_id', $farmer->id)->firstOrFail();
 
         $order = Order::create([
             'order_number' => 'ORD-'.date('Ymd').'-'.strtoupper(Str::random(5)),
@@ -98,7 +107,6 @@ class OrderWorkflowAndSelectiveCheckoutFeatureTest extends TestCase
             'amount' => 260.00,
         ]);
 
-        // Farmer confirms order and specifies custom distance-based shipping fee of 40.00
         $response = $this->actingAs($farmer)->post(route('farmer.orders.status', $order), [
             'status' => 'confirmed',
             'shipping_fee' => 40.00,
@@ -116,8 +124,9 @@ class OrderWorkflowAndSelectiveCheckoutFeatureTest extends TestCase
 
     public function test_buyer_can_delete_cancelled_order(): void
     {
-        $farmer = User::where('role', 'farmer')->first();
-        $buyer = User::where('role', 'buyer')->first();
+        $this->seed();
+        $farmer = User::where('role', 'farmer')->firstOrFail();
+        $buyer = User::where('role', 'buyer')->firstOrFail();
 
         $order = Order::create([
             'order_number' => 'ORD-'.date('Ymd').'-'.strtoupper(Str::random(5)),
@@ -139,8 +148,9 @@ class OrderWorkflowAndSelectiveCheckoutFeatureTest extends TestCase
 
     public function test_buyer_cannot_delete_non_cancelled_order(): void
     {
-        $farmer = User::where('role', 'farmer')->first();
-        $buyer = User::where('role', 'buyer')->first();
+        $this->seed();
+        $farmer = User::where('role', 'farmer')->firstOrFail();
+        $buyer = User::where('role', 'buyer')->firstOrFail();
 
         $order = Order::create([
             'order_number' => 'ORD-'.date('Ymd').'-'.strtoupper(Str::random(5)),
@@ -162,8 +172,9 @@ class OrderWorkflowAndSelectiveCheckoutFeatureTest extends TestCase
 
     public function test_buyer_can_bulk_delete_cancelled_orders(): void
     {
-        $farmer = User::where('role', 'farmer')->first();
-        $buyer = User::where('role', 'buyer')->first();
+        $this->seed();
+        $farmer = User::where('role', 'farmer')->firstOrFail();
+        $buyer = User::where('role', 'buyer')->firstOrFail();
 
         $order1 = Order::create([
             'order_number' => 'ORD-'.date('Ymd').'-'.strtoupper(Str::random(5)),
@@ -200,13 +211,12 @@ class OrderWorkflowAndSelectiveCheckoutFeatureTest extends TestCase
 
     public function test_selective_cart_checkout_orders_only_selected_items_and_preserves_unselected(): void
     {
-        $buyer = User::where('role', 'buyer')->first();
-        $farmer = User::where('role', 'farmer')->first();
+        $this->seed();
+        $buyer = User::where('role', 'buyer')->firstOrFail();
+        $farmer = User::where('role', 'farmer')->firstOrFail();
 
         $products = Product::where('user_id', $farmer->id)->where('quantity', '>=', 5)->take(2)->get();
-        if ($products->count() < 2) {
-            $this->markTestSkipped('Need at least 2 farmer products with stock for this test.');
-        }
+        $this->assertGreaterThanOrEqual(2, $products->count());
 
         $prod1 = $products[0];
         $prod2 = $products[1];
@@ -214,7 +224,6 @@ class OrderWorkflowAndSelectiveCheckoutFeatureTest extends TestCase
         $initialStock1 = $prod1->quantity;
         $initialStock2 = $prod2->quantity;
 
-        // Populate session cart with both products
         $cart = [
             $prod1->id => [
                 'id' => $prod1->id,
@@ -242,7 +251,6 @@ class OrderWorkflowAndSelectiveCheckoutFeatureTest extends TestCase
             ],
         ];
 
-        // Buyer only selects product 1 to place order
         $response = $this->actingAs($buyer)
             ->withSession(['cart' => $cart])
             ->post(route('checkout.place'), [
@@ -255,17 +263,145 @@ class OrderWorkflowAndSelectiveCheckoutFeatureTest extends TestCase
         $response->assertRedirect(route('buyer.orders'));
         $response->assertSessionHas('success');
 
-        // Check stock: prod1 deducted, prod2 unchanged
         $prod1->refresh();
         $prod2->refresh();
         $this->assertSame($initialStock1 - 2, $prod1->quantity);
         $this->assertSame($initialStock2, $prod2->quantity);
 
-        // Check cart session: prod1 removed, prod2 still in cart
         $sessionCart = session('cart');
         $this->assertIsArray($sessionCart);
         $this->assertArrayNotHasKey($prod1->id, $sessionCart);
         $this->assertArrayHasKey($prod2->id, $sessionCart);
         $this->assertSame(3, $sessionCart[$prod2->id]['quantity']);
+    }
+
+    public function test_confirming_an_order_does_not_set_a_completion_timestamp(): void
+    {
+        $farmer = User::factory()->farmer()->create();
+        $buyer = User::factory()->buyer()->create();
+        $order = $this->createOrderForCompletion($buyer, $farmer);
+
+        $this->actingAs($farmer)
+            ->post(route('farmer.orders.status', $order), ['status' => 'confirmed'])
+            ->assertSessionHas('success');
+
+        $this->assertNull($order->fresh()->completed_at);
+    }
+
+    public function test_delivering_an_order_sets_the_completion_timestamp(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-10-15 09:30:00'));
+
+        $farmer = User::factory()->farmer()->create();
+        $buyer = User::factory()->buyer()->create();
+        $order = $this->createOrderForCompletion($buyer, $farmer, 'confirmed');
+
+        $this->actingAs($farmer)
+            ->post(route('farmer.orders.status', $order), ['status' => 'delivered'])
+            ->assertSessionHas('success');
+
+        $this->assertSame('2026-10-15 09:30:00', $order->fresh()->completed_at->toDateTimeString());
+    }
+
+    public function test_picking_up_an_order_sets_the_completion_timestamp(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-10-15 11:45:00'));
+
+        $farmer = User::factory()->farmer()->create();
+        $buyer = User::factory()->buyer()->create();
+        $order = $this->createOrderForCompletion($buyer, $farmer, 'confirmed', 'pickup');
+
+        $this->actingAs($farmer)
+            ->post(route('farmer.orders.status', $order), ['status' => 'picked_up'])
+            ->assertSessionHas('success');
+
+        $this->assertSame('2026-10-15 11:45:00', $order->fresh()->completed_at->toDateTimeString());
+    }
+
+    public function test_an_existing_completion_timestamp_is_not_overwritten(): void
+    {
+        $farmer = User::factory()->farmer()->create();
+        $buyer = User::factory()->buyer()->create();
+        $existingCompletion = Carbon::parse('2026-09-01 08:00:00');
+        $order = $this->createOrderForCompletion($buyer, $farmer, 'confirmed', 'deliver', $existingCompletion);
+
+        $this->actingAs($farmer)
+            ->post(route('farmer.orders.status', $order), ['status' => 'delivered'])
+            ->assertSessionHas('success');
+
+        $this->assertSame('2026-09-01 08:00:00', $order->fresh()->completed_at->toDateTimeString());
+    }
+
+    public function test_cancelling_an_order_does_not_set_a_completion_timestamp(): void
+    {
+        $farmer = User::factory()->farmer()->create();
+        $buyer = User::factory()->buyer()->create();
+        $order = $this->createOrderForCompletion($buyer, $farmer);
+
+        $this->actingAs($farmer)
+            ->post(route('farmer.orders.status', $order), ['status' => 'cancelled'])
+            ->assertSessionHas('success');
+
+        $this->assertNull($order->fresh()->completed_at);
+    }
+
+    public function test_database_seeder_creates_pending_payments_without_a_payment_date(): void
+    {
+        $this->seed();
+
+        $pendingPayments = Payment::where('payment_status', 'pending')->get();
+
+        $this->assertNotEmpty($pendingPayments);
+
+        foreach ($pendingPayments as $payment) {
+            $this->assertNull(
+                $payment->payment_date,
+                "Pending payment {$payment->id} must not record a payment date."
+            );
+        }
+    }
+
+    private function createOrderForCompletion(
+        User $buyer,
+        User $farmer,
+        string $status = 'pending',
+        string $deliveryMethod = 'deliver',
+        ?Carbon $completedAt = null,
+    ): Order {
+        $product = Product::factory()->create([
+            'user_id' => $farmer->id,
+            'category_id' => Category::factory(),
+            'price' => 100.00,
+            'quantity' => 100,
+            'unit' => 'kg',
+            'is_active' => true,
+        ]);
+
+        $order = Order::factory()->create([
+            'buyer_id' => $buyer->id,
+            'farmer_id' => $farmer->id,
+            'order_type' => 'standard',
+            'total_amount' => 200.00,
+            'delivery_method' => $deliveryMethod,
+            'delivery_address' => $deliveryMethod === 'pickup' ? 'Pick up at Farm Location' : 'Test Delivery Street, Surigao City',
+            'shipping_fee' => 0.00,
+            'status' => $status,
+            'completed_at' => $completedAt,
+        ]);
+
+        OrderItem::factory()->create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 2,
+            'unit_price' => 100.00,
+            'subtotal' => 200.00,
+        ]);
+
+        Payment::factory()->create([
+            'order_id' => $order->id,
+            'amount' => 200.00,
+        ]);
+
+        return $order;
     }
 }

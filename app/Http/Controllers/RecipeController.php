@@ -59,43 +59,71 @@ class RecipeController extends Controller
 
     public function addBatchToCart(Request $request)
     {
-        $request->validate([
-            'products' => 'required|array|min:1',
-            'products.*.id' => 'required|exists:products,id',
-            'products.*.quantity' => 'required|integer|min:1',
+        $validated = $request->validate([
+            'products' => 'nullable|array',
+            'products.*.id' => 'nullable|integer|exists:products,id',
+            'products.*.quantity' => 'nullable|integer|min:1',
         ]);
+
+        $requestedProducts = collect($validated['products'] ?? [])
+            ->filter(fn (mixed $item): bool => is_array($item) && isset($item['id'], $item['quantity']));
+
+        if ($requestedProducts->isEmpty()) {
+            $message = 'Please select at least one ingredient to add to your cart.';
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => $message], 422);
+            }
+
+            return back()->with('error', $message);
+        }
+
+        $products = Product::with('farmer')
+            ->whereIn('id', $requestedProducts->pluck('id'))
+            ->get()
+            ->keyBy('id');
 
         $cart = session()->get('cart', []);
         $addedCount = 0;
+        $skippedCount = 0;
 
-        foreach ($request->products as $item) {
-            $productId = $item['id'];
-            $qty = (int) $item['quantity'];
-            $product = Product::find($productId);
+        foreach ($requestedProducts as $item) {
+            $product = $products->get((int) $item['id']);
+            $quantity = (int) $item['quantity'];
 
-            if ($product && $product->is_active && $product->quantity >= $qty) {
-                // Skip farmer's own products
-                if (Auth::check() && $product->user_id === Auth::id()) {
-                    continue;
-                }
-                if (isset($cart[$productId])) {
-                    $cart[$productId]['quantity'] += $qty;
-                } else {
-                    $cart[$productId] = [
-                        'id' => $product->id,
-                        'name' => $product->name,
-                        'price' => (float) $product->price,
-                        'kilograms' => (float) $product->kilograms,
-                        'unit' => $product->unit,
-                        'image_path' => $product->image_path,
-                        'farmer_name' => $product->farmer->name,
-                        'farmer_id' => $product->user_id,
-                        'farmer_address' => $product->farmer->address,
-                        'quantity' => $qty,
-                    ];
-                }
-                $addedCount++;
+            if (! $product || ! $product->is_active) {
+                $skippedCount++;
+
+                continue;
             }
+
+            if (Auth::check() && $product->user_id === Auth::id()) {
+                $skippedCount++;
+
+                continue;
+            }
+
+            $existingQuantity = (int) ($cart[$product->id]['quantity'] ?? 0);
+            $newQuantity = $existingQuantity + $quantity;
+
+            if ($newQuantity > $product->quantity) {
+                $skippedCount++;
+
+                continue;
+            }
+
+            $cart[$product->id] = $product->cartItemPayload($newQuantity);
+            $addedCount++;
+        }
+
+        if ($addedCount === 0) {
+            $message = 'No selected ingredients could be added. They may be inactive, out of stock, or your own listing.';
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => $message], 422);
+            }
+
+            return back()->with('error', $message);
         }
 
         session()->put('cart', $cart);
@@ -104,14 +132,19 @@ class RecipeController extends Controller
             ActivityLog::log(Auth::id(), 'Recipe Ingredients Added to Cart', "Added {$addedCount} recipe ingredients to shopping cart.");
         }
 
+        $message = "Successfully added {$addedCount} ingredient(s) to your cart!";
+        if ($skippedCount > 0) {
+            $message .= " {$skippedCount} item(s) were skipped because they were unavailable or exceeded available stock.";
+        }
+
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json([
                 'success' => true,
-                'message' => "Successfully added {$addedCount} ingredient(s) to your cart!",
+                'message' => $message,
                 'cart_count' => count($cart),
             ]);
         }
 
-        return redirect()->route('cart.index')->with('success', "Successfully added {$addedCount} ingredient(s) to your cart!");
+        return redirect()->route('cart.index')->with('success', $message);
     }
 }
