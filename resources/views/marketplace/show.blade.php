@@ -36,9 +36,6 @@
                     @endif
                     <div>
                         <h5 class="fw-bold mb-0">{{ $product->farmer?->name ?? 'Local Farmer' }}</h5>
-                        <div class="text-muted small">
-                            <i class="bi bi-geo-alt-fill text-danger"></i> {{ $product->farmer?->address ?? 'Surigao del Norte' }}
-                        </div>
                     </div>
                 </div>
 
@@ -50,8 +47,7 @@
 
                 <div class="row g-2 pt-2 border-top">
                     <div class="col-6">
-                        <span class="text-muted small d-block">Direct Contact</span>
-                        <strong class="small">{{ $product->farmer?->phone_number ?? 'Inquiry via app' }}</strong>
+                        <span class="text-muted small d-block">Local Producer</span>
                     </div>
                     <div class="col-6 text-end">
                         @if($product->farmer)
@@ -177,7 +173,6 @@
                                         <td class="fw-bold text-dark">{{ $comp->name }}</td>
                                         <td>
                                             <div>{{ $comp->farmer?->name ?? 'Local Farmer' }}</div>
-                                            <div class="text-muted" style="font-size: 11px;"><i class="bi bi-geo-alt"></i> {{ $comp->farmer?->address ?? 'Surigao del Norte' }}</div>
                                         </td>
                                         <td class="fw-bold text-success">₱{{ number_format($comp->price, 2) }}</td>
                                         <td>

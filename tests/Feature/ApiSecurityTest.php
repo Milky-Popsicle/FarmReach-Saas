@@ -405,6 +405,27 @@ class ApiSecurityTest extends TestCase
             ->assertJsonMissingPath('data.address');
     }
 
+    public function test_farmer_private_profile_fields_are_hidden_from_other_farmers(): void
+    {
+        $farmer = User::factory()->farmer()->create([
+            'email' => 'private-farmer@example.test',
+            'phone_number' => '09170007777',
+            'gender' => 'female',
+            'birthday' => '1988-04-05',
+        ]);
+
+        Sanctum::actingAs(User::factory()->farmer()->create());
+
+        $response = $this->getJson('/api/profiles/'.$farmer->id)
+            ->assertOk()
+            ->assertJsonPath('data.name', $farmer->name);
+
+        $response->assertJsonMissingPath('data.email')
+            ->assertJsonMissingPath('data.phone_number')
+            ->assertJsonMissingPath('data.gender')
+            ->assertJsonMissingPath('data.birthday');
+    }
+
     public function test_public_product_responses_hide_farmer_phone_and_internal_fields(): void
     {
         $farmer = User::factory()->farmer()->create([
@@ -429,16 +450,19 @@ class ApiSecurityTest extends TestCase
             ->assertJsonPath('data.0.category.slug', $product->category->slug);
 
         $response->assertJsonMissingPath('data.0.farmer.phone_number')
+            ->assertJsonMissingPath('data.0.farmer.address')
             ->assertJsonMissingPath('data.0.farmer.email')
             ->assertJsonMissingPath('data.0.user_id')
             ->assertJsonMissingPath('data.0.category_id')
-            ->assertJsonMissing(['phone_number' => '09178889999']);
+            ->assertJsonMissing(['phone_number' => '09178889999'])
+            ->assertJsonMissing(['address' => 'Farm Road']);
     }
 
     public function test_public_product_detail_hides_farmer_phone(): void
     {
         $farmer = User::factory()->farmer()->create([
             'phone_number' => '09177778888',
+            'address' => 'Private Detail Farm Road',
         ]);
 
         $product = Product::factory()->create([
@@ -451,7 +475,9 @@ class ApiSecurityTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.id', $product->id)
             ->assertJsonMissingPath('data.farmer.phone_number')
-            ->assertJsonMissing(['phone_number' => '09177778888']);
+            ->assertJsonMissingPath('data.farmer.address')
+            ->assertJsonMissing(['phone_number' => '09177778888'])
+            ->assertJsonMissing(['address' => 'Private Detail Farm Road']);
     }
 
     public function test_public_recipe_responses_use_an_explicit_whitelist(): void
@@ -473,6 +499,7 @@ class ApiSecurityTest extends TestCase
     {
         $farmer = User::factory()->farmer()->create([
             'phone_number' => '09176665555',
+            'address' => 'Private Recipe Match Farm Road',
         ]);
 
         $product = Product::factory()->create([
@@ -495,10 +522,12 @@ class ApiSecurityTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('ingredients.0.matched_products.0.name', $product->name)
             ->assertJsonMissingPath('ingredients.0.matched_products.0.phone_number')
-            ->assertJsonMissing(['phone_number' => '09176665555']);
+            ->assertJsonMissingPath('ingredients.0.matched_products.0.farmer_address')
+            ->assertJsonMissing(['phone_number' => '09176665555'])
+            ->assertJsonMissing(['address' => 'Private Recipe Match Farm Road']);
     }
 
-    public function test_authenticated_users_can_read_the_farmer_directory_without_phone_numbers(): void
+    public function test_authenticated_users_can_read_the_farmer_directory_without_phone_numbers_or_addresses(): void
     {
         $farmer = User::factory()->farmer()->create([
             'phone_number' => '09170001111',
@@ -511,10 +540,12 @@ class ApiSecurityTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('data.0.id', $farmer->id)
-            ->assertJsonPath('data.0.address', 'Directory Farm');
+            ->assertJsonPath('data.0.name', $farmer->name);
 
         $response->assertJsonMissingPath('data.0.phone_number')
-            ->assertJsonMissing(['phone_number' => '09170001111']);
+            ->assertJsonMissingPath('data.0.address')
+            ->assertJsonMissing(['phone_number' => '09170001111'])
+            ->assertJsonMissing(['address' => 'Directory Farm']);
     }
 
     public function test_api_user_endpoint_returns_only_the_authenticated_user(): void

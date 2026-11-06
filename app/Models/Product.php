@@ -300,7 +300,6 @@ class Product extends Model
      *     image_path: string,
      *     farmer_name: string|null,
      *     farmer_id: int,
-     *     farmer_address: string|null,
      *     quantity: int,
      *     order_type: string
      * }
@@ -325,7 +324,6 @@ class Product extends Model
             'image_path' => $this->image_path,
             'farmer_name' => $this->farmer?->name,
             'farmer_id' => $this->user_id,
-            'farmer_address' => $this->farmer?->address,
             'quantity' => $quantity,
             'order_type' => $orderType ?? ($quantity >= 20 ? 'bulk' : 'standard'),
         ];

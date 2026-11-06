@@ -352,7 +352,9 @@ class StockAndOrderIntegrityFeatureTest extends TestCase
 
     public function test_pending_order_does_not_hide_product_while_stock_remains(): void
     {
-        $farmer = User::factory()->farmer()->create();
+        $farmer = User::factory()->farmer()->create([
+            'address' => 'Farm Gate Road, Surigao City',
+        ]);
         $buyer = User::factory()->buyer()->create();
         $product = $this->createProduct($farmer, [
             'name' => 'Still Available After Partial Order',
@@ -385,7 +387,9 @@ class StockAndOrderIntegrityFeatureTest extends TestCase
 
     public function test_cancelling_an_order_restores_out_of_stock_product_visibility(): void
     {
-        $farmer = User::factory()->farmer()->create();
+        $farmer = User::factory()->farmer()->create([
+            'address' => 'Farm Gate Road, Surigao City',
+        ]);
         $buyer = User::factory()->buyer()->create();
         $product = $this->createProduct($farmer, [
             'name' => 'Restocked After Cancellation',

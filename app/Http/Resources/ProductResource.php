@@ -39,7 +39,6 @@ class ProductResource extends JsonResource
             'farmer' => $this->whenLoaded('farmer', fn (): ?array => $this->farmer === null ? null : [
                 'id' => $this->farmer->id,
                 'name' => $this->farmer->name,
-                'address' => $this->farmer->address,
                 'bio' => $this->farmer->bio,
             ]),
             'category' => $this->whenLoaded('category', fn (): ?array => $this->category === null ? null : [

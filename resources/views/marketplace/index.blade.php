@@ -203,13 +203,10 @@
                                 {{ $product->description }}
                             </p>
 
-                            <!-- Farmer Location Badge (as required by specifications) -->
+                            <!-- Farmer Badge -->
                             <div class="p-2 rounded bg-light border small mb-3">
                                 <div class="fw-semibold text-dark text-truncate">
                                     <i class="bi bi-person-fill text-success"></i> {{ $product->farmer?->name ?? 'Local Farm' }}
-                                </div>
-                                <div class="text-muted text-truncate" style="font-size: 11px;">
-                                    <i class="bi bi-geo-alt-fill text-danger"></i> {{ $product->farmer?->address ?? 'Surigao del Norte' }}
                                 </div>
                             </div>
 

@@ -32,20 +32,17 @@ class RecipeIngredient extends Model
      */
     public function getAvailableProducts()
     {
-        $query = Product::with('farmer')
+        $name = trim((string) $this->name);
+
+        if ($name === '') {
+            return collect();
+        }
+
+        return Product::with('farmer')
             ->where('is_active', true)
             ->whereHas('farmer')
-            ->where('quantity', '>', 0);
-
-        $name = trim($this->name);
-        // Match either by direct name substring or category
-        $query->where(function ($q) use ($name) {
-            $q->where('name', 'LIKE', '%'.$name.'%');
-            if ($this->category_id) {
-                $q->orWhere('category_id', $this->category_id);
-            }
-        });
-
-        return $query->get();
+            ->where('quantity', '>', 0)
+            ->where('name', 'LIKE', '%'.$name.'%')
+            ->get();
     }
 }

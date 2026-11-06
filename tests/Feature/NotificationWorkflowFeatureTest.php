@@ -322,7 +322,9 @@ class NotificationWorkflowFeatureTest extends TestCase
     {
         config(['farmreach.low_stock_threshold' => 10]);
 
-        $farmer = User::factory()->farmer()->create();
+        $farmer = User::factory()->farmer()->create([
+            'address' => 'Farm Gate Road, Surigao City',
+        ]);
         $buyer = User::factory()->buyer()->create();
         $product = $this->createProduct($farmer, ['quantity' => 12]);
 
@@ -397,7 +399,9 @@ class NotificationWorkflowFeatureTest extends TestCase
     {
         config(['farmreach.low_stock_threshold' => 10]);
 
-        $farmer = User::factory()->farmer()->create();
+        $farmer = User::factory()->farmer()->create([
+            'address' => 'Farm Gate Road, Surigao City',
+        ]);
         $buyer = User::factory()->buyer()->create();
         $product = $this->createProduct($farmer, ['quantity' => 12]);
 
@@ -425,8 +429,12 @@ class NotificationWorkflowFeatureTest extends TestCase
     {
         config(['farmreach.low_stock_threshold' => 10]);
 
-        $farmerA = User::factory()->farmer()->create();
-        $farmerB = User::factory()->farmer()->create();
+        $farmerA = User::factory()->farmer()->create([
+            'address' => 'Farm Gate Road, Surigao City',
+        ]);
+        $farmerB = User::factory()->farmer()->create([
+            'address' => 'Harvest Lane, Surigao City',
+        ]);
         $buyer = User::factory()->buyer()->create();
         $lowStockProduct = $this->createProduct($farmerA, ['quantity' => 6]);
         $healthyProduct = $this->createProduct($farmerB, ['quantity' => 100]);

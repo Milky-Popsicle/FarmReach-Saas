@@ -380,6 +380,36 @@ class FarmerSalesHistoryFeatureTest extends TestCase
         $response->assertViewHas('totalOrderValue', 200.0);
     }
 
+    public function test_sales_history_sorts_by_completion_date_with_creation_date_fallback(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-10-15 12:00:00'));
+
+        $farmer = User::factory()->farmer()->create();
+        $buyer = User::factory()->buyer()->create();
+        $product = $this->createProduct($farmer, 'Sortable Crop', 10.00);
+
+        $olderCompletion = $this->createSale($buyer, $farmer, [
+            ['product' => $product, 'quantity' => 1, 'unit_price' => 10.00],
+        ], 'delivered', 0.00, Carbon::parse('2026-10-15 11:00:00'), Carbon::parse('2026-10-10 09:00:00'));
+
+        $newerCompletion = $this->createSale($buyer, $farmer, [
+            ['product' => $product, 'quantity' => 1, 'unit_price' => 10.00],
+        ], 'delivered', 0.00, Carbon::parse('2026-10-01 09:00:00'), Carbon::parse('2026-10-12 09:00:00'));
+
+        $legacySale = $this->createSale($buyer, $farmer, [
+            ['product' => $product, 'quantity' => 1, 'unit_price' => 10.00],
+        ], 'picked_up', 0.00, Carbon::parse('2026-10-14 10:00:00'));
+
+        $response = $this->actingAs($farmer)->get(route('farmer.sales.index'));
+
+        $response->assertOk();
+        $response->assertViewHas('sales', fn ($sales) => $sales->pluck('id')->all() === [
+            $legacySale->id,
+            $newerCompletion->id,
+            $olderCompletion->id,
+        ]);
+    }
+
     private function createProduct(User $farmer, string $name, float $price): Product
     {
         return Product::factory()->create([

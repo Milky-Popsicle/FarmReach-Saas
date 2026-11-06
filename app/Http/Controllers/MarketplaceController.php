@@ -23,8 +23,7 @@ class MarketplaceController extends Controller
                 $q->where('name', 'LIKE', "%{$search}%")
                     ->orWhere('description', 'LIKE', "%{$search}%")
                     ->orWhereHas('farmer', function ($fq) use ($search) {
-                        $fq->where('name', 'LIKE', "%{$search}%")
-                            ->orWhere('address', 'LIKE', "%{$search}%");
+                        $fq->where('name', 'LIKE', "%{$search}%");
                     });
             });
         }

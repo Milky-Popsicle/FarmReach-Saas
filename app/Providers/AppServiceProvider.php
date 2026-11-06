@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -69,6 +70,17 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(60)->by(
                 $request->user()?->getAuthIdentifier() ?: $request->ip(),
             );
+        });
+
+        RateLimiter::for('login', function (Request $request): Limit {
+            $submittedLoginId = $request->input('login_id');
+            $loginId = is_string($submittedLoginId) ? Str::lower(trim($submittedLoginId)) : '';
+
+            return Limit::perMinute(5)->by($loginId.'|'.$request->ip());
+        });
+
+        RateLimiter::for('register', function (Request $request): Limit {
+            return Limit::perMinute(5)->by($request->ip());
         });
 
         View::composer('layouts.app', function ($view): void {

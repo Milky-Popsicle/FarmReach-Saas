@@ -24,7 +24,7 @@ class ApiController extends Controller
      */
     public function products(Request $request): JsonResponse
     {
-        $query = Product::with(['farmer:id,name,address,bio', 'category:id,name,slug'])
+        $query = Product::with(['farmer:id,name,bio', 'category:id,name,slug'])
             ->where('is_active', true)
             ->where('quantity', '>', 0);
 
@@ -55,7 +55,7 @@ class ApiController extends Controller
             abort(404);
         }
 
-        $product->load(['farmer:id,name,address,bio', 'category:id,name,slug']);
+        $product->load(['farmer:id,name,bio', 'category:id,name,slug']);
 
         return response()->json([
             'status' => 'success',
@@ -220,13 +220,32 @@ class ApiController extends Controller
     /**
      * JSON API for Recipe-to-Product Matching
      */
-    public function recipeMatch(Recipe $recipe): JsonResponse
+    public function recipeMatch(Request $request, Recipe $recipe): JsonResponse
     {
+        $validated = $request->validate([
+            'ingredient_id' => ['nullable', 'integer'],
+        ]);
+
         $recipe->load('ingredients.category');
+
+        $ingredients = $recipe->ingredients;
+
+        if (($validated['ingredient_id'] ?? null) !== null) {
+            $selectedIngredient = $recipe->ingredients->firstWhere('id', (int) $validated['ingredient_id']);
+
+            if ($selectedIngredient === null) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'The selected ingredient does not belong to this recipe.',
+                ], 422);
+            }
+
+            $ingredients = collect([$selectedIngredient]);
+        }
 
         $ingredientMatches = [];
 
-        foreach ($recipe->ingredients as $ingredient) {
+        foreach ($ingredients as $ingredient) {
             $matchedProducts = $ingredient->getAvailableProducts();
 
             $ingredientMatches[] = [
@@ -249,7 +268,6 @@ class ApiController extends Controller
                     'formatted_weight_per_unit' => $p->formatted_weight_per_unit,
                     'quantity_in_stock' => $p->quantity,
                     'farmer_name' => $p->farmer?->name ?? 'Local Farmer',
-                    'farmer_address' => $p->farmer?->address ?? 'Surigao del Norte',
                     'farmer_id' => $p->user_id,
                 ]),
             ];
@@ -296,13 +314,12 @@ class ApiController extends Controller
     public function farmerLocations(): JsonResponse
     {
         $farmers = User::where('role', 'farmer')
-            ->select('id', 'name', 'address', 'bio')
+            ->select('id', 'name', 'bio')
             ->withCount('products')
             ->get()
             ->map(fn (User $farmer): array => [
                 'id' => $farmer->id,
                 'name' => $farmer->name,
-                'address' => $farmer->address,
                 'bio' => $farmer->bio,
                 'products_count' => (int) $farmer->products_count,
             ]);

@@ -55,6 +55,13 @@
                     @csrf
 
                     <div class="mb-4">
+                        @if(count($matchedIngredients) === 0)
+                            <div class="alert alert-light border text-center text-muted mb-0">
+                                <i class="bi bi-journal-x me-1"></i>
+                                This recipe does not have any ingredients to match yet.
+                            </div>
+                        @endif
+
                         @foreach($matchedIngredients as $index => $item)
                             @php
                                 $ingredient = $item['ingredient'];
@@ -107,9 +114,6 @@
                                                     <label class="form-check-label small" for="prod_{{ $prod->id }}">
                                                         <strong class="text-dark">{{ $prod->name }}</strong>
                                                         <span class="text-muted">&bull; {{ $prod->farmer?->name ?? 'Local Farmer' }}</span>
-                                                        <span class="text-muted d-block d-md-inline" style="font-size: 11px;">
-                                                            <i class="bi bi-geo-alt-fill text-danger"></i> {{ $prod->farmer?->address ?? 'Local Farm' }}
-                                                        </span>
                                                     </label>
                                                 </div>
 

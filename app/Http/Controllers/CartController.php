@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\Product;
+use App\Models\User;
 use App\Notifications\OrderPlacedNotification;
 use DomainException;
 use Illuminate\Http\Request;
@@ -212,9 +213,33 @@ class CartController extends Controller
         }
 
         // Count unique farmers so the checkout can explain that each farmer sets their own delivery fee.
-        $farmerIds = array_unique(array_column($cart, 'farmer_id'));
+        $farmerIds = array_values(array_unique(array_map('intval', array_column($cart, 'farmer_id'))));
         $farmerCount = count($farmerIds);
         $selectedItems = array_keys($cart);
+
+        // Pickup addresses are only resolved for the authenticated checkout context.
+        // They are never added to the session cart payload or public product data.
+        $farmers = User::query()
+            ->whereIn('id', $farmerIds)
+            ->get(['id', 'name', 'address'])
+            ->keyBy('id');
+
+        $pickupLocations = collect($farmerIds)
+            ->map(function (int $farmerId) use ($farmers): array {
+                $farmer = $farmers->get($farmerId);
+                $address = trim((string) ($farmer?->address ?? ''));
+
+                return [
+                    'farmer_id' => $farmerId,
+                    'farmer_name' => $farmer?->name ?? 'Local Farmer',
+                    'address' => $address !== '' ? $address : null,
+                ];
+            })
+            ->values();
+
+        $hasMissingPickupAddress = $pickupLocations->contains(
+            fn (array $location): bool => $location['address'] === null
+        );
 
         return view('cart.checkout', compact(
             'cart',
@@ -223,7 +248,9 @@ class CartController extends Controller
             'totalKg',
             'hasBulkItems',
             'farmerCount',
-            'selectedItems'
+            'selectedItems',
+            'pickupLocations',
+            'hasMissingPickupAddress'
         ));
     }
 
@@ -331,6 +358,18 @@ class CartController extends Controller
                         }
                     }
 
+                    $orderDeliveryAddress = $validated['delivery_address'] ?? null;
+
+                    if ($validated['delivery_method'] === 'pickup') {
+                        $pickupAddress = trim((string) ($lines[0]['product']->farmer?->address ?? ''));
+
+                        if ($pickupAddress === '') {
+                            throw new DomainException('Pickup is unavailable because the farmer has not provided a pickup address. Please choose delivery or contact the farmer.');
+                        }
+
+                        $orderDeliveryAddress = $pickupAddress;
+                    }
+
                     $farmerOrderSubtotal = round($farmerOrderSubtotal, 2);
                     $shippingFee = 0.00;
                     $orderTotal = $farmerOrderSubtotal;
@@ -343,7 +382,7 @@ class CartController extends Controller
                         'order_type' => $isBulk ? 'bulk' : 'standard',
                         'total_amount' => $orderTotal,
                         'delivery_method' => $validated['delivery_method'],
-                        'delivery_address' => $validated['delivery_method'] === 'deliver' ? $validated['delivery_address'] : 'Pick up at Farm Location',
+                        'delivery_address' => $orderDeliveryAddress,
                         'shipping_fee' => $shippingFee,
                         'status' => 'pending',
                         'notes' => $validated['notes'] ?? null,
