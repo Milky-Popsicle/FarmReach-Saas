@@ -15,7 +15,7 @@ flowchart LR
     BroadcastCode["Broadcast event / listener code<br/>Not registered in bootstrap"]
   end
 
-  DB[("Relational database<br/>Default driver: SQLite<br/>Other drivers configured")]
+  DB[("Production (Railway): MySQL<br/>Local/default config: SQLite<br/>Other drivers configured")]
   Storage["Public file storage<br/>Product, recipe, avatar uploads"]
   Reverb["Laravel Reverb connection<br/>Configured; default broadcaster is null"]
   Mail["Configured mail transport<br/>Password reset email<br/>Provider not verified"]
