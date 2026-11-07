@@ -21,7 +21,7 @@ node "FarmReach application\nLaravel 13 / PHP >= 8.4" {
   component "Broadcast event / listener code\n(not registered in bootstrap)" as BroadcastCode
 }
 
-database "Relational database\nDefault configured driver: SQLite\nOther drivers are configured" as DB
+database "Production (Railway): MySQL\nLocal/default config: SQLite\nOther drivers are configured" as DB
 component "Public file storage\nProduct, recipe, avatar uploads" as Storage
 component "Laravel Reverb\nPrivate notification broadcasts\nwhen configured" as Reverb
 component "Configured mail transport\nPassword reset email\n(provider not verified)" as Mail
@@ -46,9 +46,9 @@ BroadcastCode ..> Reverb : Broadcast event; not wired
 Controllers --> Mail : Request password reset email
 
 note bottom of DB
-  The configured default is SQLite unless DB_CONNECTION
-  overrides it. MySQL, MariaDB, PostgreSQL, and SQL Server
-  connection definitions are present in config/database.php.
+  config/database.php defaults to SQLite and defines MySQL,
+  MariaDB, PostgreSQL, and SQL Server. Railway production was
+  verified on 2026-11-07 to use MySQL via DB_CONNECTION.
 end note
 
 note bottom of Reverb
