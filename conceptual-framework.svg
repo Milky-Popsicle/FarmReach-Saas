@@ -62,14 +62,17 @@
 
   <rect x="1060" y="35" width="505" height="375" rx="8" class="box"/>
   <text x="1312" y="82" text-anchor="middle" class="heading">OUTPUT</text>
-  <text x="1312" y="235" text-anchor="middle" class="section">[INSERT EXACT CAPSTONE TITLE]</text>
+  <text x="1312" y="235" text-anchor="middle" class="section">FarmReach Cloud: A SaaS-Driven</text>
+  <text x="1312" y="270" text-anchor="middle" class="section">Agricultural Marketplace and</text>
+  <text x="1312" y="305" text-anchor="middle" class="section">Order Management System</text>
 
   <rect x="1060" y="500" width="505" height="365" rx="8" class="box"/>
   <text x="1312" y="548" text-anchor="middle" class="heading">EVALUATION</text>
-  <text x="1312" y="684" text-anchor="middle" class="section">
-    <tspan x="1312" dy="0">REQUIRES CONFIRMATION</tspan>
-    <tspan x="1312" dy="34" class="body">Confirm evaluation criteria with the</tspan>
-    <tspan x="1312" dy="27" class="body">technical adviser.</tspan>
+  <text x="1312" y="650" text-anchor="middle" class="section">Respondent Evaluation</text>
+  <text x="1312" y="700" text-anchor="middle" class="body">
+    <tspan x="1312" dy="0">21 respondents: 10 farmers, 10 buyers,</tspan>
+    <tspan x="1312" dy="30">and 1 administrator</tspan>
+    <tspan x="1312" dy="42">25-item Likert-scale questionnaire</tspan>
   </text>
 
   <path d="M625 450 L663 450" class="arrow"/>
