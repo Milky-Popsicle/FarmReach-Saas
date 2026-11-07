@@ -1,8 +1,8 @@
 # FarmReach UML diagrams
 
 These diagrams describe behavior and structure found in the repository. They
-are based on source code and migration files, not on a claim that the project
-is deployed or that its runtime database has been inspected.
+are based on source code and migration files. Deployment-specific observations
+are identified explicitly and should be rechecked if the environment changes.
 
 ## Diagrams
 
@@ -125,9 +125,11 @@ No renderer or diagram package was added to the application.
   Password reset calls Laravel's configured mail transport, but no specific
   email provider or production configuration was verified.
 - `config/database.php` defaults to SQLite and declares MySQL, MariaDB,
-  PostgreSQL, and SQL Server connections. Environment overrides and the live
-  database driver were not inspected; deployed schema state is therefore
-  unverified.
+  PostgreSQL, and SQL Server connections. The Railway production environment
+  was verified on 2026-11-07 to use MySQL through its `DB_CONNECTION` override.
+  This is a deployment-specific observation, not the source-code default;
+  recheck it if Railway environment settings change. The deployed schema should
+  still be verified before making assumptions about its current structure.
 - The frontend stack is Blade, JavaScript, Tailwind CSS 4, and Vite 8 based on
   the checked-in templates and package configuration. The diagrams do not
   imply a deployment topology or evaluation result.
