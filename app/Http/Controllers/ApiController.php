@@ -155,7 +155,7 @@ class ApiController extends Controller
             ->get()
             ->map(fn ($row): array => [
                 'product_id' => $row->product_id,
-                'total_quantity_sold' => (int) $row->total_quantity_sold,
+                'total_quantity_sold' => (float) $row->total_quantity_sold,
                 'total_revenue' => (float) $row->total_revenue,
                 'product' => $row->product === null ? null : [
                     'id' => $row->product->id,

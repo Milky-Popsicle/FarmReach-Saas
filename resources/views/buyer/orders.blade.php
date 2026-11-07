@@ -130,7 +130,7 @@
                                     <div class="my-2">
                                         @foreach($ord->items as $it)
                                             <div class="small text-dark">
-                                                &bull; <strong>{{ $it->quantity }} {{ $it->product?->stock_unit_label ?? 'unit' }}</strong> {{ $it->product->name ?? 'Produce' }}
+                                                &bull; <strong>{{ $it->formatted_quantity }} {{ $it->product?->stock_unit_label ?? 'unit' }}</strong> {{ $it->product->name ?? 'Produce' }}
                                                 <span class="text-muted">(₱{{ number_format($it->unit_price, 2) }} / {{ $it->product?->price_unit_label ?? 'unit' }})</span>
                                             </div>
                                         @endforeach
@@ -205,7 +205,7 @@
                                     <th>Order ID</th>
                                     <th>Product Details</th>
                                     <th>Seller (Farmer)</th>
-                                    <th>Quantity</th>
+                                    <th>Items</th>
                                     <th>Price</th>
                                     <th>Status</th>
                                     <th>Action</th>
@@ -236,7 +236,7 @@
                                             <div class="small">{{ $ord->farmer?->name ?? 'Local Farmer' }}</div>
                                             <div class="text-muted" style="font-size: 10px;">{{ $ord->farmer?->address ?? 'Surigao del Norte' }}</div>
                                         </td>
-                                        <td class="small">{{ $ord->items->sum('quantity') }}</td>
+                                        <td class="small">{{ $ord->items->count() }} items</td>
                                         <td>
                                             <strong class="text-farm-primary small">₱{{ number_format($ord->total_amount, 2) }}</strong>
                                             <small class="d-block text-muted" style="font-size: 10px;">Shipping: ₱{{ number_format($ord->shipping_fee, 2) }}</small>

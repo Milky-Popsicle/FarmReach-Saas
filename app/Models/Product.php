@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Notifications\LowStockNotification;
+use App\Support\Money;
+use App\Support\Quantity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -41,7 +43,7 @@ class Product extends Model
         return [
             'price' => 'decimal:2',
             'kilograms' => 'decimal:2',
-            'quantity' => 'integer',
+            'quantity' => 'decimal:3',
             'is_active' => 'boolean',
             'low_stock_notified_at' => 'datetime',
         ];
@@ -107,16 +109,16 @@ class Product extends Model
 
     public function getStockUnitLabelAttribute(): string
     {
-        $qty = (int) ($this->quantity ?? 0);
+        $qty = Quantity::milliUnits((string) ($this->quantity ?? '0'));
         $unit = strtolower(trim($this->unit ?? 'kg'));
 
         return match ($unit) {
-            'pcs', 'pc', 'piece', 'pieces' => $qty === 1 ? 'pc' : 'pcs',
-            'bundle', 'bundles' => $qty === 1 ? 'bundle' : 'bundles',
-            'sack', 'sacks' => $qty === 1 ? 'sack' : 'sacks',
-            'crate', 'crates' => $qty === 1 ? 'crate' : 'crates',
-            'box', 'boxes' => $qty === 1 ? 'box' : 'boxes',
-            'pack', 'packs' => $qty === 1 ? 'pack' : 'packs',
+            'pcs', 'pc', 'piece', 'pieces' => $qty === 1000 ? 'pc' : 'pcs',
+            'bundle', 'bundles' => $qty === 1000 ? 'bundle' : 'bundles',
+            'sack', 'sacks' => $qty === 1000 ? 'sack' : 'sacks',
+            'crate', 'crates' => $qty === 1000 ? 'crate' : 'crates',
+            'box', 'boxes' => $qty === 1000 ? 'box' : 'boxes',
+            'pack', 'packs' => $qty === 1000 ? 'pack' : 'packs',
             'g', 'gram', 'grams' => 'g',
             default => 'kg',
         };
@@ -124,7 +126,7 @@ class Product extends Model
 
     public function getStockWithUnitAttribute(): string
     {
-        return "{$this->quantity} {$this->stock_unit_label}";
+        return Quantity::format((string) $this->quantity).' '.$this->stock_unit_label;
     }
 
     public function getHasWeightPerUnitAttribute(): bool
@@ -181,7 +183,7 @@ class Product extends Model
 
     public function isLowOnStock(): bool
     {
-        return (int) $this->quantity <= static::lowStockThreshold();
+        return Quantity::milliUnits((string) $this->quantity) <= static::lowStockThreshold() * 1000;
     }
 
     /**
@@ -225,7 +227,7 @@ class Product extends Model
 
         $farmer->notify(new LowStockNotification(
             productName: $this->name,
-            remainingQuantity: max(0, (int) $this->quantity),
+            remainingQuantity: Quantity::format((string) $this->quantity),
             unitLabel: $this->stock_unit_label,
             threshold: static::lowStockThreshold(),
         ));
@@ -290,6 +292,7 @@ class Product extends Model
      *     id: int,
      *     name: string,
      *     price: float,
+     *     price_cents: int,
      *     kilograms: float,
      *     weight_per_unit: float|null,
      *     has_weight: bool,
@@ -300,12 +303,18 @@ class Product extends Model
      *     image_path: string,
      *     farmer_name: string|null,
      *     farmer_id: int,
-     *     quantity: int,
+     *     quantity: string,
+     *     stock_quantity: string,
+     *     quantity_step: string,
+     *     quantity_min: string,
      *     order_type: string
      * }
      */
-    public function cartItemPayload(int $quantity, ?string $orderType = null): array
+    public function cartItemPayload(string|int|float $quantity, ?string $orderType = null): array
     {
+        $quantity = Quantity::normalize($quantity);
+        $quantityMilliUnits = Quantity::milliUnits($quantity);
+
         if (! in_array($orderType, ['standard', 'bulk'], true)) {
             $orderType = null;
         }
@@ -314,6 +323,11 @@ class Product extends Model
             'id' => $this->id,
             'name' => $this->name,
             'price' => (float) $this->price,
+            'price_cents' => Money::cents((string) $this->price),
+            'subtotal_cents' => Money::lineSubtotalCents(
+                (string) $this->price,
+                Quantity::milliUnits($quantity)
+            ),
             'kilograms' => (float) $this->effective_kilograms,
             'weight_per_unit' => $this->kilograms ? (float) $this->kilograms : null,
             'has_weight' => $this->has_weight_per_unit,
@@ -324,8 +338,13 @@ class Product extends Model
             'image_path' => $this->image_path,
             'farmer_name' => $this->farmer?->name,
             'farmer_id' => $this->user_id,
-            'quantity' => $quantity,
-            'order_type' => $orderType ?? ($quantity >= 20 ? 'bulk' : 'standard'),
+            'quantity' => $quantityMilliUnits % 1000 === 0
+                ? intdiv($quantityMilliUnits, 1000)
+                : Quantity::format($quantity),
+            'stock_quantity' => Quantity::format((string) $this->quantity),
+            'quantity_step' => Quantity::isWeightUnit($this->unit) ? '0.001' : '1',
+            'quantity_min' => Quantity::isWeightUnit($this->unit) ? '0.001' : '1',
+            'order_type' => $orderType ?? ($quantityMilliUnits >= 20_000 ? 'bulk' : 'standard'),
         ];
     }
 }

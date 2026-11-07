@@ -9,7 +9,7 @@ class LowStockNotification extends Notification
 {
     public function __construct(
         public readonly string $productName,
-        public readonly int $remainingQuantity,
+        public readonly string $remainingQuantity,
         public readonly string $unitLabel,
         public readonly int $threshold,
     ) {}

@@ -107,7 +107,7 @@
                                     <form action="{{ route('cart.add') }}" method="POST" class="form-add-to-cart m-0">
                                         @csrf
                                         <input type="hidden" name="product_id" value="{{ $item->id }}">
-                                        <input type="hidden" name="quantity" value="1">
+                                        <input type="number" name="quantity" value="{{ $item->unit === 'kg' && $item->quantity < 1 ? \App\Support\Quantity::format((string) $item->quantity) : '1' }}" min="{{ $item->unit === 'kg' ? '0.001' : '1' }}" step="{{ $item->unit === 'kg' ? '0.001' : '1' }}" max="{{ $item->quantity }}" class="form-control form-control-sm mb-1" aria-label="Quantity of {{ $item->name }}">
                                         <button type="submit" class="btn btn-sm btn-farm-primary px-2 py-0" title="Add to Cart">
                                             <i class="bi bi-plus-lg"></i>
                                         </button>
@@ -235,7 +235,7 @@
                                 <div class="d-flex gap-2">
                                     <div class="qty-control d-flex align-items-center">
                                         <button type="button" class="qty-btn btn-qty-minus">-</button>
-                                        <input type="number" name="quantity" class="qty-input" value="1" min="1" max="{{ $product->quantity }}">
+                                        <input type="number" name="quantity" class="qty-input" value="{{ $product->unit === 'kg' && $product->quantity < 1 ? \App\Support\Quantity::format((string) $product->quantity) : '1' }}" min="{{ $product->unit === 'kg' ? '0.001' : '1' }}" step="{{ $product->unit === 'kg' ? '0.001' : '1' }}" max="{{ $product->quantity }}">
                                         <button type="button" class="qty-btn btn-qty-plus">+</button>
                                     </div>
                                     <button type="submit" class="btn btn-farm-primary flex-grow-1 fw-bold btn-sm">

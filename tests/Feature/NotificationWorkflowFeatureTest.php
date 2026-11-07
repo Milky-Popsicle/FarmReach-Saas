@@ -330,7 +330,7 @@ class NotificationWorkflowFeatureTest extends TestCase
 
         $this->placeOrder($buyer, $product, 5);
 
-        $this->assertSame(7, $product->fresh()->quantity);
+        $this->assertSame('7.000', $product->fresh()->quantity);
         $this->assertNotNull($product->fresh()->low_stock_notified_at);
         $this->assertSame(1, $this->lowStockNotificationCount($farmer));
 
@@ -349,7 +349,7 @@ class NotificationWorkflowFeatureTest extends TestCase
 
         $this->placeOrder($buyer, $product->fresh(), 25);
 
-        $this->assertSame(5, $product->fresh()->quantity);
+        $this->assertSame('5.000', $product->fresh()->quantity);
         $this->assertSame(2, $this->lowStockNotificationCount($farmer));
         $this->assertNotNull($product->fresh()->low_stock_notified_at);
     }
@@ -409,14 +409,14 @@ class NotificationWorkflowFeatureTest extends TestCase
 
         $order = Order::where('buyer_id', $buyer->id)->firstOrFail();
 
-        $this->assertSame(7, $product->fresh()->quantity);
+        $this->assertSame('7.000', $product->fresh()->quantity);
         $this->assertSame(1, $this->lowStockNotificationCount($farmer));
 
         $this->actingAs($buyer)
             ->post(route('buyer.orders.cancel', $order))
             ->assertSessionHas('success');
 
-        $this->assertSame(12, $product->fresh()->quantity);
+        $this->assertSame('12.000', $product->fresh()->quantity);
         $this->assertNull($product->fresh()->low_stock_notified_at);
         $this->assertSame(1, $this->lowStockNotificationCount($farmer));
 

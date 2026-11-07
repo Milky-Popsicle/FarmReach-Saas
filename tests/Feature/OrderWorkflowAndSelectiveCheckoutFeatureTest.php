@@ -265,8 +265,8 @@ class OrderWorkflowAndSelectiveCheckoutFeatureTest extends TestCase
 
         $prod1->refresh();
         $prod2->refresh();
-        $this->assertSame($initialStock1 - 2, $prod1->quantity);
-        $this->assertSame($initialStock2, $prod2->quantity);
+        $this->assertSame(sprintf('%d.000', (int) $initialStock1 - 2), $prod1->quantity);
+        $this->assertSame((string) $initialStock2, $prod2->quantity);
 
         $sessionCart = session('cart');
         $this->assertIsArray($sessionCart);

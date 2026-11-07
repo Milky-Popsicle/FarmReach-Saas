@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\Category;
+use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\User;
 use Tests\TestCase;
@@ -28,7 +30,7 @@ class ProductStockAndUnitFeatureTest extends TestCase
         $response->assertSessionHas('success');
 
         $product = Product::where('name', 'Fuji Apple')->firstOrFail();
-        $this->assertSame(25, $product->quantity);
+        $this->assertSame('25.000', $product->quantity);
         $this->assertSame('pcs', $product->unit);
         $this->assertEquals(0.20, (float) $product->kilograms);
         $this->assertSame('25 pcs', $product->stock_with_unit);
@@ -56,7 +58,7 @@ class ProductStockAndUnitFeatureTest extends TestCase
         $response->assertSessionHas('success');
 
         $product = Product::where('name', 'Organic Fresh Tomatoes')->firstOrFail();
-        $this->assertSame(30, $product->quantity);
+        $this->assertSame('30.000', $product->quantity);
         $this->assertSame('kg', $product->unit);
         $this->assertNull($product->kilograms);
         $this->assertSame('30 kg', $product->stock_with_unit);
@@ -104,9 +106,13 @@ class ProductStockAndUnitFeatureTest extends TestCase
 
     public function test_farmer_can_update_product_stock_and_selling_unit(): void
     {
-        $this->seed();
-        $farmer = User::where('role', 'farmer')->firstOrFail();
-        $product = Product::where('user_id', $farmer->id)->firstOrFail();
+        $farmer = User::factory()->farmer()->create();
+        $product = Product::factory()->create([
+            'user_id' => $farmer->id,
+            'category_id' => Category::factory(),
+            'unit' => 'kg',
+            'quantity' => 10,
+        ]);
 
         $response = $this->actingAs($farmer)->put(route('farmer.products.update', $product), [
             'name' => $product->name,
@@ -121,11 +127,46 @@ class ProductStockAndUnitFeatureTest extends TestCase
         $response->assertSessionHas('success');
 
         $fresh = $product->fresh();
-        $this->assertSame(15, $fresh->quantity);
+        $this->assertSame('15.000', $fresh->quantity);
         $this->assertSame('crate', $fresh->unit);
         $this->assertEquals(12.50, (float) $fresh->kilograms);
         $this->assertSame('15 crates', $fresh->stock_with_unit);
         $this->assertSame('₱450.00 / crate', $fresh->formatted_price_per_unit);
+    }
+
+    public function test_farmer_cannot_change_selling_unit_after_product_has_order_history(): void
+    {
+        $farmer = User::factory()->farmer()->create();
+        $buyer = User::factory()->buyer()->create();
+        $product = Product::factory()->create([
+            'user_id' => $farmer->id,
+            'category_id' => Category::factory(),
+            'unit' => 'kg',
+            'quantity' => 10,
+        ]);
+        $order = Order::factory()->create([
+            'buyer_id' => $buyer->id,
+            'farmer_id' => $farmer->id,
+        ]);
+        OrderItem::factory()->create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => '0.5',
+        ]);
+
+        $this->actingAs($farmer)
+            ->put(route('farmer.products.update', $product), [
+                'name' => $product->name,
+                'category_id' => $product->category_id,
+                'price' => '50.00',
+                'quantity' => '10',
+                'unit' => 'pcs',
+            ])
+            ->assertSessionHasErrors([
+                'selling_unit' => 'The selling unit cannot be changed after orders have been placed.',
+            ]);
+
+        $this->assertSame('kg', $product->fresh()->unit);
     }
 
     public function test_product_views_display_stock_and_proper_labels(): void

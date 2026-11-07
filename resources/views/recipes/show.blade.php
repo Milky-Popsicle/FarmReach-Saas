@@ -110,7 +110,6 @@
                                                            id="prod_{{ $prod->id }}" 
                                                            data-price="{{ $prod->price }}" 
                                                            checked>
-                                                    <input type="hidden" name="products[{{ $prod->id }}][quantity]" value="1">
                                                     <label class="form-check-label small" for="prod_{{ $prod->id }}">
                                                         <strong class="text-dark">{{ $prod->name }}</strong>
                                                         <span class="text-muted">&bull; {{ $prod->farmer?->name ?? 'Local Farmer' }}</span>
@@ -118,8 +117,9 @@
                                                 </div>
 
                                                 <div class="text-end">
+                                                    <input type="number" name="products[{{ $prod->id }}][quantity]" value="{{ $prod->unit === 'kg' && $prod->quantity < 1 ? \App\Support\Quantity::format((string) $prod->quantity) : '1' }}" min="{{ $prod->unit === 'kg' ? '0.001' : '1' }}" step="{{ $prod->unit === 'kg' ? '0.001' : '1' }}" max="{{ $prod->quantity }}" class="form-control form-control-sm recipe-product-quantity mb-1" aria-label="Quantity of {{ $prod->name }}">
                                                     <strong class="text-farm-primary small">₱{{ number_format($prod->price, 2) }}</strong>
-                                                    <span class="text-muted small d-block" style="font-size: 10px;">{{ $prod->quantity }} left</span>
+                                                    <span class="text-muted small d-block" style="font-size: 10px;">{{ \App\Support\Quantity::format((string) $prod->quantity) }} left</span>
                                                 </div>
                                             </div>
                                         @endforeach

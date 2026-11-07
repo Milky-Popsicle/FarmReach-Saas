@@ -9,10 +9,13 @@ use App\Models\Payment;
 use App\Models\Product;
 use App\Models\User;
 use App\Notifications\OrderPlacedNotification;
+use App\Support\Money;
+use App\Support\Quantity;
 use DomainException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class CartController extends Controller
@@ -22,26 +25,30 @@ class CartController extends Controller
         $cart = $this->refreshCart(session()->get('cart', []));
         session()->put('cart', $cart);
 
-        $subtotal = 0;
+        $subtotalCents = 0;
         $totalKilograms = 0;
 
         foreach ($cart as $item) {
-            $subtotal += $item['price'] * $item['quantity'];
+            $subtotalCents += $item['subtotal_cents'];
             $totalKilograms += ($item['kilograms'] ?? 0) * $item['quantity'];
         }
+
+        $subtotal = Money::formatCents($subtotalCents);
 
         return view('cart.index', compact('cart', 'subtotal', 'totalKilograms'));
     }
 
     public function add(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'product_id' => 'required|exists:products,id',
-            'quantity' => 'required|integer|min:1',
             'order_type' => 'nullable|in:standard,bulk',
         ]);
 
-        $product = Product::with('farmer')->findOrFail($request->product_id);
+        $product = Product::with('farmer')->findOrFail($validated['product_id']);
+        $quantityData = $request->validate([
+            'quantity' => Quantity::validationRules($product->unit),
+        ]);
 
         if (! $product->is_active) {
             return back()->with('error', 'This product is currently inactive.');
@@ -59,10 +66,11 @@ class CartController extends Controller
             return back()->with('error', "You cannot purchase your own crop listing ('{$product->name}').");
         }
 
-        $requestedQty = (int) $request->quantity;
+        $requestedQty = Quantity::normalize($quantityData['quantity']);
+        $requestedMilliUnits = Quantity::milliUnits($requestedQty);
 
         // Inventory check
-        if ($product->quantity < $requestedQty) {
+        if (Quantity::milliUnits((string) $product->quantity) < $requestedMilliUnits) {
             if ($request->ajax()) {
                 return response()->json([
                     'success' => false,
@@ -77,8 +85,20 @@ class CartController extends Controller
         $productId = $product->id;
 
         if (isset($cart[$productId])) {
-            $newQty = $cart[$productId]['quantity'] + $requestedQty;
-            if ($newQty > $product->quantity) {
+            $existingQuantityValidator = Validator::make(
+                ['quantity' => $cart[$productId]['quantity'] ?? ''],
+                ['quantity' => Quantity::validationRules($product->unit)]
+            );
+
+            if ($existingQuantityValidator->fails()) {
+                return $this->cartQuantityError(
+                    $request,
+                    'The existing cart quantity is invalid for this product unit. Remove it and add the product again.'
+                );
+            }
+
+            $newQty = Quantity::add($cart[$productId]['quantity'], $requestedQty);
+            if (Quantity::milliUnits($newQty) > Quantity::milliUnits((string) $product->quantity)) {
                 if ($request->ajax()) {
                     return response()->json([
                         'success' => false,
@@ -88,12 +108,20 @@ class CartController extends Controller
 
                 return back()->with('error', "Cannot exceed available stock of {$product->quantity} {$product->unit}(s).");
             }
-            $cart[$productId] = $product->cartItemPayload($newQty);
+            try {
+                $cart[$productId] = $product->cartItemPayload($newQty);
+            } catch (DomainException $exception) {
+                return $this->cartQuantityError($request, $exception->getMessage());
+            }
         } else {
-            $cart[$productId] = $product->cartItemPayload(
-                $requestedQty,
-                $request->get('order_type', $requestedQty >= 20 ? 'bulk' : 'standard')
-            );
+            try {
+                $cart[$productId] = $product->cartItemPayload(
+                    $requestedQty,
+                    $request->get('order_type', $requestedMilliUnits >= 20_000 ? 'bulk' : 'standard')
+                );
+            } catch (DomainException $exception) {
+                return $this->cartQuantityError($request, $exception->getMessage());
+            }
         }
 
         session()->put('cart', $cart);
@@ -119,33 +147,40 @@ class CartController extends Controller
     {
         $request->validate([
             'product_id' => 'required|exists:products,id',
-            'quantity' => 'required|integer|min:1',
         ]);
 
         $product = Product::with('farmer')->findOrFail($request->product_id);
+        $quantityData = $request->validate([
+            'quantity' => Quantity::validationRules($product->unit),
+        ]);
         $cart = session()->get('cart', []);
 
         if (isset($cart[$product->id])) {
-            if ($request->quantity > $product->quantity) {
+            $quantity = Quantity::normalize($quantityData['quantity']);
+            if (Quantity::milliUnits($quantity) > Quantity::milliUnits((string) $product->quantity)) {
                 return response()->json([
                     'success' => false,
                     'message' => "Cannot set quantity higher than available stock ({$product->quantity}).",
                 ], 422);
             }
 
-            $cart[$product->id] = $product->cartItemPayload(
-                (int) $request->quantity,
-                $request->quantity >= 20 ? 'bulk' : 'standard'
-            );
+            try {
+                $cart[$product->id] = $product->cartItemPayload(
+                    $quantity,
+                    Quantity::milliUnits($quantity) >= 20_000 ? 'bulk' : 'standard'
+                );
+            } catch (DomainException $exception) {
+                return response()->json(['success' => false, 'message' => $exception->getMessage()], 422);
+            }
             session()->put('cart', $cart);
 
-            $itemSubtotal = $cart[$product->id]['price'] * $cart[$product->id]['quantity'];
-            $cartTotal = array_sum(array_map(fn ($i) => $i['price'] * $i['quantity'], $cart));
+            $itemSubtotalCents = $cart[$product->id]['subtotal_cents'];
+            $cartTotalCents = $this->cartSubtotalCents($cart);
 
             return response()->json([
                 'success' => true,
-                'item_subtotal' => number_format($itemSubtotal, 2),
-                'cart_total' => number_format($cartTotal, 2),
+                'item_subtotal' => Money::formatCents($itemSubtotalCents),
+                'cart_total' => Money::formatCents($cartTotalCents),
                 'cart_count' => count($cart),
             ]);
         }
@@ -167,13 +202,13 @@ class CartController extends Controller
         }
 
         if ($request->ajax()) {
-            $cartTotal = array_sum(array_map(fn ($i) => $i['price'] * $i['quantity'], $cart));
+            $cartTotal = Money::formatCents($this->cartSubtotalCents($cart));
 
             return response()->json([
                 'success' => true,
                 'message' => 'Item removed from cart.',
                 'cart_count' => count($cart),
-                'cart_total' => number_format($cartTotal, 2),
+                'cart_total' => $cartTotal,
             ]);
         }
 
@@ -200,13 +235,14 @@ class CartController extends Controller
         }
 
         $user = Auth::user();
-        $subtotal = array_sum(array_map(fn ($i) => $i['price'] * $i['quantity'], $cart));
+        $subtotalCents = $this->cartSubtotalCents($cart);
+        $subtotal = Money::formatCents($subtotalCents);
         $totalKg = array_sum(array_map(fn ($i) => ($i['kilograms'] ?? 0) * $i['quantity'], $cart));
 
         // Detect if contains bulk quantities
         $hasBulkItems = false;
         foreach ($cart as $item) {
-            if ($item['quantity'] >= 20 || ($item['order_type'] ?? '') === 'bulk') {
+            if (Quantity::milliUnits($item['quantity']) >= 20_000 || ($item['order_type'] ?? '') === 'bulk') {
                 $hasBulkItems = true;
                 break;
             }
@@ -290,8 +326,8 @@ class CartController extends Controller
 
         $requestedItems = [];
         foreach ($itemsToOrder as $productId => $item) {
-            $quantity = (int) ($item['quantity'] ?? 0);
-            if ($quantity < 1) {
+            $quantity = $item['quantity'] ?? '';
+            if (! Quantity::isValid($quantity) || Quantity::milliUnits($quantity) < 1) {
                 return redirect()->route('cart.index')->with('error', 'One of the selected items has an invalid quantity.');
             }
 
@@ -332,13 +368,26 @@ class CartController extends Controller
                         throw new DomainException("You cannot place an order for your own farm produce ('{$product->name}').");
                     }
 
-                    if ($product->quantity < $quantity) {
+                    $quantityValidator = Validator::make(
+                        ['quantity' => $quantity],
+                        ['quantity' => Quantity::validationRules($product->unit)]
+                    );
+
+                    if ($quantityValidator->fails()) {
+                        throw new DomainException("The selected quantity for '{$product->name}' is invalid for its selling unit.");
+                    }
+
+                    $quantity = Quantity::normalize($quantity);
+                    $quantityMilliUnits = Quantity::milliUnits($quantity);
+
+                    if (Quantity::milliUnits((string) $product->quantity) < $quantityMilliUnits) {
                         throw new DomainException("Sorry, '{$product->name}' only has {$product->quantity} {$product->stock_unit_label} left. Please adjust your cart.");
                     }
 
                     $normalizedItems[] = [
                         'product' => $product,
                         'quantity' => $quantity,
+                        'quantity_milli_units' => $quantityMilliUnits,
                     ];
                 }
 
@@ -348,12 +397,16 @@ class CartController extends Controller
                 }
 
                 foreach ($farmerItems as $farmerId => $lines) {
-                    $farmerOrderSubtotal = 0;
+                    $farmerOrderSubtotalCents = 0;
                     $isBulk = false;
 
-                    foreach ($lines as $line) {
-                        $farmerOrderSubtotal += (float) $line['product']->price * $line['quantity'];
-                        if ($line['quantity'] >= 20) {
+                    foreach ($lines as $lineIndex => $line) {
+                        $lines[$lineIndex]['subtotal_cents'] = Money::lineSubtotalCents(
+                            (string) $line['product']->price,
+                            $line['quantity_milli_units']
+                        );
+                        $farmerOrderSubtotalCents += $lines[$lineIndex]['subtotal_cents'];
+                        if ($line['quantity_milli_units'] >= 20_000) {
                             $isBulk = true;
                         }
                     }
@@ -370,9 +423,10 @@ class CartController extends Controller
                         $orderDeliveryAddress = $pickupAddress;
                     }
 
-                    $farmerOrderSubtotal = round($farmerOrderSubtotal, 2);
-                    $shippingFee = 0.00;
-                    $orderTotal = $farmerOrderSubtotal;
+                    $shippingFeeCents = 0;
+                    $orderTotalCents = $farmerOrderSubtotalCents + $shippingFeeCents;
+                    Money::ensureOrderTotalFits($orderTotalCents);
+                    $orderTotal = Money::formatCents($orderTotalCents);
                     $orderNumber = ($isBulk ? 'BLK-' : 'ORD-').date('Ymd').'-'.strtoupper(Str::random(5));
 
                     $order = Order::create([
@@ -383,7 +437,7 @@ class CartController extends Controller
                         'total_amount' => $orderTotal,
                         'delivery_method' => $validated['delivery_method'],
                         'delivery_address' => $orderDeliveryAddress,
-                        'shipping_fee' => $shippingFee,
+                        'shipping_fee' => Money::formatCents($shippingFeeCents),
                         'status' => 'pending',
                         'notes' => $validated['notes'] ?? null,
                     ]);
@@ -404,7 +458,7 @@ class CartController extends Controller
                             'product_id' => $line['product']->id,
                             'quantity' => $line['quantity'],
                             'unit_price' => $line['product']->price,
-                            'subtotal' => (float) $line['product']->price * $line['quantity'],
+                            'subtotal' => Money::formatCents($line['subtotal_cents']),
                         ]);
                     }
 
@@ -489,13 +543,56 @@ class CartController extends Controller
                 continue;
             }
 
-            $quantity = max(1, (int) ($item['quantity'] ?? 1));
-            $cart[$productId] = $product->cartItemPayload(
-                $quantity,
-                $item['order_type'] ?? null
-            );
+            $quantity = $item['quantity'] ?? '';
+
+            if (! Quantity::isValid($quantity) || Quantity::milliUnits($quantity) < 1) {
+                unset($cart[$productId]);
+                session()->flash('error', 'An item with an invalid cart quantity was removed. Please add it again.');
+
+                continue;
+            }
+
+            if (! Quantity::isWeightUnit($product->unit) && Quantity::milliUnits($quantity) % 1000 !== 0) {
+                unset($cart[$productId]);
+                session()->flash('error', 'A fractional quantity is not valid for one of your cart items.');
+
+                continue;
+            }
+
+            try {
+                $cart[$productId] = $product->cartItemPayload(
+                    Quantity::normalize($quantity),
+                    $item['order_type'] ?? null
+                );
+            } catch (DomainException $exception) {
+                unset($cart[$productId]);
+                session()->flash('error', $exception->getMessage());
+            }
         }
 
         return $cart;
+    }
+
+    /**
+     * @param  array<int|string, array<string, mixed>>  $cart
+     */
+    private function cartSubtotalCents(array $cart): int
+    {
+        $subtotalCents = 0;
+
+        foreach ($cart as $item) {
+            $subtotalCents += (int) $item['subtotal_cents'];
+        }
+
+        return $subtotalCents;
+    }
+
+    private function cartQuantityError(Request $request, string $message)
+    {
+        if ($request->ajax()) {
+            return response()->json(['success' => false, 'message' => $message], 422);
+        }
+
+        return back()->with('error', $message);
     }
 }
