@@ -1,0 +1,44 @@
+flowchart LR
+  User["Admin / Farmer / Buyer"]
+  Browser["Web browser"]
+
+  subgraph App["FarmReach application: Laravel 13 / PHP >= 8.4"]
+    direction TB
+    UI["Web UI: Blade, Tailwind CSS 4, JavaScript"]
+    Routes["HTTP routes: web.php / api.php"]
+    Auth["Authentication and role middleware"]
+    Controllers["Controllers: Marketplace, Cart, Orders, Admin, Auth, API"]
+    Models["Eloquent models and business rules"]
+    Session["Laravel session: cart state"]
+    Sanctum["Sanctum: authenticated API user endpoint"]
+    Notify["Laravel database notifications"]
+    BroadcastCode["Broadcast event / listener code<br/>Not registered in bootstrap"]
+  end
+
+  DB[("Relational database<br/>Default driver: SQLite<br/>Other drivers configured")]
+  Storage["Public file storage<br/>Product, recipe, avatar uploads"]
+  Reverb["Laravel Reverb connection<br/>Configured; default broadcaster is null"]
+  Mail["Configured mail transport<br/>Password reset email<br/>Provider not verified"]
+
+  User --- Browser
+  Browser <--> UI
+  Browser -->|"Web and JSON API requests"| Routes
+  Routes --> Auth
+  Auth --> Controllers
+  Routes -->|"Public routes"| Controllers
+  Controllers --> Models
+  Controllers <--> Session
+  Models <--> DB
+  Controllers -->|"Product, recipe, and avatar uploads"| Storage
+  Routes -->|"auth:sanctum on /api/user"| Sanctum
+  Sanctum -->|"Authenticated API identity"| Controllers
+  Controllers --> Notify
+  Notify --> DB
+  BroadcastCode -.->|"Intended NotificationSent handler; not wired"| Notify
+  BroadcastCode -.->|"Broadcast event code; inactive path"| Reverb
+  Controllers --> Mail
+
+  classDef external fill:#F7F8FA,stroke:#697586,color:#18212B
+  classDef app fill:#F4F8F1,stroke:#4B6B50,color:#18212B
+  class User,Browser,DB,Storage,Reverb,Mail external
+  class UI,Routes,Auth,Controllers,Models,Session,Sanctum,Notify app

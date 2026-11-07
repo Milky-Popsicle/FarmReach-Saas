@@ -1,0 +1,86 @@
+sequenceDiagram
+  autonumber
+  actor Buyer
+  participant Browser as Browser (Blade UI)
+  participant Router as Laravel Router + auth
+  participant Marketplace as MarketplaceController
+  participant Cart as CartController
+  participant Product as Product model
+  participant Order as Order model
+  participant Item as OrderItem model
+  participant Payment as Payment model
+  participant DB as Relational database
+  participant Notify as Database notifications
+
+  Buyer->>Browser: Browse marketplace
+  Browser->>Router: GET /marketplace
+  Router->>Marketplace: index(search and filters)
+  Marketplace->>Product: Query active, in-stock products
+  Product->>DB: SELECT products and relations
+  DB-->>Product: Product rows
+  Product-->>Marketplace: Results
+  Marketplace-->>Browser: Render marketplace.index
+  Browser-->>Buyer: Product listings
+
+  Buyer->>Browser: Add product and quantity
+  Browser->>Router: POST /cart/add
+  Router->>Cart: add(request)
+  Cart->>Cart: Validate product ID, quantity, and order type
+  Cart->>Product: Load product and farmer
+  Product->>DB: SELECT product and farmer
+  DB-->>Product: Product data
+  Product-->>Cart: Status, stock, and owner
+  alt Inactive, own listing, or insufficient stock
+    Cart-->>Browser: Return error; do not add
+  else Product is eligible
+    Cart->>Cart: Update session cart
+    Cart-->>Browser: Cart updated
+  end
+
+  Buyer->>Browser: Proceed to checkout
+  Browser->>Router: GET /checkout
+  Router->>Router: Require authenticated session
+  Router->>Cart: checkout()
+  Cart->>Product: Refresh cart prices and product data
+  Product->>DB: SELECT current product data
+  DB-->>Product: Current products
+  Product-->>Cart: Refreshed session cart
+  Cart-->>Browser: Render checkout form
+
+  Buyer->>Browser: Submit delivery and payment choices
+  Browser->>Router: POST /checkout
+  Router->>Router: Require authenticated session
+  Router->>Cart: placeOrder(request)
+  Cart->>Cart: Validate checkout fields and selected cart items
+  Note over Cart: Delivery address required for delivery. Payment is stored as pending; no gateway charge occurs.
+  Cart->>DB: BEGIN TRANSACTION
+  Cart->>Product: Lock products; recheck active status, owner, and stock
+  Product->>DB: SELECT ... FOR UPDATE
+  DB-->>Product: Locked product rows
+  Product-->>Cart: Validated products
+
+  alt A product is unavailable, owned by buyer, or out of stock
+    Cart->>DB: ROLLBACK
+    Cart-->>Browser: Return validation or domain error
+  else All selected products pass checks
+    loop For each farmer represented in cart
+      Cart->>Order: Create pending order for farmer
+      Order->>DB: INSERT orders
+      DB-->>Order: Order ID
+      loop For each item belonging to farmer
+        Cart->>Product: Decrement available quantity
+        Product->>DB: UPDATE products.quantity
+        Cart->>Item: Create order line
+        Item->>DB: INSERT order_items
+      end
+      Cart->>Payment: Create pending payment record
+      Payment->>DB: INSERT payments
+    end
+    Cart->>DB: COMMIT
+    Cart->>Notify: Notify each farmer of new order
+    Notify->>DB: INSERT notifications
+    DB-->>Notify: Stored notification
+    Cart->>Cart: Remove ordered items from session cart
+    Cart-->>Browser: Redirect to buyer orders
+    Browser-->>Buyer: Show order confirmation
+  end

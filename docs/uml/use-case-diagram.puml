@@ -1,0 +1,72 @@
+@startuml
+left to right direction
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #F4F8F1
+  BorderColor #4B6B50
+}
+skinparam rectangle {
+  BackgroundColor #FFFFFF
+  BorderColor #4B6B50
+}
+
+actor Admin
+actor Farmer
+actor Buyer
+
+rectangle "FarmReach: Digital Crop Marketplace" {
+  (Sign in / register) as UC_Auth
+  (Manage own profile) as UC_Profile
+  (View and manage notifications) as UC_Notifications
+
+  (View admin dashboard) as UC_Dashboard
+  (Manage announcements) as UC_Announcements
+  (Manage recipes) as UC_RecipesAdmin
+
+  (Browse and search marketplace) as UC_Browse
+  (Compare prices) as UC_Compare
+  (View recipes and ingredient matches) as UC_RecipesBuyer
+  (View announcements) as UC_AnnouncementsBuyer
+  (Manage session cart) as UC_Cart
+  (Place order) as UC_Order
+  (View, cancel, or reorder own orders) as UC_BuyerOrders
+
+  (Manage crop listings and stock) as UC_Products
+  (Review incoming orders and update status) as UC_FarmerOrders
+  (View sales history) as UC_Sales
+}
+
+Admin -- UC_Auth
+Admin -- UC_Profile
+Admin -- UC_Notifications
+Admin -- UC_Dashboard
+Admin -- UC_Announcements
+Admin -- UC_RecipesAdmin
+
+Farmer -- UC_Auth
+Farmer -- UC_Profile
+Farmer -- UC_Notifications
+Farmer -- UC_Browse
+Farmer -- UC_Products
+Farmer -- UC_FarmerOrders
+Farmer -- UC_Sales
+
+Buyer -- UC_Auth
+Buyer -- UC_Profile
+Buyer -- UC_Notifications
+Buyer -- UC_Browse
+Buyer -- UC_Compare
+Buyer -- UC_RecipesBuyer
+Buyer -- UC_AnnouncementsBuyer
+Buyer -- UC_Cart
+Buyer -- UC_Order
+Buyer -- UC_BuyerOrders
+UC_Order ..> UC_Cart : <<include>>
+
+note bottom of UC_Order
+  Checkout requires authentication, not a buyer-only role.
+  It records a pending payment; no gateway charge is implemented.
+end note
+@enduml

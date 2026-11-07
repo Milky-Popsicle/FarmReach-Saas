@@ -1,0 +1,205 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-10-23T10:30:00.000Z" agent="FarmReach" version="24.7.17" type="device">
+  <diagram id="class-diagram" name="class-diagram">
+    <mxGraphModel dx="2200" dy="1230" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2200" pageHeight="1230" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="project_title" value="FarmReach Cloud: A SaaS-Driven Agricultural Marketplace and Order Management System." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Georgia;fontSize=21;fontStyle=1;fontColor=#172b4d;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="2160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="class_heading" value="CLASS DIAGRAM" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Georgia;fontSize=22;fontStyle=1;fontColor=#172b4d;" vertex="1" parent="1">
+          <mxGeometry x="750" y="53" width="700" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="class_user" value="&lt;div style=&quot;width:100%;font-family:Georgia&quot;&gt;&lt;div style=&quot;background-color:#dbeafe;border-bottom:1px solid #263746;padding:5px;text-align:center;font-size:18px;font-weight:bold&quot;&gt;User&lt;/div&gt;&lt;div style=&quot;text-align:center;font-size:10px;color:#334155;padding:2px&quot;&gt;&amp;lt;&amp;lt;Eloquent Model; roles are values&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;padding:3px 7px&quot;&gt;&lt;b&gt;Attributes&lt;/b&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ id: bigint {PK}&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ name, email: varchar&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ phone_number?: varchar&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ role: enum {admin|farmer|buyer}&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ birthday?: date&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ address?, bio?: text&lt;/div&gt;&lt;hr/&gt;&lt;b&gt;Methods&lt;/b&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ isAdmin(), isFarmer(), isBuyer(): bool&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#263746;strokeWidth=1.7;align=left;verticalAlign=top;spacing=0;fontFamily=Georgia;fontSize=13;fontColor=#111827;" vertex="1" parent="1">
+          <mxGeometry x="70" y="130" width="450" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="class_activity" value="&lt;div style=&quot;width:100%;font-family:Georgia&quot;&gt;&lt;div style=&quot;background-color:#dbeafe;border-bottom:1px solid #263746;padding:5px;text-align:center;font-size:18px;font-weight:bold&quot;&gt;ActivityLog&lt;/div&gt;&lt;div style=&quot;text-align:center;font-size:10px;color:#334155;padding:2px&quot;&gt;&amp;lt;&amp;lt;Eloquent Model&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;padding:3px 7px&quot;&gt;&lt;b&gt;Attributes&lt;/b&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ id: bigint {PK}&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ user_id?: bigint {FK}&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ action: varchar&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ description?: text; ip_address?: varchar&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ created_at, updated_at: timestamp&lt;/div&gt;&lt;hr/&gt;&lt;b&gt;Methods&lt;/b&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ user(): BelongsTo&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ log(userId, action, description): self&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#263746;strokeWidth=1.7;align=left;verticalAlign=top;spacing=0;fontFamily=Georgia;fontSize=13;fontColor=#111827;" vertex="1" parent="1">
+          <mxGeometry x="600" y="130" width="450" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="class_announcement" value="&lt;div style=&quot;width:100%;font-family:Georgia&quot;&gt;&lt;div style=&quot;background-color:#dbeafe;border-bottom:1px solid #263746;padding:5px;text-align:center;font-size:18px;font-weight:bold&quot;&gt;Announcement&lt;/div&gt;&lt;div style=&quot;text-align:center;font-size:10px;color:#334155;padding:2px&quot;&gt;&amp;lt;&amp;lt;Eloquent Model&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;padding:3px 7px&quot;&gt;&lt;b&gt;Attributes&lt;/b&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ id: bigint {PK}&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ user_id: bigint {FK}&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ title, location?, event_date?: varchar&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ description: text&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ is_active: bool&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ timestamps&lt;/div&gt;&lt;hr/&gt;&lt;b&gt;Methods&lt;/b&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ author(): BelongsTo&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#263746;strokeWidth=1.7;align=left;verticalAlign=top;spacing=0;fontFamily=Georgia;fontSize=13;fontColor=#111827;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="130" width="450" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="class_notification" value="&lt;div style=&quot;width:100%;font-family:Georgia&quot;&gt;&lt;div style=&quot;background-color:#dbeafe;border-bottom:1px solid #263746;padding:5px;text-align:center;font-size:18px;font-weight:bold&quot;&gt;DatabaseNotification&lt;/div&gt;&lt;div style=&quot;text-align:center;font-size:10px;color:#334155;padding:2px&quot;&gt;&amp;lt;&amp;lt;Laravel framework model; notifications table&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;padding:3px 7px&quot;&gt;&lt;b&gt;Attributes&lt;/b&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ id: uuid {PK}&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ notifiable_type: varchar&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ notifiable_id: bigint {morph}&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ type: varchar; data: text&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ read_at?: timestamp; timestamps&lt;/div&gt;&lt;hr/&gt;&lt;b&gt;Methods&lt;/b&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ markAsRead(): void&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#263746;strokeWidth=1.7;align=left;verticalAlign=top;spacing=0;fontFamily=Georgia;fontSize=13;fontColor=#111827;" vertex="1" parent="1">
+          <mxGeometry x="1700" y="130" width="450" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="class_product" value="&lt;div style=&quot;width:100%;font-family:Georgia&quot;&gt;&lt;div style=&quot;background-color:#dbeafe;border-bottom:1px solid #263746;padding:5px;text-align:center;font-size:18px;font-weight:bold&quot;&gt;Product&lt;/div&gt;&lt;div style=&quot;text-align:center;font-size:10px;color:#334155;padding:2px&quot;&gt;&amp;lt;&amp;lt;Eloquent Model&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;padding:3px 7px&quot;&gt;&lt;b&gt;Attributes&lt;/b&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ id: bigint {PK}&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ user_id: bigint {FK}&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ category_id?: bigint {FK}&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ name: varchar&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ price: decimal(10,2); quantity: int&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ kilograms?: decimal(8,2); unit: varchar&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ is_active: bool; low_stock_notified_at?: timestamp&lt;/div&gt;&lt;hr/&gt;&lt;b&gt;Methods&lt;/b&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ farmer(), category(): BelongsTo&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ orderItems(): HasMany&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#263746;strokeWidth=1.7;align=left;verticalAlign=top;spacing=0;fontFamily=Georgia;fontSize=13;fontColor=#111827;" vertex="1" parent="1">
+          <mxGeometry x="70" y="450" width="450" height="300" as="geometry" />
+        </mxCell>
+        <mxCell id="class_category" value="&lt;div style=&quot;width:100%;font-family:Georgia&quot;&gt;&lt;div style=&quot;background-color:#dbeafe;border-bottom:1px solid #263746;padding:5px;text-align:center;font-size:18px;font-weight:bold&quot;&gt;Category&lt;/div&gt;&lt;div style=&quot;text-align:center;font-size:10px;color:#334155;padding:2px&quot;&gt;&amp;lt;&amp;lt;Eloquent Model&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;padding:3px 7px&quot;&gt;&lt;b&gt;Attributes&lt;/b&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ id: bigint {PK}&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ name: varchar&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ slug: varchar {unique}&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ icon?: varchar&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ description?: text&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ timestamps&lt;/div&gt;&lt;hr/&gt;&lt;b&gt;Methods&lt;/b&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ products(), recipeIngredients(): HasMany&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#263746;strokeWidth=1.7;align=left;verticalAlign=top;spacing=0;fontFamily=Georgia;fontSize=13;fontColor=#111827;" vertex="1" parent="1">
+          <mxGeometry x="600" y="450" width="450" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="class_recipe" value="&lt;div style=&quot;width:100%;font-family:Georgia&quot;&gt;&lt;div style=&quot;background-color:#dbeafe;border-bottom:1px solid #263746;padding:5px;text-align:center;font-size:18px;font-weight:bold&quot;&gt;Recipe&lt;/div&gt;&lt;div style=&quot;text-align:center;font-size:10px;color:#334155;padding:2px&quot;&gt;&amp;lt;&amp;lt;Eloquent Model&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;padding:3px 7px&quot;&gt;&lt;b&gt;Attributes&lt;/b&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ id: bigint {PK}&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ title, slug: varchar&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ description?: text&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ instructions?: longText&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ prep_time?, image_path?: varchar&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ timestamps&lt;/div&gt;&lt;hr/&gt;&lt;b&gt;Methods&lt;/b&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ ingredients(): HasMany&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#263746;strokeWidth=1.7;align=left;verticalAlign=top;spacing=0;fontFamily=Georgia;fontSize=13;fontColor=#111827;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="450" width="450" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="class_recipeIngredient" value="&lt;div style=&quot;width:100%;font-family:Georgia&quot;&gt;&lt;div style=&quot;background-color:#dbeafe;border-bottom:1px solid #263746;padding:5px;text-align:center;font-size:18px;font-weight:bold&quot;&gt;RecipeIngredient&lt;/div&gt;&lt;div style=&quot;text-align:center;font-size:10px;color:#334155;padding:2px&quot;&gt;&amp;lt;&amp;lt;Eloquent Model&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;padding:3px 7px&quot;&gt;&lt;b&gt;Attributes&lt;/b&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ id: bigint {PK}&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ recipe_id: bigint {FK}&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ category_id?: bigint {FK}&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ name: varchar&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ quantity_description?: varchar&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ timestamps&lt;/div&gt;&lt;hr/&gt;&lt;b&gt;Methods&lt;/b&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ recipe(), category(): BelongsTo&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ getAvailableProducts(): Collection&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#263746;strokeWidth=1.7;align=left;verticalAlign=top;spacing=0;fontFamily=Georgia;fontSize=13;fontColor=#111827;" vertex="1" parent="1">
+          <mxGeometry x="1700" y="450" width="450" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="class_order" value="&lt;div style=&quot;width:100%;font-family:Georgia&quot;&gt;&lt;div style=&quot;background-color:#dbeafe;border-bottom:1px solid #263746;padding:5px;text-align:center;font-size:18px;font-weight:bold&quot;&gt;Order&lt;/div&gt;&lt;div style=&quot;text-align:center;font-size:10px;color:#334155;padding:2px&quot;&gt;&amp;lt;&amp;lt;Eloquent Model&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;padding:3px 7px&quot;&gt;&lt;b&gt;Attributes&lt;/b&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ id: bigint {PK}&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ order_number: varchar {unique}&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ buyer_id, farmer_id: bigint {FK}&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ order_type: enum {standard|bulk}&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ total_amount: decimal(10,2); shipping_fee: decimal(8,2)&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ delivery_method: enum {deliver|pickup}&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ status: enum {pending|confirmed|delivered|&lt;br/&gt;picked_up|cancelled}&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ notes?: text; timestamps&lt;/div&gt;&lt;hr/&gt;&lt;b&gt;Methods&lt;/b&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ buyer(), farmer(): BelongsTo&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ items(): HasMany; payment(): HasOne&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ isBulk(): bool&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#263746;strokeWidth=1.7;align=left;verticalAlign=top;spacing=0;fontFamily=Georgia;fontSize=13;fontColor=#111827;" vertex="1" parent="1">
+          <mxGeometry x="70" y="790" width="450" height="360" as="geometry" />
+        </mxCell>
+        <mxCell id="class_orderItem" value="&lt;div style=&quot;width:100%;font-family:Georgia&quot;&gt;&lt;div style=&quot;background-color:#dbeafe;border-bottom:1px solid #263746;padding:5px;text-align:center;font-size:18px;font-weight:bold&quot;&gt;OrderItem&lt;/div&gt;&lt;div style=&quot;text-align:center;font-size:10px;color:#334155;padding:2px&quot;&gt;&amp;lt;&amp;lt;Eloquent Model&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;padding:3px 7px&quot;&gt;&lt;b&gt;Attributes&lt;/b&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ id: bigint {PK}&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ order_id, product_id: bigint {FK}&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ quantity: int&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ unit_price, subtotal: decimal(10,2)&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ timestamps&lt;/div&gt;&lt;hr/&gt;&lt;b&gt;Methods&lt;/b&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ order(), product(): BelongsTo&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#263746;strokeWidth=1.7;align=left;verticalAlign=top;spacing=0;fontFamily=Georgia;fontSize=13;fontColor=#111827;" vertex="1" parent="1">
+          <mxGeometry x="600" y="790" width="450" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="class_payment" value="&lt;div style=&quot;width:100%;font-family:Georgia&quot;&gt;&lt;div style=&quot;background-color:#dbeafe;border-bottom:1px solid #263746;padding:5px;text-align:center;font-size:18px;font-weight:bold&quot;&gt;Payment&lt;/div&gt;&lt;div style=&quot;text-align:center;font-size:10px;color:#334155;padding:2px&quot;&gt;&amp;lt;&amp;lt;Eloquent Model&amp;gt;&amp;gt;&lt;/div&gt;&lt;div style=&quot;padding:3px 7px&quot;&gt;&lt;b&gt;Attributes&lt;/b&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ id: bigint {PK}&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ order_id: bigint {FK; not unique}&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ payment_method: enum {cod|bank_transfer|gcash}&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ payment_status: enum {pending|paid|failed}&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ reference_number?: varchar&lt;/div&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ amount: decimal(10,2); payment_date?: timestamp&lt;/div&gt;&lt;hr/&gt;&lt;b&gt;Methods&lt;/b&gt;&lt;div style=&quot;font-family:Georgia;font-size:15px;line-height:1.18&quot;&gt;+ order(): BelongsTo&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#263746;strokeWidth=1.7;align=left;verticalAlign=top;spacing=0;fontFamily=Georgia;fontSize=13;fontColor=#111827;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="790" width="450" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_ua" value="activityLogs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#263746;strokeWidth=1.5;exitX=1;exitY=0.46;entryX=0;entryY=0.44;" edge="1" parent="1" source="class_user" target="class_activity">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="mult_ua_0" value="0..1" style="text;html=1;strokeColor=none;fillColor=#ffffff;align=center;verticalAlign=middle;fontFamily=Georgia;fontSize=13;fontStyle=1;fontColor=#172b4d;" vertex="1" parent="1">
+          <mxGeometry x="523" y="225" width="34" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="mult_ua_1" value="0..*" style="text;html=1;strokeColor=none;fillColor=#ffffff;align=center;verticalAlign=middle;fontFamily=Georgia;fontSize=13;fontStyle=1;fontColor=#172b4d;" vertex="1" parent="1">
+          <mxGeometry x="570" y="225" width="34" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_uann" value="author / user_id" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#263746;strokeWidth=1.5;exitX=0.73;exitY=1;entryX=0.5;entryY=1;" edge="1" parent="1" source="class_user" target="class_announcement">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="400" y="410" />
+              <mxPoint x="1375" y="410" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="mult_uann_0" value="1" style="text;html=1;strokeColor=none;fillColor=#ffffff;align=center;verticalAlign=middle;fontFamily=Georgia;fontSize=13;fontStyle=1;fontColor=#172b4d;" vertex="1" parent="1">
+          <mxGeometry x="410" y="388" width="34" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="mult_uann_1" value="0..*" style="text;html=1;strokeColor=none;fillColor=#ffffff;align=center;verticalAlign=middle;fontFamily=Georgia;fontSize=13;fontStyle=1;fontColor=#172b4d;" vertex="1" parent="1">
+          <mxGeometry x="1375" y="388" width="34" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_unot" value="Notifiable morph (trait; no FK)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#263746;strokeWidth=1.5;exitX=0.89;exitY=1;entryX=0.5;entryY=1;" edge="1" parent="1" source="class_user" target="class_notification">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="470" y="425" />
+              <mxPoint x="1925" y="425" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="mult_unot_0" value="1" style="text;html=1;strokeColor=none;fillColor=#ffffff;align=center;verticalAlign=middle;fontFamily=Georgia;fontSize=13;fontStyle=1;fontColor=#172b4d;" vertex="1" parent="1">
+          <mxGeometry x="470" y="398" width="34" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="mult_unot_1" value="0..*" style="text;html=1;strokeColor=none;fillColor=#ffffff;align=center;verticalAlign=middle;fontFamily=Georgia;fontSize=13;fontStyle=1;fontColor=#172b4d;" vertex="1" parent="1">
+          <mxGeometry x="1925" y="398" width="34" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_up" value="farmer / user_id" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#263746;strokeWidth=1.5;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="class_user" target="class_product">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="mult_up_0" value="1" style="text;html=1;strokeColor=none;fillColor=#ffffff;align=center;verticalAlign=middle;fontFamily=Georgia;fontSize=13;fontStyle=1;fontColor=#172b4d;" vertex="1" parent="1">
+          <mxGeometry x="295" y="382" width="34" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="mult_up_1" value="0..*" style="text;html=1;strokeColor=none;fillColor=#ffffff;align=center;verticalAlign=middle;fontFamily=Georgia;fontSize=13;fontStyle=1;fontColor=#172b4d;" vertex="1" parent="1">
+          <mxGeometry x="305" y="437" width="34" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_ub" value="buyer_id" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#263746;strokeWidth=1.5;exitX=0;exitY=0.74;entryX=0;entryY=0.24;" edge="1" parent="1" source="class_user" target="class_order">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="35" y="315" />
+              <mxPoint x="35" y="870" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="mult_ub_0" value="1" style="text;html=1;strokeColor=none;fillColor=#ffffff;align=center;verticalAlign=middle;fontFamily=Georgia;fontSize=13;fontStyle=1;fontColor=#172b4d;" vertex="1" parent="1">
+          <mxGeometry x="25" y="295" width="34" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="mult_ub_1" value="0..*" style="text;html=1;strokeColor=none;fillColor=#ffffff;align=center;verticalAlign=middle;fontFamily=Georgia;fontSize=13;fontStyle=1;fontColor=#172b4d;" vertex="1" parent="1">
+          <mxGeometry x="25" y="850" width="34" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_uf" value="farmer_id" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#263746;strokeWidth=1.5;exitX=1;exitY=0.78;entryX=0.78;entryY=0;" edge="1" parent="1" source="class_user" target="class_order">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="555" y="325" />
+              <mxPoint x="555" y="740" />
+              <mxPoint x="420" y="740" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="mult_uf_0" value="1" style="text;html=1;strokeColor=none;fillColor=#ffffff;align=center;verticalAlign=middle;fontFamily=Georgia;fontSize=13;fontStyle=1;fontColor=#172b4d;" vertex="1" parent="1">
+          <mxGeometry x="525" y="307" width="34" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="mult_uf_1" value="0..*" style="text;html=1;strokeColor=none;fillColor=#ffffff;align=center;verticalAlign=middle;fontFamily=Georgia;fontSize=13;fontStyle=1;fontColor=#172b4d;" vertex="1" parent="1">
+          <mxGeometry x="420" y="770" width="34" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_pc" value="category_id (nullable)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#263746;strokeWidth=1.5;exitX=1;exitY=0.46;entryX=0;entryY=0.46;" edge="1" parent="1" source="class_product" target="class_category">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="mult_pc_0" value="0..*" style="text;html=1;strokeColor=none;fillColor=#ffffff;align=center;verticalAlign=middle;fontFamily=Georgia;fontSize=13;fontStyle=1;fontColor=#172b4d;" vertex="1" parent="1">
+          <mxGeometry x="525" y="550" width="34" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="mult_pc_1" value="0..1" style="text;html=1;strokeColor=none;fillColor=#ffffff;align=center;verticalAlign=middle;fontFamily=Georgia;fontSize=13;fontStyle=1;fontColor=#172b4d;" vertex="1" parent="1">
+          <mxGeometry x="570" y="550" width="34" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_po" value="product_id" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#263746;strokeWidth=1.5;exitX=0.76;exitY=1;entryX=0;entryY=0.38;" edge="1" parent="1" source="class_product" target="class_orderItem">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="555" y="760" />
+              <mxPoint x="555" y="885" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="mult_po_0" value="1" style="text;html=1;strokeColor=none;fillColor=#ffffff;align=center;verticalAlign=middle;fontFamily=Georgia;fontSize=13;fontStyle=1;fontColor=#172b4d;" vertex="1" parent="1">
+          <mxGeometry x="414" y="755" width="34" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="mult_po_1" value="0..*" style="text;html=1;strokeColor=none;fillColor=#ffffff;align=center;verticalAlign=middle;fontFamily=Georgia;fontSize=13;fontStyle=1;fontColor=#172b4d;" vertex="1" parent="1">
+          <mxGeometry x="565" y="885" width="34" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_oi" value="order_id" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#263746;strokeWidth=1.5;exitX=1;exitY=0.35;entryX=0;entryY=0.5;" edge="1" parent="1" source="class_order" target="class_orderItem">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="mult_oi_0" value="1" style="text;html=1;strokeColor=none;fillColor=#ffffff;align=center;verticalAlign=middle;fontFamily=Georgia;fontSize=13;fontStyle=1;fontColor=#172b4d;" vertex="1" parent="1">
+          <mxGeometry x="523" y="910" width="34" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="mult_oi_1" value="0..*" style="text;html=1;strokeColor=none;fillColor=#ffffff;align=center;verticalAlign=middle;fontFamily=Georgia;fontSize=13;fontStyle=1;fontColor=#172b4d;" vertex="1" parent="1">
+          <mxGeometry x="565" y="910" width="34" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_op" value="order_id (schema FK; model hasOne)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#263746;strokeWidth=1.5;exitX=0.82;exitY=1;entryX=1;entryY=0.5;" edge="1" parent="1" source="class_order" target="class_payment">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="440" y="1160" />
+              <mxPoint x="1650" y="1160" />
+              <mxPoint x="1650" y="920" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="mult_op_0" value="1" style="text;html=1;strokeColor=none;fillColor=#ffffff;align=center;verticalAlign=middle;fontFamily=Georgia;fontSize=13;fontStyle=1;fontColor=#172b4d;" vertex="1" parent="1">
+          <mxGeometry x="445" y="1155" width="34" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="mult_op_1" value="0..*" style="text;html=1;strokeColor=none;fillColor=#ffffff;align=center;verticalAlign=middle;fontFamily=Georgia;fontSize=13;fontStyle=1;fontColor=#172b4d;" vertex="1" parent="1">
+          <mxGeometry x="1601" y="900" width="34" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_cr" value="category_id (nullable)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#263746;strokeWidth=1.5;exitX=0.5;exitY=1;entryX=0;entryY=0.8;" edge="1" parent="1" source="class_category" target="class_recipeIngredient">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="800" y="710" />
+              <mxPoint x="800" y="750" />
+              <mxPoint x="1660" y="750" />
+              <mxPoint x="1660" y="650" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="mult_cr_0" value="0..1" style="text;html=1;strokeColor=none;fillColor=#ffffff;align=center;verticalAlign=middle;fontFamily=Georgia;fontSize=13;fontStyle=1;fontColor=#172b4d;" vertex="1" parent="1">
+          <mxGeometry x="805" y="710" width="34" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="mult_cr_1" value="0..*" style="text;html=1;strokeColor=none;fillColor=#ffffff;align=center;verticalAlign=middle;fontFamily=Georgia;fontSize=13;fontStyle=1;fontColor=#172b4d;" vertex="1" parent="1">
+          <mxGeometry x="1670" y="650" width="34" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_ri" value="recipe_id" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#263746;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="class_recipe" target="class_recipeIngredient">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="mult_ri_0" value="1" style="text;html=1;strokeColor=none;fillColor=#ffffff;align=center;verticalAlign=middle;fontFamily=Georgia;fontSize=13;fontStyle=1;fontColor=#172b4d;" vertex="1" parent="1">
+          <mxGeometry x="1603" y="560" width="34" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="mult_ri_1" value="0..*" style="text;html=1;strokeColor=none;fillColor=#ffffff;align=center;verticalAlign=middle;fontFamily=Georgia;fontSize=13;fontStyle=1;fontColor=#172b4d;" vertex="1" parent="1">
+          <mxGeometry x="1705" y="560" width="34" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="schema_note" value="Note: payments.order_id has no unique constraint (schema permits 0..* payments), while Order::payment() is hasOne. DatabaseNotification is Laravel framework-provided; User notifications use the Notifiable morph." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Georgia;fontSize=13;fontColor=#334155;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1170" width="2080" height="40" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

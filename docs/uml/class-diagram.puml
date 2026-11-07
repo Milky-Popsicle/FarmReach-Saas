@@ -1,0 +1,162 @@
+@startuml
+left to right direction
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam packageStyle rectangle
+
+package "FarmReach application models" {
+  class User {
+    +id: bigint
+    +name: string
+    +email: string
+    +phone_number: string?
+    +role: enum
+    +password: string
+    +address: text?
+    +gender: string?
+    +birthday: date?
+    +bio: text?
+    +avatar_path: string?
+    +isAdmin(): bool
+    +isFarmer(): bool
+    +isBuyer(): bool
+  }
+
+  class Category {
+    +id: bigint
+    +name: string
+    +slug: string
+    +icon: string?
+    +description: text?
+    +products(): HasMany
+    +recipeIngredients(): HasMany
+  }
+
+  class Product {
+    +id: bigint
+    +user_id: bigint
+    +category_id: bigint?
+    +name: string
+    +description: text?
+    +price: decimal
+    +quantity: int
+    +kilograms: decimal?
+    +unit: string
+    +image_path: string?
+    +is_active: bool
+    +low_stock_notified_at: datetime?
+    +farmer(): BelongsTo
+    +category(): BelongsTo
+    +orderItems(): HasMany
+    +cartItemPayload(quantity, orderType): array
+    +syncLowStockNotification(): void
+  }
+
+  class Order {
+    +id: bigint
+    +order_number: string
+    +buyer_id: bigint
+    +farmer_id: bigint
+    +order_type: enum
+    +total_amount: decimal
+    +delivery_method: enum
+    +delivery_address: text?
+    +shipping_fee: decimal
+    +status: string
+    +notes: text?
+    +buyer(): BelongsTo
+    +farmer(): BelongsTo
+    +items(): HasMany
+    +payment(): HasOne
+    +isBulk(): bool
+  }
+
+  class OrderItem {
+    +id: bigint
+    +order_id: bigint
+    +product_id: bigint
+    +quantity: int
+    +unit_price: decimal
+    +subtotal: decimal
+    +order(): BelongsTo
+    +product(): BelongsTo
+  }
+
+  class Payment {
+    +id: bigint
+    +order_id: bigint
+    +payment_method: enum
+    +payment_status: enum
+    +reference_number: string?
+    +amount: decimal
+    +payment_date: datetime?
+    +order(): BelongsTo
+  }
+
+  class Recipe {
+    +id: bigint
+    +title: string
+    +slug: string
+    +description: text?
+    +instructions: longtext?
+    +prep_time: string?
+    +image_path: string?
+    +ingredients(): HasMany
+  }
+
+  class RecipeIngredient {
+    +id: bigint
+    +recipe_id: bigint
+    +name: string
+    +quantity_description: string?
+    +category_id: bigint?
+    +recipe(): BelongsTo
+    +category(): BelongsTo
+    +getAvailableProducts(): Collection
+  }
+
+  class Announcement {
+    +id: bigint
+    +user_id: bigint
+    +title: string
+    +location: string?
+    +event_date: string?
+    +description: text
+    +is_active: bool
+    +author(): BelongsTo
+  }
+
+  class ActivityLog {
+    +id: bigint
+    +user_id: bigint?
+    +action: string
+    +description: text?
+    +ip_address: string?
+    +user(): BelongsTo
+    +log(userId, action, description): ActivityLog
+  }
+}
+
+User "1" -- "0..*" Product : farmer / user_id
+Category "0..1" -- "0..*" Product : category_id
+User "1" -- "0..*" Order : buyer_id
+User "1" -- "0..*" Order : farmer_id
+Order "1" *-- "0..*" OrderItem : order_id
+Product "1" -- "0..*" OrderItem : product_id
+Order "1" -- "0..1" Payment : order_id / hasOne
+Recipe "1" *-- "0..*" RecipeIngredient : recipe_id
+Category "0..1" -- "0..*" RecipeIngredient : category_id
+User "1" -- "0..*" Announcement : author / user_id
+User "0..1" -- "0..*" ActivityLog : user_id
+
+note bottom of User
+  Admin, Farmer, and Buyer are role values on User,
+  not separate subclasses.
+end note
+
+note bottom of Payment
+  Payment stores method and status data.
+  No payment gateway integration is present.
+end note
+@enduml
