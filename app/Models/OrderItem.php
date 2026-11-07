@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Quantity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -23,8 +24,13 @@ class OrderItem extends Model
         return [
             'unit_price' => 'decimal:2',
             'subtotal' => 'decimal:2',
-            'quantity' => 'integer',
+            'quantity' => 'decimal:3',
         ];
+    }
+
+    public function getFormattedQuantityAttribute(): string
+    {
+        return Quantity::format((string) $this->quantity);
     }
 
     public function order(): BelongsTo

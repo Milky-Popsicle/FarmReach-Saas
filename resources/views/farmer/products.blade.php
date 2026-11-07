@@ -70,7 +70,7 @@
                                     data-name="{{ $prod->name }}"
                                     data-category-id="{{ $prod->category_id }}"
                                     data-price="{{ $prod->price }}"
-                                    data-quantity="{{ $prod->quantity }}"
+                                    data-quantity="{{ \App\Support\Quantity::format((string) $prod->quantity) }}"
                                     data-kilograms="{{ $prod->kilograms ?? '' }}"
                                     data-unit="{{ $prod->unit }}"
                                     data-description="{{ $prod->description }}">
@@ -137,7 +137,7 @@
                             <td>
                                 @foreach($ord->items as $it)
                                     <div class="small">
-                                        &bull; <strong>{{ $it->quantity }} {{ $it->product?->stock_unit_label ?? 'unit' }}</strong> {{ $it->product->name ?? 'Produce' }}
+                                        &bull; <strong>{{ \App\Support\Quantity::format((string) $it->quantity) }} {{ $it->product?->stock_unit_label ?? 'unit' }}</strong> {{ $it->product->name ?? 'Produce' }}
                                     </div>
                                 @endforeach
                             </td>
@@ -324,7 +324,7 @@
                         <div class="col-md-6 mb-3">
                             <label for="quantity" class="form-label fw-bold small">Stock (Available Quantity) <span class="text-danger">*</span></label>
                             <div class="input-group">
-                                <input type="number" class="form-control" id="quantity" name="quantity" placeholder="e.g. 25, 50, 100" min="0" required>
+                                <input type="number" class="form-control" id="quantity" name="quantity" placeholder="e.g. 25, 50, 100" min="0" step="0.001" required>
                                 <span class="input-group-text stock-unit-display bg-light text-muted small">kg</span>
                             </div>
                             <div class="form-text text-muted" style="font-size: 11px;">Total harvest available for sale</div>
@@ -458,7 +458,7 @@
                         <div class="col-md-6 mb-3">
                             <label for="edit_quantity" class="form-label fw-bold small">Stock (Available Quantity) <span class="text-danger">*</span></label>
                             <div class="input-group">
-                                <input type="number" class="form-control" id="edit_quantity" name="quantity" min="0" required>
+                                <input type="number" class="form-control" id="edit_quantity" name="quantity" min="0" step="0.001" required>
                                 <span class="input-group-text stock-unit-display bg-light text-muted small">unit</span>
                             </div>
                             <div class="form-text text-muted" style="font-size: 11px;">Total harvest available for sale</div>

@@ -76,7 +76,7 @@
                                     <form action="{{ route('cart.add') }}" method="POST" class="form-add-to-cart m-0">
                                         @csrf
                                         <input type="hidden" name="product_id" value="{{ $prod->id }}">
-                                        <input type="hidden" name="quantity" value="1">
+                                        <input type="number" name="quantity" value="{{ $prod->unit === 'kg' && $prod->quantity < 1 ? \App\Support\Quantity::format((string) $prod->quantity) : '1' }}" min="{{ $prod->unit === 'kg' ? '0.001' : '1' }}" step="{{ $prod->unit === 'kg' ? '0.001' : '1' }}" max="{{ $prod->quantity }}" class="form-control form-control-sm mb-1" aria-label="Quantity of {{ $prod->name }}">
                                         <button type="submit" class="btn btn-sm btn-farm-primary">
                                             <i class="bi bi-cart-plus"></i> Buy
                                         </button>

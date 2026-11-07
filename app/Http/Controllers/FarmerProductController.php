@@ -6,8 +6,10 @@ use App\Models\ActivityLog;
 use App\Models\Category;
 use App\Models\Order;
 use App\Models\Product;
+use App\Support\Quantity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class FarmerProductController extends Controller
 {
@@ -71,12 +73,13 @@ class FarmerProductController extends Controller
     public function store(Request $request)
     {
         $farmer = Auth::user();
+        $unit = $request->input('selling_unit') ?? $request->input('unit') ?? 'kg';
 
         $validated = $request->validate([
             'name' => 'required|string|max:190',
             'category_id' => 'required|exists:categories,id',
             'price' => 'required|numeric|min:0.01',
-            'quantity' => 'required|integer|min:0',
+            'quantity' => Quantity::validationRules(is_string($unit) ? $unit : null, true),
             'selling_unit' => 'nullable|string|in:kg,g,pcs,bundle,pack,sack,crate,box',
             'unit' => 'nullable|string|max:20',
             'kilograms' => 'nullable|numeric|min:0.01',
@@ -129,7 +132,6 @@ class FarmerProductController extends Controller
             'name' => 'required|string|max:190',
             'category_id' => 'required|exists:categories,id',
             'price' => 'required|numeric|min:0.01',
-            'quantity' => 'required|integer|min:0',
             'selling_unit' => 'nullable|string|in:kg,g,pcs,bundle,pack,sack,crate,box',
             'unit' => 'nullable|string|max:20',
             'kilograms' => 'nullable|numeric|min:0.01',
@@ -138,31 +140,62 @@ class FarmerProductController extends Controller
             'image' => 'nullable|image|max:2048',
         ]);
 
-        $unit = $validated['selling_unit'] ?? $validated['unit'] ?? $product->unit;
-        $kilograms = null;
-        if (! in_array(strtolower($unit), ['kg', 'g'], true)) {
-            $rawKg = $validated['weight_per_unit'] ?? $validated['kilograms'] ?? null;
-            $kilograms = ($rawKg !== null && $rawKg !== '') ? (float) $rawKg : null;
+        $updateResult = DB::transaction(function () use ($request, $product, $farmer, $validated): array|false {
+            $lockedProduct = Product::query()
+                ->lockForUpdate()
+                ->findOrFail($product->id);
+
+            if ($lockedProduct->user_id !== $farmer->id) {
+                abort(403);
+            }
+
+            $unit = $validated['selling_unit'] ?? $validated['unit'] ?? $lockedProduct->unit;
+            $quantityData = $request->validate([
+                'quantity' => Quantity::validationRules(is_string($unit) ? $unit : null, true),
+            ]);
+
+            if ($unit !== $lockedProduct->unit && $lockedProduct->orderItems()->exists()) {
+                return false;
+            }
+
+            $kilograms = null;
+            if (! in_array(strtolower($unit), ['kg', 'g'], true)) {
+                $rawKg = $validated['weight_per_unit'] ?? $validated['kilograms'] ?? null;
+                $kilograms = ($rawKg !== null && $rawKg !== '') ? (float) $rawKg : null;
+            }
+
+            $data = [
+                'name' => $validated['name'],
+                'category_id' => $validated['category_id'],
+                'price' => $validated['price'],
+                'quantity' => $quantityData['quantity'],
+                'kilograms' => $kilograms,
+                'unit' => $unit,
+                'description' => $validated['description'] ?? $lockedProduct->description,
+            ];
+
+            if ($request->hasFile('image')) {
+                $path = $request->file('image')->store('products', 'public');
+                $data['image_path'] = '/storage/'.$path;
+            }
+
+            $lockedProduct->update($data);
+
+            return [
+                'product' => $lockedProduct,
+                'quantity_changed' => $lockedProduct->wasChanged('quantity'),
+            ];
+        });
+
+        if ($updateResult === false) {
+            return back()
+                ->withErrors(['selling_unit' => 'The selling unit cannot be changed after orders have been placed.'])
+                ->withInput();
         }
 
-        $data = [
-            'name' => $validated['name'],
-            'category_id' => $validated['category_id'],
-            'price' => $validated['price'],
-            'quantity' => $validated['quantity'],
-            'kilograms' => $kilograms,
-            'unit' => $unit,
-            'description' => $validated['description'] ?? $product->description,
-        ];
+        $product = $updateResult['product'];
 
-        if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('products', 'public');
-            $data['image_path'] = '/storage/'.$path;
-        }
-
-        $product->update($data);
-
-        if ($product->wasChanged('quantity')) {
+        if ($updateResult['quantity_changed']) {
             $product->syncLowStockNotification();
         }
 

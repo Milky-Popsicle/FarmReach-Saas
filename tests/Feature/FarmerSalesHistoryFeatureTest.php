@@ -62,14 +62,74 @@ class FarmerSalesHistoryFeatureTest extends TestCase
         $response->assertDontSee('Cancelled Crop');
         $response->assertDontSee('Other Farmer Corn');
 
-        $response->assertViewHas('totalProductSales', 700.0);
+        $response->assertViewHas('totalProductSales', '700.00');
         $response->assertViewHas('completedTransactions', 2);
-        $response->assertViewHas('productsSold', 15);
-        $response->assertViewHas('shippingFees', 60.0);
-        $response->assertViewHas('totalOrderValue', 760.0);
-        $response->assertViewHas('todaySales', 700.0);
-        $response->assertViewHas('monthSales', 700.0);
+        $response->assertSee('Quantity Sold by Unit')
+            ->assertSee('15 kg')
+            ->assertViewHas('quantitiesSoldByUnit', '15 kg');
+        $response->assertViewHas('shippingFees', '60.00');
+        $response->assertViewHas('totalOrderValue', '760.00');
+        $response->assertViewHas('todaySales', '700.00');
+        $response->assertViewHas('monthSales', '700.00');
         $response->assertViewHas('sales', fn ($sales) => $sales->total() === 2);
+    }
+
+    public function test_sales_summary_sums_decimal_amounts_without_float_conversion(): void
+    {
+        $farmer = User::factory()->farmer()->create();
+        $buyer = User::factory()->buyer()->create();
+        $product = $this->createProduct($farmer, 'Fractional Harvest', 100.00);
+
+        foreach ([
+            ['quantity' => '0.001', 'amount' => '0.10'],
+            ['quantity' => '0.002', 'amount' => '0.20'],
+        ] as $line) {
+            $order = Order::factory()->create([
+                'buyer_id' => $buyer->id,
+                'farmer_id' => $farmer->id,
+                'total_amount' => $line['amount'],
+                'shipping_fee' => '0.00',
+                'delivery_method' => 'pickup',
+                'status' => 'delivered',
+                'completed_at' => now(),
+            ]);
+            OrderItem::factory()->create([
+                'order_id' => $order->id,
+                'product_id' => $product->id,
+                'quantity' => $line['quantity'],
+                'unit_price' => '100.00',
+                'subtotal' => $line['amount'],
+            ]);
+        }
+
+        $response = $this->actingAs($farmer)->get(route('farmer.sales.index'));
+
+        $response->assertOk()
+            ->assertSee('₱0.30')
+            ->assertViewHas('totalProductSales', '0.30')
+            ->assertViewHas('totalOrderValue', '0.30')
+            ->assertSee('0.003 kg')
+            ->assertViewHas('quantitiesSoldByUnit', '0.003 kg');
+    }
+
+    public function test_sales_summary_displays_completed_quantities_separately_by_selling_unit(): void
+    {
+        $farmer = User::factory()->farmer()->create();
+        $buyer = User::factory()->buyer()->create();
+        $squash = $this->createProduct($farmer, 'Weighted Squash', 50.00);
+        $eggplant = $this->createProduct($farmer, 'Piece Eggplant', 10.00, 'pcs');
+
+        $this->createSale($buyer, $farmer, [
+            ['product' => $squash, 'quantity' => '0.5', 'unit_price' => 50.00],
+            ['product' => $eggplant, 'quantity' => 3, 'unit_price' => 10.00],
+        ], 'delivered', 0.00);
+
+        $response = $this->actingAs($farmer)->get(route('farmer.sales.index'));
+
+        $response->assertOk()
+            ->assertSee('0.5 kg · 3 pcs')
+            ->assertDontSee('3.5')
+            ->assertViewHas('quantitiesSoldByUnit', '0.5 kg · 3 pcs');
     }
 
     public function test_farmer_cannot_view_another_farmers_sale_details(): void
@@ -122,6 +182,41 @@ class FarmerSalesHistoryFeatureTest extends TestCase
         $response->assertSee('₱760.00');
         $response->assertDontSee('₱999.00');
         $response->assertDontSee('₱888.00');
+    }
+
+    public function test_sale_details_sum_stored_subtotals_for_fractional_quantities_in_cents(): void
+    {
+        $farmer = User::factory()->farmer()->create();
+        $buyer = User::factory()->buyer()->create();
+        $product = $this->createProduct($farmer, 'Fractional Sale Crop', 10.00);
+        $sale = Order::factory()->create([
+            'buyer_id' => $buyer->id,
+            'farmer_id' => $farmer->id,
+            'total_amount' => '0.18',
+            'shipping_fee' => '0.00',
+            'delivery_method' => 'pickup',
+            'status' => 'delivered',
+        ]);
+        OrderItem::factory()->create([
+            'order_id' => $sale->id,
+            'product_id' => $product->id,
+            'quantity' => '0.001',
+            'unit_price' => '10.00',
+            'subtotal' => '0.07',
+        ]);
+        OrderItem::factory()->create([
+            'order_id' => $sale->id,
+            'product_id' => $product->id,
+            'quantity' => '0.002',
+            'unit_price' => '10.00',
+            'subtotal' => '0.11',
+        ]);
+
+        $response = $this->actingAs($farmer)->get(route('farmer.sales.show', $sale));
+
+        $response->assertSee('Items subtotal')
+            ->assertSee('₱0.18')
+            ->assertDontSee('₱0.03');
     }
 
     public function test_search_and_date_filters_return_only_matching_transactions(): void
@@ -182,7 +277,7 @@ class FarmerSalesHistoryFeatureTest extends TestCase
         $defaultResponse->assertSee($completedSale->order_number);
         $defaultResponse->assertDontSee($cancelledSale->order_number);
         $defaultResponse->assertDontSee('Cancelled Okra');
-        $defaultResponse->assertViewHas('totalProductSales', 500.0);
+        $defaultResponse->assertViewHas('totalProductSales', '500.00');
         $defaultResponse->assertViewHas('completedTransactions', 1);
 
         $allResponse = $this->actingAs($farmer)->get(route('farmer.sales.index', [
@@ -192,7 +287,7 @@ class FarmerSalesHistoryFeatureTest extends TestCase
         $allResponse->assertOk();
         $allResponse->assertSee($cancelledSale->order_number);
         $allResponse->assertSee('Cancelled Okra');
-        $allResponse->assertViewHas('totalProductSales', 500.0);
+        $allResponse->assertViewHas('totalProductSales', '500.00');
 
         $cancelledResponse = $this->actingAs($farmer)->get(route('farmer.sales.index', [
             'status' => 'cancelled',
@@ -288,8 +383,8 @@ class FarmerSalesHistoryFeatureTest extends TestCase
         $response = $this->actingAs($farmer)->get(route('farmer.sales.index'));
 
         $response->assertOk();
-        $response->assertViewHas('todaySales', 500.0);
-        $response->assertViewHas('monthSales', 500.0);
+        $response->assertViewHas('todaySales', '500.00');
+        $response->assertViewHas('monthSales', '500.00');
     }
 
     public function test_today_sales_use_the_completion_date_instead_of_the_order_creation_date(): void
@@ -312,8 +407,8 @@ class FarmerSalesHistoryFeatureTest extends TestCase
         $response = $this->actingAs($farmer)->get(route('farmer.sales.index'));
 
         $response->assertOk();
-        $response->assertViewHas('todaySales', 100.0);
-        $response->assertViewHas('monthSales', 160.0);
+        $response->assertViewHas('todaySales', '100.00');
+        $response->assertViewHas('monthSales', '160.00');
     }
 
     public function test_date_filters_use_the_completion_date_with_a_creation_date_fallback(): void
@@ -374,10 +469,10 @@ class FarmerSalesHistoryFeatureTest extends TestCase
         $response = $this->actingAs($farmer)->get(route('farmer.sales.index'));
 
         $response->assertOk();
-        $response->assertViewHas('todaySales', 200.0);
-        $response->assertViewHas('monthSales', 200.0);
-        $response->assertViewHas('totalProductSales', 200.0);
-        $response->assertViewHas('totalOrderValue', 200.0);
+        $response->assertViewHas('todaySales', '200.00');
+        $response->assertViewHas('monthSales', '200.00');
+        $response->assertViewHas('totalProductSales', '200.00');
+        $response->assertViewHas('totalOrderValue', '200.00');
     }
 
     public function test_sales_history_sorts_by_completion_date_with_creation_date_fallback(): void
@@ -410,7 +505,7 @@ class FarmerSalesHistoryFeatureTest extends TestCase
         ]);
     }
 
-    private function createProduct(User $farmer, string $name, float $price): Product
+    private function createProduct(User $farmer, string $name, float $price, string $unit = 'kg'): Product
     {
         return Product::factory()->create([
             'user_id' => $farmer->id,
@@ -418,13 +513,13 @@ class FarmerSalesHistoryFeatureTest extends TestCase
             'name' => $name,
             'price' => $price,
             'quantity' => 100,
-            'unit' => 'kg',
+            'unit' => $unit,
             'is_active' => true,
         ]);
     }
 
     /**
-     * @param  array<int, array{product: Product, quantity: int, unit_price: float}>  $lines
+     * @param  array<int, array{product: Product, quantity: int|string, unit_price: float}>  $lines
      */
     private function createSale(
         User $buyer,

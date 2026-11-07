@@ -59,7 +59,7 @@
                                                    form="checkoutForm"
                                                    value="{{ $id }}" 
                                                    class="form-check-input cart-item-check" 
-                                                   data-price="{{ $item['price'] }}" 
+                                                   data-price-cents="{{ $item['price_cents'] }}"
                                                    data-kg="{{ $item['kilograms'] ?? 0 }}"
                                                    checked>
                                         </td>
@@ -97,14 +97,15 @@
                                                        class="qty-input cart-qty-input" 
                                                        data-product-id="{{ $id }}" 
                                                        value="{{ $item['quantity'] }}" 
-                                                       min="1" 
-                                                       max="999">
+                                                       min="{{ $item['quantity_min'] }}"
+                                                       step="{{ $item['quantity_step'] }}"
+                                                       max="{{ $item['stock_quantity'] }}">
                                                 <button type="button" class="qty-btn btn-qty-plus">+</button>
                                             </div>
                                         </td>
                                         <td>
                                             <span class="fw-bold text-farm-primary item-subtotal">
-                                                ₱{{ number_format($item['price'] * $item['quantity'], 2) }}
+                                                ₱{{ \App\Support\Money::formatCents($item['subtotal_cents']) }}
                                             </span>
                                         </td>
                                         <td class="text-end">
@@ -136,12 +137,12 @@
 
                     <div class="d-flex justify-content-between mb-2" id="weightSummaryRow" @if($totalKilograms <= 0) style="display: none;" @endif>
                         <span class="text-muted">Total Produce Weight:</span>
-                        <strong id="selectedWeightText">{{ number_format($totalKilograms, 1) }} kg</strong>
+                        <strong id="selectedWeightText">{{ \App\Support\Quantity::format(number_format($totalKilograms, 3, '.', '')) }} kg</strong>
                     </div>
 
                     <div class="d-flex justify-content-between mb-3">
                         <span class="text-muted">Subtotal:</span>
-                        <strong class="fs-5 text-farm-primary cart-grand-total" id="selectedSubtotalText">₱{{ number_format($subtotal, 2) }}</strong>
+                        <strong class="fs-5 text-farm-primary cart-grand-total" id="selectedSubtotalText">₱{{ $subtotal }}</strong>
                     </div>
 
                     <div class="alert alert-light border small text-muted mb-4">
@@ -171,7 +172,7 @@
 <script>
     $(document).ready(function () {
         function recalculateCartSelection() {
-            let totalSubtotal = 0;
+            let totalSubtotalCents = 0n;
             let totalWeight = 0;
             let selectedCount = 0;
             const totalItems = $('.cart-item-check').length;
@@ -180,18 +181,20 @@
                 if ($(this).is(':checked')) {
                     selectedCount++;
                     const $row = $(this).closest('.cart-item-row');
-                    const price = parseFloat($(this).data('price')) || 0;
-                    const qty = parseInt($row.find('.cart-qty-input').val()) || 1;
+                    const priceCents = BigInt($(this).attr('data-price-cents'));
+                    const qty = window.FarmReachQuantity.toMilliUnits($row.find('.cart-qty-input').val());
                     const kg = parseFloat($(this).data('kg')) || 0;
 
-                    totalSubtotal += price * qty;
-                    totalWeight += kg * qty;
+                    totalSubtotalCents += window.FarmReachQuantity.subtotalCents(priceCents, qty);
+                    totalWeight += kg * Number(qty) / 1000;
                 }
             });
 
             $('#selectedItemsText').text(selectedCount + ' item(s)');
-            $('#selectedSubtotalText').text('₱' + totalSubtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
-            $('#selectedWeightText').text(totalWeight.toFixed(1) + ' kg');
+            $('#selectedSubtotalText').text('₱' + window.FarmReachQuantity.formatCents(totalSubtotalCents));
+            $('#selectedWeightText').text(
+                window.FarmReachQuantity.fromMilliUnits(BigInt(Math.round(totalWeight * 1000))) + ' kg'
+            );
             $('#btnCheckoutCount').text(selectedCount);
 
             if (totalWeight > 0) {

@@ -54,7 +54,7 @@ class StockAndOrderIntegrityFeatureTest extends TestCase
 
         $item = $order->items()->firstOrFail();
         $this->assertEquals(100.00, (float) $item->unit_price);
-        $this->assertSame(8, $product->fresh()->quantity);
+        $this->assertSame('8.000', $product->fresh()->quantity);
     }
 
     public function test_checkout_rejects_order_that_exceeds_current_stock_without_creating_an_order(): void
@@ -80,7 +80,7 @@ class StockAndOrderIntegrityFeatureTest extends TestCase
 
         $response->assertSessionHas('error');
         $this->assertDatabaseCount('orders', 0);
-        $this->assertSame(1, $product->fresh()->quantity);
+        $this->assertSame('1.000', $product->fresh()->quantity);
     }
 
     public function test_buyer_cancellation_restocks_once_and_cannot_be_repeated(): void
@@ -94,12 +94,12 @@ class StockAndOrderIntegrityFeatureTest extends TestCase
 
         $response->assertSessionHas('success');
         $this->assertSame('cancelled', $order->fresh()->status);
-        $this->assertSame(12, $product->fresh()->quantity);
+        $this->assertSame('12.000', $product->fresh()->quantity);
 
         $response = $this->actingAs($buyer)->post(route('buyer.orders.cancel', $order));
 
         $response->assertSessionHas('error');
-        $this->assertSame(12, $product->fresh()->quantity);
+        $this->assertSame('12.000', $product->fresh()->quantity);
     }
 
     public function test_deleting_a_cancelled_order_removes_its_items_but_keeps_the_product(): void
@@ -131,14 +131,14 @@ class StockAndOrderIntegrityFeatureTest extends TestCase
 
         $response->assertSessionHas('success');
         $this->assertSame('cancelled', $order->fresh()->status);
-        $this->assertSame(13, $product->fresh()->quantity);
+        $this->assertSame('13.000', $product->fresh()->quantity);
 
         $response = $this->actingAs($farmer)->post(route('farmer.orders.status', $order), [
             'status' => 'cancelled',
         ]);
 
         $response->assertSessionHas('error');
-        $this->assertSame(13, $product->fresh()->quantity);
+        $this->assertSame('13.000', $product->fresh()->quantity);
     }
 
     public function test_buyer_cannot_cancel_a_paid_pending_order(): void
@@ -162,7 +162,7 @@ class StockAndOrderIntegrityFeatureTest extends TestCase
         $order->refresh();
 
         $this->assertSame('pending', $order->status);
-        $this->assertSame(10, $product->fresh()->quantity);
+        $this->assertSame('10.000', $product->fresh()->quantity);
         $this->assertSame('paid', $order->payment->payment_status);
         $this->assertSame($paymentDate, $order->payment->payment_date->toDateTimeString());
         $this->assertSame(0, $farmer->notifications()->count());
@@ -191,7 +191,7 @@ class StockAndOrderIntegrityFeatureTest extends TestCase
         $order->refresh();
 
         $this->assertSame('pending', $order->status);
-        $this->assertSame(10, $product->fresh()->quantity);
+        $this->assertSame('10.000', $product->fresh()->quantity);
         $this->assertSame('paid', $order->payment->payment_status);
         $this->assertSame($paymentDate, $order->payment->payment_date->toDateTimeString());
         $this->assertSame(0, $buyer->notifications()->count());
@@ -220,7 +220,7 @@ class StockAndOrderIntegrityFeatureTest extends TestCase
         $order->refresh();
 
         $this->assertSame('confirmed', $order->status);
-        $this->assertSame(10, $product->fresh()->quantity);
+        $this->assertSame('10.000', $product->fresh()->quantity);
         $this->assertSame('paid', $order->payment->payment_status);
         $this->assertSame($paymentDate, $order->payment->payment_date->toDateTimeString());
         $this->assertSame(0, $buyer->notifications()->count());
@@ -272,7 +272,7 @@ class StockAndOrderIntegrityFeatureTest extends TestCase
 
         $response->assertSessionHas('error');
         $this->assertSame('pending', $order->fresh()->status);
-        $this->assertSame(10, $product->fresh()->quantity);
+        $this->assertSame('10.000', $product->fresh()->quantity);
     }
 
     public function test_marketplace_listings_exclude_products_with_zero_stock(): void
@@ -347,7 +347,7 @@ class StockAndOrderIntegrityFeatureTest extends TestCase
 
         $response->assertSessionHas('error');
         $this->assertDatabaseCount('orders', 0);
-        $this->assertSame(0, $product->fresh()->quantity);
+        $this->assertSame('0.000', $product->fresh()->quantity);
     }
 
     public function test_pending_order_does_not_hide_product_while_stock_remains(): void
@@ -378,7 +378,7 @@ class StockAndOrderIntegrityFeatureTest extends TestCase
             ->assertRedirect(route('buyer.orders'))
             ->assertSessionHas('success');
 
-        $this->assertSame(2, $product->fresh()->quantity);
+        $this->assertSame('2.000', $product->fresh()->quantity);
 
         $order = Order::where('buyer_id', $buyer->id)->firstOrFail();
         $this->assertSame('pending', $order->status);
@@ -413,7 +413,7 @@ class StockAndOrderIntegrityFeatureTest extends TestCase
             ->assertRedirect(route('buyer.orders'))
             ->assertSessionHas('success');
 
-        $this->assertSame(0, $product->fresh()->quantity);
+        $this->assertSame('0.000', $product->fresh()->quantity);
         $this->get(route('marketplace'))->assertDontSee($product->name);
 
         $order = Order::where('buyer_id', $buyer->id)->firstOrFail();
@@ -422,7 +422,7 @@ class StockAndOrderIntegrityFeatureTest extends TestCase
             ->post(route('buyer.orders.cancel', $order))
             ->assertSessionHas('success');
 
-        $this->assertSame(1, $product->fresh()->quantity);
+        $this->assertSame('1.000', $product->fresh()->quantity);
         $this->get(route('marketplace'))->assertSee($product->name);
     }
 
@@ -453,7 +453,7 @@ class StockAndOrderIntegrityFeatureTest extends TestCase
             ])
             ->assertSessionHas('success');
 
-        $this->assertSame(20, $product->fresh()->quantity);
+        $this->assertSame('20.000', $product->fresh()->quantity);
         $this->get(route('marketplace'))->assertSee($product->name);
     }
 
@@ -543,6 +543,28 @@ class StockAndOrderIntegrityFeatureTest extends TestCase
         $this->assertSame('crate', $cartItem['price_unit_label']);
         $this->assertSame('bulk', $cartItem['order_type']);
         $this->assertSame($farmer->id, $cartItem['farmer_id']);
+    }
+
+    public function test_reorder_reports_fractional_history_that_conflicts_with_current_unit(): void
+    {
+        $farmer = User::factory()->farmer()->create();
+        $buyer = User::factory()->buyer()->create();
+        $product = $this->createProduct($farmer, ['unit' => 'pcs']);
+        $order = $this->createOrder($buyer, $farmer, $product, 1);
+        $order->items()->update([
+            'quantity' => '0.5',
+            'unit_price' => '100.00',
+            'subtotal' => '50.00',
+        ]);
+
+        $this->actingAs($buyer)
+            ->post(route('buyer.orders.reorder', $order))
+            ->assertSessionHas(
+                'error',
+                'Fractional quantities from this order cannot be reordered because the product now requires whole-number quantities.'
+            );
+
+        $this->assertSame([], session('cart', []));
     }
 
     public function test_recipe_batch_add_ignores_unchecked_items_and_checks_combined_stock(): void

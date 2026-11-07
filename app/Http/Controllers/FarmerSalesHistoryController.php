@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Support\Money;
+use App\Support\Quantity;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -51,26 +54,30 @@ class FarmerSalesHistoryController extends Controller
         $completedOrders = $this->completedOrdersQuery($farmerId);
         $completedItems = $this->completedItemsQuery($farmerId);
 
-        $totalProductSales = (float) (clone $completedItems)->sum('subtotal');
+        $totalProductSales = Money::formatCentsForDisplay($this->sumMoneyCents(clone $completedItems, 'subtotal'));
         $completedTransactions = (clone $completedOrders)->count();
-        $productsSold = (int) (clone $completedItems)->sum('quantity');
-        $shippingFees = (float) (clone $completedOrders)->sum('shipping_fee');
-        $totalOrderValue = (float) (clone $completedOrders)->sum('total_amount');
+        $quantitiesSoldByUnit = $this->sumQuantitiesByUnit(clone $completedItems);
+        $shippingFees = Money::formatCentsForDisplay($this->sumMoneyCents(clone $completedOrders, 'shipping_fee'));
+        $totalOrderValue = Money::formatCentsForDisplay($this->sumMoneyCents(clone $completedOrders, 'total_amount'));
 
-        $todaySales = (float) $this->completedItemsQuery($farmerId)
-            ->whereHas('order', function (Builder $query): void {
-                $query->whereDate(DB::raw('COALESCE(completed_at, created_at)'), today());
-            })
-            ->sum('subtotal');
+        $todaySales = Money::formatCentsForDisplay($this->sumMoneyCents(
+            $this->completedItemsQuery($farmerId)
+                ->whereHas('order', function (Builder $query): void {
+                    $query->whereDate(DB::raw('COALESCE(completed_at, created_at)'), today());
+                }),
+            'subtotal'
+        ));
 
-        $monthSales = (float) $this->completedItemsQuery($farmerId)
-            ->whereHas('order', function (Builder $query): void {
-                $query->whereBetween(DB::raw('COALESCE(completed_at, created_at)'), [
-                    now()->startOfMonth(),
-                    now()->endOfMonth(),
-                ]);
-            })
-            ->sum('subtotal');
+        $monthSales = Money::formatCentsForDisplay($this->sumMoneyCents(
+            $this->completedItemsQuery($farmerId)
+                ->whereHas('order', function (Builder $query): void {
+                    $query->whereBetween(DB::raw('COALESCE(completed_at, created_at)'), [
+                        now()->startOfMonth(),
+                        now()->endOfMonth(),
+                    ]);
+                }),
+            'subtotal'
+        ));
 
         $hasFilters = $search !== '' || $from !== null || $to !== null || $status !== 'completed';
 
@@ -83,7 +90,7 @@ class FarmerSalesHistoryController extends Controller
             'hasFilters',
             'totalProductSales',
             'completedTransactions',
-            'productsSold',
+            'quantitiesSoldByUnit',
             'shippingFees',
             'totalOrderValue',
             'todaySales',
@@ -140,5 +147,47 @@ class FarmerSalesHistoryController extends Controller
                 $query->where('farmer_id', $farmerId)
                     ->whereIn('status', Order::COMPLETED_STATUSES);
             });
+    }
+
+    private function sumMoneyCents(Builder $query, string $column): int
+    {
+        $totalCents = 0;
+
+        $query->select(['id', $column])
+            ->chunkById(500, function (EloquentCollection $rows) use (&$totalCents, $column): void {
+                foreach ($rows as $row) {
+                    $totalCents += Money::cents((string) $row->getAttribute($column));
+                }
+            });
+
+        return $totalCents;
+    }
+
+    private function sumQuantitiesByUnit(Builder $query): string
+    {
+        $quantityMilliUnitsByUnit = [];
+
+        $query->with('product:id,unit')
+            ->select(['id', 'product_id', 'quantity'])
+            ->chunkById(500, function (EloquentCollection $items) use (&$quantityMilliUnitsByUnit): void {
+                foreach ($items as $item) {
+                    $unit = strtolower(trim((string) ($item->product?->unit ?? '')));
+                    $unit = $unit !== '' ? $unit : 'unknown unit';
+
+                    $quantityMilliUnitsByUnit[$unit] = ($quantityMilliUnitsByUnit[$unit] ?? 0)
+                        + Quantity::milliUnits((string) $item->quantity);
+                }
+            });
+
+        if ($quantityMilliUnitsByUnit === []) {
+            return '0';
+        }
+
+        $formattedQuantities = [];
+        foreach ($quantityMilliUnitsByUnit as $unit => $milliUnits) {
+            $formattedQuantities[] = Quantity::formatMilliUnits($milliUnits).' '.$unit;
+        }
+
+        return implode(' · ', $formattedQuantities);
     }
 }

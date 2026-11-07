@@ -26,8 +26,8 @@
         <div class="col-12 col-sm-6 col-xl">
             <div class="stat-card h-100">
                 <span class="text-muted small text-uppercase fw-semibold">Gross Product Sales</span>
-                <h3 class="fw-bold mb-1 text-farm-primary mt-1">₱{{ number_format($totalProductSales, 2) }}</h3>
-                <small class="text-muted d-block">Product sales only (shipping excluded). Order value incl. shipping: ₱{{ number_format($totalOrderValue, 2) }}</small>
+                <h3 class="fw-bold mb-1 text-farm-primary mt-1">₱{{ $totalProductSales }}</h3>
+                <small class="text-muted d-block">Product sales only (shipping excluded). Order value incl. shipping: ₱{{ $totalOrderValue }}</small>
             </div>
         </div>
         <div class="col-12 col-sm-6 col-xl">
@@ -39,22 +39,22 @@
         </div>
         <div class="col-12 col-sm-6 col-xl">
             <div class="stat-card stat-secondary h-100">
-                <span class="text-muted small text-uppercase fw-semibold">Products Sold</span>
-                <h3 class="fw-bold mb-1 text-dark mt-1">{{ number_format($productsSold) }}</h3>
-                <small class="text-muted d-block">Units across completed sales</small>
+                <span class="text-muted small text-uppercase fw-semibold">Quantity Sold by Unit</span>
+                <h3 class="fw-bold mb-1 text-dark mt-1">{{ $quantitiesSoldByUnit }}</h3>
+                <small class="text-muted d-block">Completed quantities grouped by each product's selling unit</small>
             </div>
         </div>
         <div class="col-12 col-sm-6 col-xl">
             <div class="stat-card h-100">
                 <span class="text-muted small text-uppercase fw-semibold">Sales Today</span>
-                <h3 class="fw-bold mb-1 text-farm-primary mt-1">₱{{ number_format($todaySales, 2) }}</h3>
+                <h3 class="fw-bold mb-1 text-farm-primary mt-1">₱{{ $todaySales }}</h3>
                 <small class="text-muted d-block">Completed sales dated today</small>
             </div>
         </div>
         <div class="col-12 col-sm-6 col-xl">
             <div class="stat-card h-100">
                 <span class="text-muted small text-uppercase fw-semibold">Sales This Month</span>
-                <h3 class="fw-bold mb-1 text-farm-primary mt-1">₱{{ number_format($monthSales, 2) }}</h3>
+                <h3 class="fw-bold mb-1 text-farm-primary mt-1">₱{{ $monthSales }}</h3>
                 <small class="text-muted d-block">Completed sales dated this month</small>
             </div>
         </div>
@@ -226,7 +226,7 @@
                                         <div class="fw-semibold small">{{ $item->product?->name ?? 'Product unavailable' }}</div>
                                     </td>
                                     <td class="small">
-                                        {{ number_format($item->quantity) }} {{ $item->product?->unit ?? 'unit' }}
+                                        {{ $item->formatted_quantity }} {{ $item->product?->unit ?? 'unit' }}
                                     </td>
                                     <td class="small">₱{{ number_format($item->unit_price, 2) }}</td>
                                     <td class="small fw-semibold">₱{{ number_format($item->subtotal, 2) }}</td>

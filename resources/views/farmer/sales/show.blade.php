@@ -4,7 +4,9 @@
 
 @section('content')
 @php
-    $itemsSubtotal = $order->items->sum(fn ($item) => (float) $item->subtotal);
+    $itemsSubtotalCents = $order->items->sum(
+        fn ($item): int => \App\Support\Money::cents((string) $item->subtotal)
+    );
     $isCompleted = in_array($order->status, \App\Models\Order::COMPLETED_STATUSES, true);
     $saleDate = $order->completed_at ?? $order->created_at;
     $usesLegacySaleDate = $order->completed_at === null && $isCompleted;
@@ -127,7 +129,7 @@
                                         @endif
                                     </td>
                                     <td class="small">
-                                        {{ number_format($item->quantity) }} {{ $item->product?->unit ?? 'unit' }}
+                                        {{ $item->formatted_quantity }} {{ $item->product?->unit ?? 'unit' }}
                                     </td>
                                     <td class="small">₱{{ number_format($item->unit_price, 2) }}</td>
                                     <td class="small fw-semibold text-end">₱{{ number_format($item->subtotal, 2) }}</td>
@@ -179,7 +181,7 @@
                 @endif
                 <div class="d-flex justify-content-between mb-2">
                     <span class="text-muted">Items subtotal</span>
-                    <strong>₱{{ number_format($itemsSubtotal, 2) }}</strong>
+                    <strong>₱{{ \App\Support\Money::formatCentsForDisplay($itemsSubtotalCents) }}</strong>
                 </div>
                 <div class="d-flex justify-content-between mb-2">
                     <span class="text-muted">Shipping fee</span>
