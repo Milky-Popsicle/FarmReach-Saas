@@ -44,7 +44,7 @@
 
   <text x="70" y="640" class="section">Software and Development Tools</text>
   <text x="90" y="678" class="body">
-    <tspan x="90" dy="0">- PHP 8.3+ and Laravel 13</tspan>
+    <tspan x="90" dy="0">- PHP 8.4+ and Laravel 13</tspan>
     <tspan x="90" dy="25">- Blade; HTML, CSS, and JavaScript</tspan>
     <tspan x="90" dy="25">- MySQL 8.x</tspan>
     <tspan x="90" dy="25">- Composer and Node.js/npm</tspan>
