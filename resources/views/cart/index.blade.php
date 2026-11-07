@@ -193,7 +193,7 @@
             $('#selectedItemsText').text(selectedCount + ' item(s)');
             $('#selectedSubtotalText').text('₱' + window.FarmReachQuantity.formatCents(totalSubtotalCents));
             $('#selectedWeightText').text(
-                quantityTools.fromMilliUnits(BigInt(Math.round(totalWeight * 1000))) + ' kg'
+                window.FarmReachQuantity.fromMilliUnits(BigInt(Math.round(totalWeight * 1000))) + ' kg'
             );
             $('#btnCheckoutCount').text(selectedCount);
 

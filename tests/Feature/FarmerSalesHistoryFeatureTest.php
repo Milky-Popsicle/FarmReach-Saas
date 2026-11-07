@@ -64,7 +64,9 @@ class FarmerSalesHistoryFeatureTest extends TestCase
 
         $response->assertViewHas('totalProductSales', '700.00');
         $response->assertViewHas('completedTransactions', 2);
-        $response->assertViewHas('productsSold', '15');
+        $response->assertSee('Quantity Sold by Unit')
+            ->assertSee('15 kg')
+            ->assertViewHas('quantitiesSoldByUnit', '15 kg');
         $response->assertViewHas('shippingFees', '60.00');
         $response->assertViewHas('totalOrderValue', '760.00');
         $response->assertViewHas('todaySales', '700.00');
@@ -106,7 +108,28 @@ class FarmerSalesHistoryFeatureTest extends TestCase
             ->assertSee('₱0.30')
             ->assertViewHas('totalProductSales', '0.30')
             ->assertViewHas('totalOrderValue', '0.30')
-            ->assertViewHas('productsSold', '0.003');
+            ->assertSee('0.003 kg')
+            ->assertViewHas('quantitiesSoldByUnit', '0.003 kg');
+    }
+
+    public function test_sales_summary_displays_completed_quantities_separately_by_selling_unit(): void
+    {
+        $farmer = User::factory()->farmer()->create();
+        $buyer = User::factory()->buyer()->create();
+        $squash = $this->createProduct($farmer, 'Weighted Squash', 50.00);
+        $eggplant = $this->createProduct($farmer, 'Piece Eggplant', 10.00, 'pcs');
+
+        $this->createSale($buyer, $farmer, [
+            ['product' => $squash, 'quantity' => '0.5', 'unit_price' => 50.00],
+            ['product' => $eggplant, 'quantity' => 3, 'unit_price' => 10.00],
+        ], 'delivered', 0.00);
+
+        $response = $this->actingAs($farmer)->get(route('farmer.sales.index'));
+
+        $response->assertOk()
+            ->assertSee('0.5 kg · 3 pcs')
+            ->assertDontSee('3.5')
+            ->assertViewHas('quantitiesSoldByUnit', '0.5 kg · 3 pcs');
     }
 
     public function test_farmer_cannot_view_another_farmers_sale_details(): void
@@ -482,7 +505,7 @@ class FarmerSalesHistoryFeatureTest extends TestCase
         ]);
     }
 
-    private function createProduct(User $farmer, string $name, float $price): Product
+    private function createProduct(User $farmer, string $name, float $price, string $unit = 'kg'): Product
     {
         return Product::factory()->create([
             'user_id' => $farmer->id,
@@ -490,13 +513,13 @@ class FarmerSalesHistoryFeatureTest extends TestCase
             'name' => $name,
             'price' => $price,
             'quantity' => 100,
-            'unit' => 'kg',
+            'unit' => $unit,
             'is_active' => true,
         ]);
     }
 
     /**
-     * @param  array<int, array{product: Product, quantity: int, unit_price: float}>  $lines
+     * @param  array<int, array{product: Product, quantity: int|string, unit_price: float}>  $lines
      */
     private function createSale(
         User $buyer,

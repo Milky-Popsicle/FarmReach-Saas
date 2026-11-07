@@ -39,9 +39,9 @@
         </div>
         <div class="col-12 col-sm-6 col-xl">
             <div class="stat-card stat-secondary h-100">
-                <span class="text-muted small text-uppercase fw-semibold">Products Sold</span>
-                <h3 class="fw-bold mb-1 text-dark mt-1">{{ $productsSold }}</h3>
-                <small class="text-muted d-block">Units across completed sales</small>
+                <span class="text-muted small text-uppercase fw-semibold">Quantity Sold by Unit</span>
+                <h3 class="fw-bold mb-1 text-dark mt-1">{{ $quantitiesSoldByUnit }}</h3>
+                <small class="text-muted d-block">Completed quantities grouped by each product's selling unit</small>
             </div>
         </div>
         <div class="col-12 col-sm-6 col-xl">

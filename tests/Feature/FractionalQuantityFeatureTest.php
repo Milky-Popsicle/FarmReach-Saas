@@ -194,7 +194,16 @@ class FractionalQuantityFeatureTest extends TestCase
             ->withSession(['cart' => $cart])
             ->get(route('cart.index'));
 
-        $response->assertSee('id="selectedWeightText">'.$expectedWeight.' kg</strong>', false);
+        $html = $response->getContent();
+        $appScriptPosition = strpos($html, 'src="/js/farmreach-app.js?v=2.1"');
+        $cartHelperPosition = strpos($html, 'window.FarmReachQuantity.fromMilliUnits');
+
+        $response->assertSee('id="selectedWeightText">'.$expectedWeight.' kg</strong>', false)
+            ->assertSee('window.FarmReachQuantity.fromMilliUnits', false)
+            ->assertDontSee('quantityTools.fromMilliUnits', false);
+        $this->assertNotFalse($appScriptPosition);
+        $this->assertNotFalse($cartHelperPosition);
+        $this->assertLessThan($cartHelperPosition, $appScriptPosition);
     }
 
     public function test_farmer_order_weight_summaries_preserve_fractional_and_whole_kilograms(): void

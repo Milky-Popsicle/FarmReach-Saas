@@ -56,7 +56,7 @@ class FarmerSalesHistoryController extends Controller
 
         $totalProductSales = Money::formatCentsForDisplay($this->sumMoneyCents(clone $completedItems, 'subtotal'));
         $completedTransactions = (clone $completedOrders)->count();
-        $productsSold = Quantity::formatMilliUnits($this->sumQuantityMilliUnits(clone $completedItems));
+        $quantitiesSoldByUnit = $this->sumQuantitiesByUnit(clone $completedItems);
         $shippingFees = Money::formatCentsForDisplay($this->sumMoneyCents(clone $completedOrders, 'shipping_fee'));
         $totalOrderValue = Money::formatCentsForDisplay($this->sumMoneyCents(clone $completedOrders, 'total_amount'));
 
@@ -90,7 +90,7 @@ class FarmerSalesHistoryController extends Controller
             'hasFilters',
             'totalProductSales',
             'completedTransactions',
-            'productsSold',
+            'quantitiesSoldByUnit',
             'shippingFees',
             'totalOrderValue',
             'todaySales',
@@ -163,17 +163,31 @@ class FarmerSalesHistoryController extends Controller
         return $totalCents;
     }
 
-    private function sumQuantityMilliUnits(Builder $query): int
+    private function sumQuantitiesByUnit(Builder $query): string
     {
-        $totalMilliUnits = 0;
+        $quantityMilliUnitsByUnit = [];
 
-        $query->select(['id', 'quantity'])
-            ->chunkById(500, function (EloquentCollection $rows) use (&$totalMilliUnits): void {
-                foreach ($rows as $row) {
-                    $totalMilliUnits += Quantity::milliUnits((string) $row->quantity);
+        $query->with('product:id,unit')
+            ->select(['id', 'product_id', 'quantity'])
+            ->chunkById(500, function (EloquentCollection $items) use (&$quantityMilliUnitsByUnit): void {
+                foreach ($items as $item) {
+                    $unit = strtolower(trim((string) ($item->product?->unit ?? '')));
+                    $unit = $unit !== '' ? $unit : 'unknown unit';
+
+                    $quantityMilliUnitsByUnit[$unit] = ($quantityMilliUnitsByUnit[$unit] ?? 0)
+                        + Quantity::milliUnits((string) $item->quantity);
                 }
             });
 
-        return $totalMilliUnits;
+        if ($quantityMilliUnitsByUnit === []) {
+            return '0';
+        }
+
+        $formattedQuantities = [];
+        foreach ($quantityMilliUnitsByUnit as $unit => $milliUnits) {
+            $formattedQuantities[] = Quantity::formatMilliUnits($milliUnits).' '.$unit;
+        }
+
+        return implode(' · ', $formattedQuantities);
     }
 }
