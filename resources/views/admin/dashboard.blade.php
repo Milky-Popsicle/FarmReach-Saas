@@ -96,7 +96,7 @@
                                 <tr>
                                     <td class="fw-bold text-dark">{{ $top->product->name ?? 'Produce' }}</td>
                                     <td>{{ $top->product->farmer->name ?? 'N/A' }}</td>
-                                    <td><span class="badge bg-light text-dark border">{{ $top->total_qty_sold }} units</span></td>
+                                    <td><span class="badge bg-light text-dark border">{{ \App\Support\Quantity::format((string) $top->total_qty_sold) }} units</span></td>
                                     <td class="fw-bold text-success">₱{{ number_format($top->total_revenue, 2) }}</td>
                                 </tr>
                             @empty

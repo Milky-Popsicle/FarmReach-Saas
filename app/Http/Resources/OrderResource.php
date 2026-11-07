@@ -47,7 +47,7 @@ class OrderResource extends JsonResource
             'items' => $this->whenLoaded('items', fn (): array => $this->items
                 ->map(fn ($item): array => [
                     'id' => $item->id,
-                    'quantity' => (int) $item->quantity,
+                    'quantity' => (float) $item->quantity,
                     'unit_price' => (float) $item->unit_price,
                     'subtotal' => (float) $item->subtotal,
                     'product' => $item->product === null ? null : [

@@ -95,9 +95,9 @@
                             <td>
                                 @foreach($ord->items as $it)
                                     <div class="small fw-semibold">
-                                        &bull; {{ $it->quantity }} {{ $it->product?->stock_unit_label ?? 'unit' }} {{ $it->product->name ?? 'Produce' }}
+                                        &bull; {{ $it->formatted_quantity }} {{ $it->product?->stock_unit_label ?? 'unit' }} {{ $it->product->name ?? 'Produce' }}
                                         @if($it->product && ($it->product->unit === 'kg' || $it->product->has_weight_per_unit))
-                                            <span class="text-muted" style="font-size: 11px;">({{ number_format($it->product->effective_kilograms * $it->quantity, 1) }} kg)</span>
+                                            <span class="text-muted" style="font-size: 11px;">({{ \App\Support\Quantity::format(number_format($it->product->effective_kilograms * $it->quantity, 3, '.', '')) }} kg)</span>
                                         @endif
                                     </div>
                                 @endforeach

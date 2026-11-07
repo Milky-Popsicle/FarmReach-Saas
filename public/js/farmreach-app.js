@@ -1,4 +1,35 @@
 /* FarmReach Cloud - jQuery Interactive Scripting */
+window.FarmReachQuantity = (() => {
+    function toMilliUnits(value) {
+        const match = String(value).trim().match(/^(\d+)(?:\.(\d{1,3}))?$/);
+        if (!match) {
+            return 0n;
+        }
+
+        return (BigInt(match[1]) * 1000n) + BigInt((match[2] || '').padEnd(3, '0'));
+    }
+
+    function fromMilliUnits(value) {
+        const whole = value / 1000n;
+        const fraction = String(value % 1000n).padStart(3, '0').replace(/0+$/, '');
+
+        return fraction ? `${whole}.${fraction}` : String(whole);
+    }
+
+    function subtotalCents(priceCents, quantityMilliUnits) {
+        return ((BigInt(priceCents) * quantityMilliUnits) + 500n) / 1000n;
+    }
+
+    function formatCents(amountCents) {
+        const whole = amountCents / 100n;
+        const fraction = String(amountCents % 100n).padStart(2, '0');
+
+        return `${whole.toLocaleString('en-US')}.${fraction}`;
+    }
+
+    return { toMilliUnits, fromMilliUnits, subtotalCents, formatCents };
+})();
+
 $(document).ready(function () {
     // CSRF Token Setup for all jQuery AJAX requests
     $.ajaxSetup({
@@ -7,22 +38,29 @@ $(document).ready(function () {
         }
     });
 
+    const quantityTools = window.FarmReachQuantity;
+
     // 1. Quantity buttons in Cart / Product detail
     $(document).on('click', '.btn-qty-plus', function () {
         const $input = $(this).closest('.qty-control').find('.qty-input');
-        const max = parseInt($input.attr('max')) || 9999;
-        let val = parseInt($input.val()) || 1;
-        if (val < max) {
-            $input.val(val + 1).trigger('change');
+        const step = quantityTools.toMilliUnits($input.attr('step') || '1');
+        const min = quantityTools.toMilliUnits($input.attr('min') || '1');
+        const max = quantityTools.toMilliUnits($input.attr('max') || '9999');
+        const current = quantityTools.toMilliUnits($input.val()) || min;
+        const next = current + step;
+        if (next <= max) {
+            $input.val(quantityTools.fromMilliUnits(next)).trigger('change');
         }
     });
 
     $(document).on('click', '.btn-qty-minus', function () {
         const $input = $(this).closest('.qty-control').find('.qty-input');
-        const min = parseInt($input.attr('min')) || 1;
-        let val = parseInt($input.val()) || 1;
-        if (val > min) {
-            $input.val(val - 1).trigger('change');
+        const step = quantityTools.toMilliUnits($input.attr('step') || '1');
+        const min = quantityTools.toMilliUnits($input.attr('min') || '1');
+        const current = quantityTools.toMilliUnits($input.val()) || min;
+        const next = current > min ? current - step : min;
+        if (next >= min && next < current) {
+            $input.val(quantityTools.fromMilliUnits(next)).trigger('change');
         }
     });
 
@@ -232,6 +270,11 @@ $(document).ready(function () {
         const isWeightBased = (unit === 'kg' || unit === 'g');
 
         const { priceLabel, stockLabel } = getUnitLabels(unit, qty);
+        const quantityStep = unit === 'kg' ? '0.001' : '1';
+        $container.find('input[name="quantity"]').attr({
+            min: '0',
+            step: quantityStep
+        });
 
         // Update inline text displays
         $container.find('.stock-unit-display').text(stockLabel);
@@ -523,18 +566,19 @@ $(document).ready(function () {
         const $calcContainer = $('.product-price-calculator');
         if ($calcContainer.length === 0) return;
 
-        const unitPrice = parseFloat($calcContainer.data('unit-price')) || 0;
+        const unitPriceCents = BigInt($calcContainer.attr('data-unit-price-cents') || '0');
         const unitKg = parseFloat($calcContainer.data('unit-kg')) || 0;
         const $qtyInput = $calcContainer.find('.qty-input');
-        const qty = parseInt($qtyInput.val()) || 1;
+        const quantityMilliUnits = quantityTools.toMilliUnits($qtyInput.val());
+        const qty = Number(quantityMilliUnits) / 1000;
 
-        const totalKg = (unitKg * qty).toFixed(2);
-        const subtotal = (unitPrice * qty).toFixed(2);
+        const totalKg = (unitKg * qty).toFixed(3).replace(/\.?0+$/, '');
+        const subtotal = quantityTools.subtotalCents(unitPriceCents, quantityMilliUnits);
 
         if (unitKg > 0) {
             $calcContainer.find('#dynamicWeight').text(totalKg);
         }
-        $calcContainer.find('#dynamicSubtotal').text('₱' + Number(subtotal).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+        $calcContainer.find('#dynamicSubtotal').text('₱' + quantityTools.formatCents(subtotal));
     }
 
     $(document).on('change input', '.product-price-calculator .qty-input', function () {
@@ -612,5 +656,4 @@ $(document).ready(function () {
         targetTable.find('.check-select-all').prop('checked', totalItems > 0 && totalItems === checkedItems);
     });
 });
-
 

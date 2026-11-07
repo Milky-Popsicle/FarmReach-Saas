@@ -23,7 +23,7 @@ class ProductResource extends JsonResource
             'name' => $this->name,
             'description' => $this->description,
             'price' => (float) $this->price,
-            'quantity' => (int) $this->quantity,
+            'quantity' => (float) $this->quantity,
             'kilograms' => $this->kilograms !== null ? (float) $this->kilograms : null,
             'unit' => $this->unit,
             'image_path' => $this->image_path,

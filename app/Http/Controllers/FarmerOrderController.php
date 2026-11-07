@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Notifications\OrderCancelledNotification;
 use App\Notifications\OrderStatusChangedNotification;
+use App\Support\Money;
 use DomainException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -104,18 +105,22 @@ class FarmerOrderController extends Controller
                 }
 
                 if ($targetStatus === 'confirmed' && $lockedOrder->delivery_method === 'deliver' && $request->filled('shipping_fee')) {
-                    $shippingFee = round((float) $validated['shipping_fee'], 2);
-                    $currentShippingFee = round((float) $lockedOrder->shipping_fee, 2);
+                    $shippingFeeCents = Money::cents($validated['shipping_fee']);
+                    $currentShippingFeeCents = Money::cents((string) $lockedOrder->shipping_fee);
 
                     if ($lockedOrder->payment?->payment_status === 'paid') {
-                        if (abs($shippingFee - $currentShippingFee) > 0.001) {
+                        if ($shippingFeeCents !== $currentShippingFeeCents) {
                             throw new DomainException('Shipping fee cannot be changed after payment has been received.');
                         }
                     } else {
-                        $itemsTotal = round((float) $lockedOrder->items->sum('subtotal'), 2);
+                        $itemsTotalCents = $lockedOrder->items->sum(
+                            fn ($item): int => Money::cents((string) $item->subtotal)
+                        );
+                        $orderTotalCents = $itemsTotalCents + $shippingFeeCents;
+                        Money::ensureOrderTotalFits($orderTotalCents);
 
-                        $lockedOrder->shipping_fee = $shippingFee;
-                        $lockedOrder->total_amount = round($itemsTotal + $shippingFee, 2);
+                        $lockedOrder->shipping_fee = Money::formatCents($shippingFeeCents);
+                        $lockedOrder->total_amount = Money::formatCents($orderTotalCents);
 
                         if ($lockedOrder->payment) {
                             $lockedOrder->payment->update(['amount' => $lockedOrder->total_amount]);

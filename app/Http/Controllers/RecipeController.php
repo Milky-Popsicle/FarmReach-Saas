@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\ActivityLog;
 use App\Models\Product;
 use App\Models\Recipe;
+use App\Support\Quantity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 
 class RecipeController extends Controller
 {
@@ -62,7 +64,7 @@ class RecipeController extends Controller
         $validated = $request->validate([
             'products' => 'nullable|array',
             'products.*.id' => 'nullable|integer|exists:products,id',
-            'products.*.quantity' => 'nullable|integer|min:1',
+            'products.*.quantity' => 'nullable',
         ]);
 
         $requestedProducts = collect($validated['products'] ?? [])
@@ -89,7 +91,6 @@ class RecipeController extends Controller
 
         foreach ($requestedProducts as $item) {
             $product = $products->get((int) $item['id']);
-            $quantity = (int) $item['quantity'];
 
             if (! $product || ! $product->is_active) {
                 $skippedCount++;
@@ -103,10 +104,27 @@ class RecipeController extends Controller
                 continue;
             }
 
-            $existingQuantity = (int) ($cart[$product->id]['quantity'] ?? 0);
-            $newQuantity = $existingQuantity + $quantity;
+            $quantityValidator = Validator::make(
+                ['quantity' => $item['quantity']],
+                ['quantity' => Quantity::validationRules($product->unit)]
+            );
+            $quantityValidator->validate();
 
-            if ($newQuantity > $product->quantity) {
+            $quantity = Quantity::normalize($item['quantity']);
+            $existingQuantity = $cart[$product->id]['quantity'] ?? '0';
+            $existingQuantityValidator = Validator::make(
+                ['quantity' => $existingQuantity],
+                ['quantity' => Quantity::validationRules($product->unit, allowZero: true)]
+            );
+            if ($existingQuantityValidator->fails()) {
+                $skippedCount++;
+
+                continue;
+            }
+
+            $newQuantity = Quantity::add($existingQuantity, $quantity);
+
+            if (Quantity::milliUnits($newQuantity) > Quantity::milliUnits((string) $product->quantity)) {
                 $skippedCount++;
 
                 continue;

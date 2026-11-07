@@ -6,6 +6,7 @@ use App\Models\ActivityLog;
 use App\Models\Order;
 use App\Models\Product;
 use App\Notifications\OrderCancelledNotification;
+use App\Support\Quantity;
 use DomainException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -138,6 +139,7 @@ class BuyerOrderController extends Controller
 
         $cart = session()->get('cart', []);
         $reorderedCount = 0;
+        $incompatibleQuantityCount = 0;
 
         foreach ($order->items as $item) {
             $product = $item->product;
@@ -146,10 +148,16 @@ class BuyerOrderController extends Controller
                 continue;
             }
 
-            $existingQuantity = (int) ($cart[$product->id]['quantity'] ?? 0);
-            $newQuantity = $existingQuantity + $item->quantity;
+            if (! Quantity::isWeightUnit($product->unit) && Quantity::milliUnits((string) $item->quantity) % 1000 !== 0) {
+                $incompatibleQuantityCount++;
 
-            if ($newQuantity > $product->quantity) {
+                continue;
+            }
+
+            $existingQuantity = $cart[$product->id]['quantity'] ?? '0';
+            $newQuantity = Quantity::add($existingQuantity, (string) $item->quantity);
+
+            if (Quantity::milliUnits($newQuantity) > Quantity::milliUnits((string) $product->quantity)) {
                 continue;
             }
 
@@ -162,7 +170,24 @@ class BuyerOrderController extends Controller
         if ($reorderedCount > 0) {
             ActivityLog::log($buyer->id, 'Reordered Items', "Reordered items from Order #{$order->order_number}.");
 
-            return redirect()->route('cart.index')->with('success', "Added {$reorderedCount} item(s) from Order #{$order->order_number} back to your cart!");
+            $response = redirect()->route('cart.index')
+                ->with('success', "Added {$reorderedCount} item(s) from Order #{$order->order_number} back to your cart!");
+
+            if ($incompatibleQuantityCount > 0) {
+                $response->with(
+                    'warning',
+                    'Some fractional quantities could not be reordered because the product now requires whole-number quantities.'
+                );
+            }
+
+            return $response;
+        }
+
+        if ($incompatibleQuantityCount > 0) {
+            return back()->with(
+                'error',
+                'Fractional quantities from this order cannot be reordered because the product now requires whole-number quantities.'
+            );
         }
 
         return back()->with('error', 'Sorry, items from this order are currently out of stock.');

@@ -140,7 +140,7 @@ class PickupCheckoutFeatureTest extends TestCase
 
         $response->assertSessionHas('error');
         $this->assertDatabaseCount('orders', 0);
-        $this->assertSame(5, $product->fresh()->quantity);
+        $this->assertSame('5.000', $product->fresh()->quantity);
     }
 
     public function test_checkout_page_warns_when_a_farmer_has_no_pickup_address(): void

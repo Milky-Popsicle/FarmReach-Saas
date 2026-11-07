@@ -45,7 +45,7 @@ class RecipeIngredientMatchingFeatureTest extends TestCase
             ->assertJsonPath('ingredients.0.ingredient_name', 'Potato')
             ->assertJsonPath('ingredients.0.matched_products.0.name', 'Fresh Potato')
             ->assertJsonPath('ingredients.0.matched_products.0.price', 25)
-            ->assertJsonPath('ingredients.0.matched_products.0.quantity_in_stock', 10);
+            ->assertJsonPath('ingredients.0.matched_products.0.quantity_in_stock', '10.000');
 
         $this->assertSame(
             ['Fresh Potato'],

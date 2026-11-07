@@ -150,7 +150,7 @@
                                     </div>
                                 </div>
                                 <span class="fw-bold text-farm-primary small">
-                                    ₱{{ number_format($item['price'] * $item['quantity'], 2) }}
+                                    ₱{{ \App\Support\Money::formatCents($item['subtotal_cents']) }}
                                 </span>
                             </div>
                         @endforeach
@@ -158,7 +158,7 @@
 
                     <div class="d-flex justify-content-between mb-2">
                         <span class="text-muted small">Items Subtotal:</span>
-                        <span class="fw-semibold">₱{{ number_format($subtotal, 2) }}</span>
+                        <span class="fw-semibold">₱{{ $subtotal }}</span>
                     </div>
 
                     <div class="d-flex justify-content-between mb-2">
@@ -174,7 +174,7 @@
                     <div class="d-flex justify-content-between align-items-baseline mb-4">
                         <strong class="fs-5 text-dark">Total Amount:</strong>
                         <strong class="fs-4 text-farm-primary" id="totalOrderAmount">
-                            ₱{{ number_format($subtotal, 2) }}
+                            ₱{{ $subtotal }}
                         </strong>
                     </div>
 
@@ -207,7 +207,7 @@
                                 <div class="col-7 text-dark" id="modalReviewAddress">{{ $user->address }}</div>
 
                                 <div class="col-5 text-muted">Total Quantity:</div>
-                                <div class="col-7 fw-bold text-dark">{{ array_sum(array_column($cart, 'quantity')) }} items @if($totalKg > 0)({{ number_format($totalKg, 1) }} kg)@endif</div>
+                                <div class="col-7 fw-bold text-dark">{{ count($cart) }} item(s) @if($totalKg > 0)({{ number_format($totalKg, 3) }} kg)@endif</div>
 
                                 <div class="col-5 text-muted">Payment Method:</div>
                                 <div class="col-7 fw-bold text-dark" id="modalReviewPaymentMethod">Cash on Delivery (COD)</div>
@@ -216,7 +216,7 @@
                                 <div class="col-7 text-dark" id="modalReviewShipping">₱0.00</div>
 
                                 <div class="col-5 text-muted">Total Amount:</div>
-                                <div class="col-7 fw-bold text-success fs-5" id="modalReviewTotal">₱{{ number_format($subtotal, 2) }}</div>
+                                <div class="col-7 fw-bold text-success fs-5" id="modalReviewTotal">₱{{ $subtotal }}</div>
                             </div>
                         </div>
 
@@ -239,7 +239,7 @@
 @push('scripts')
 <script>
     $(document).ready(function () {
-        const subtotal = {{ $subtotal }};
+        const subtotal = @json($subtotal);
         const pickupLocations = @json($pickupLocations);
         const hasMissingPickupAddress = @json($hasMissingPickupAddress);
 
@@ -265,7 +265,7 @@
             $('#btnReviewOrder').prop('disabled', isPickup && hasMissingPickupAddress);
 
             $('#shippingFeeDisplay').text('₱0.00');
-            $('#totalOrderAmount').text('₱' + subtotal.toFixed(2));
+            $('#totalOrderAmount').text('₱' + subtotal);
 
             if (isPickup) {
                 $('#paymentMethodTitle').text('Cash on Pick Up (COP)');
@@ -294,7 +294,7 @@
             $('#modalReviewAddress').text(isPickup ? pickupLocationSummary() : (address || 'Not specified'));
             $('#modalReviewPaymentMethod').text(isPickup ? 'Cash on Pick Up (COP)' : 'Cash on Delivery (COD)');
             $('#modalReviewShipping').text('₱0.00');
-            $('#modalReviewTotal').text('₱' + total.toFixed(2));
+            $('#modalReviewTotal').text('₱' + total);
 
             const modal = new bootstrap.Modal(document.getElementById('orderReviewModal'));
             modal.show();

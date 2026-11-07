@@ -62,7 +62,7 @@
 
         <!-- Product Purchase Actions & Price Comparison -->
         <div class="col-lg-6">
-            <div class="farm-card p-4 mb-4 product-price-calculator" data-unit-price="{{ $product->price }}" data-unit-kg="{{ $product->effective_kilograms }}">
+            <div class="farm-card p-4 mb-4 product-price-calculator" data-unit-price="{{ $product->price }}" data-unit-price-cents="{{ \App\Support\Money::cents((string) $product->price) }}" data-unit-kg="{{ $product->effective_kilograms }}">
                 <div class="d-flex justify-content-between align-items-start mb-2">
                     <span class="badge bg-farm-primary text-white text-uppercase px-3 py-1">
                         {{ $product->category?->name ?? 'Fresh Produce' }}
@@ -103,7 +103,7 @@
                             <div class="d-flex align-items-center gap-3">
                                 <div class="qty-control d-flex align-items-center">
                                     <button type="button" class="qty-btn btn-qty-minus">-</button>
-                                    <input type="number" name="quantity" class="qty-input" value="1" min="1" max="{{ $product->quantity }}" style="width: 80px; height: 38px; font-size: 16px;">
+                                    <input type="number" name="quantity" class="qty-input" value="{{ $product->unit === 'kg' && $product->quantity < 1 ? \App\Support\Quantity::format((string) $product->quantity) : '1' }}" min="{{ $product->unit === 'kg' ? '0.001' : '1' }}" step="{{ $product->unit === 'kg' ? '0.001' : '1' }}" max="{{ $product->quantity }}" style="width: 80px; height: 38px; font-size: 16px;">
                                     <button type="button" class="qty-btn btn-qty-plus">+</button>
                                 </div>
                                 @if($product->unit === 'kg' || $product->has_weight_per_unit)
