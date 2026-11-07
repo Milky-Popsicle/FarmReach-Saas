@@ -1,0 +1,110 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-10-23T10:30:00.000Z" agent="FarmReach" version="24.7.17" type="device">
+  <diagram id="use-case" name="use-case">
+    <mxGraphModel dx="1920" dy="1080" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1920" pageHeight="1080" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="FarmReach Cloud: A SaaS-Driven Agricultural Marketplace and Order Management System." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Georgia;fontSize=22;fontStyle=1;fontColor=#172b4d;" vertex="1" parent="1">
+          <mxGeometry x="170" y="15" width="1580" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="boundary" value="FarmReach Cloud System" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#2f5597;strokeWidth=2;dashed=1;dashPattern=8 6;align=left;verticalAlign=top;spacingLeft=22;spacingTop=12;fontFamily=Georgia;fontSize=22;fontStyle=1;fontColor=#172b4d;" vertex="1" parent="1">
+          <mxGeometry x="190" y="125" width="1540" height="920" as="geometry" />
+        </mxCell>
+        <mxCell id="actor_buyer" value="Buyer" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#ffffff;strokeColor=#1f2937;fontColor=#111827;fontFamily=Georgia;fontSize=18;" vertex="1" parent="1">
+          <mxGeometry x="25" y="385" width="120" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="actor_farmer" value="Farmer" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#ffffff;strokeColor=#1f2937;fontColor=#111827;fontFamily=Georgia;fontSize=18;" vertex="1" parent="1">
+          <mxGeometry x="1765" y="745" width="120" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="actor_admin" value="Administrator" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#ffffff;strokeColor=#1f2937;fontColor=#111827;fontFamily=Georgia;fontSize=18;" vertex="1" parent="1">
+          <mxGeometry x="1765" y="340" width="135" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_browse" value="Browse and search agricultural products" style="ellipse;whiteSpace=wrap;html=1;fillColor=#eaf2fb;strokeColor=#2f5597;strokeWidth=1.8;fontFamily=Georgia;fontSize=18;fontColor=#111827;align=center;verticalAlign=middle;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="270" y="180" width="410" height="88" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_compare" value="Compare agricultural product prices" style="ellipse;whiteSpace=wrap;html=1;fillColor=#eaf2fb;strokeColor=#2f5597;strokeWidth=1.8;fontFamily=Georgia;fontSize=18;fontColor=#111827;align=center;verticalAlign=middle;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="270" y="320" width="410" height="88" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_cart" value="Manage shopping cart" style="ellipse;whiteSpace=wrap;html=1;fillColor=#eaf2fb;strokeColor=#2f5597;strokeWidth=1.8;fontFamily=Georgia;fontSize=18;fontColor=#111827;align=center;verticalAlign=middle;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="270" y="460" width="410" height="88" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_place" value="Place order; choose delivery or pickup" style="ellipse;whiteSpace=wrap;html=1;fillColor=#eaf2fb;strokeColor=#2f5597;strokeWidth=1.8;fontFamily=Georgia;fontSize=18;fontColor=#111827;align=center;verticalAlign=middle;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="270" y="600" width="410" height="88" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_orders" value="Review order history and status; cancel pending orders or reorder" style="ellipse;whiteSpace=wrap;html=1;fillColor=#eaf2fb;strokeColor=#2f5597;strokeWidth=1.8;fontFamily=Georgia;fontSize=18;fontColor=#111827;align=center;verticalAlign=middle;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="270" y="740" width="410" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_admin_dashboard" value="View dashboard summaries and recent activity logs" style="ellipse;whiteSpace=wrap;html=1;fillColor=#eaf2fb;strokeColor=#2f5597;strokeWidth=1.8;fontFamily=Georgia;fontSize=18;fontColor=#111827;align=center;verticalAlign=middle;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="180" width="430" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_admin_announcements" value="Manage announcements" style="ellipse;whiteSpace=wrap;html=1;fillColor=#eaf2fb;strokeColor=#2f5597;strokeWidth=1.8;fontFamily=Georgia;fontSize=18;fontColor=#111827;align=center;verticalAlign=middle;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="340" width="430" height="88" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_admin_recipes" value="Browse, create, and delete recipes" style="ellipse;whiteSpace=wrap;html=1;fillColor=#eaf2fb;strokeColor=#2f5597;strokeWidth=1.8;fontFamily=Georgia;fontSize=18;fontColor=#111827;align=center;verticalAlign=middle;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="500" width="430" height="88" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_farmer_products" value="Manage product listings and stock" style="ellipse;whiteSpace=wrap;html=1;fillColor=#eaf2fb;strokeColor=#2f5597;strokeWidth=1.8;fontFamily=Georgia;fontSize=18;fontColor=#111827;align=center;verticalAlign=middle;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="640" width="430" height="88" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_farmer_orders" value="View incoming orders" style="ellipse;whiteSpace=wrap;html=1;fillColor=#eaf2fb;strokeColor=#2f5597;strokeWidth=1.8;fontFamily=Georgia;fontSize=18;fontColor=#111827;align=center;verticalAlign=middle;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="740" width="430" height="88" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_farmer_update" value="Update order status; set delivery fee" style="ellipse;whiteSpace=wrap;html=1;fillColor=#eaf2fb;strokeColor=#2f5597;strokeWidth=1.8;fontFamily=Georgia;fontSize=18;fontColor=#111827;align=center;verticalAlign=middle;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="840" width="430" height="88" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_farmer_sales" value="View sales history and summaries" style="ellipse;whiteSpace=wrap;html=1;fillColor=#eaf2fb;strokeColor=#2f5597;strokeWidth=1.8;fontFamily=Georgia;fontSize=18;fontColor=#111827;align=center;verticalAlign=middle;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="940" width="430" height="88" as="geometry" />
+        </mxCell>
+        <mxCell id="association_uc_browse" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#263746;strokeWidth=1.6;" edge="1" parent="1" source="actor_buyer" target="uc_browse">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="association_uc_compare" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#263746;strokeWidth=1.6;" edge="1" parent="1" source="actor_buyer" target="uc_compare">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="association_uc_cart" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#263746;strokeWidth=1.6;" edge="1" parent="1" source="actor_buyer" target="uc_cart">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="association_uc_place" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#263746;strokeWidth=1.6;" edge="1" parent="1" source="actor_buyer" target="uc_place">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="association_uc_orders" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#263746;strokeWidth=1.6;" edge="1" parent="1" source="actor_buyer" target="uc_orders">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="association_uc_admin_dashboard" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#263746;strokeWidth=1.6;" edge="1" parent="1" source="actor_admin" target="uc_admin_dashboard">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="association_uc_admin_announcements" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#263746;strokeWidth=1.6;" edge="1" parent="1" source="actor_admin" target="uc_admin_announcements">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="association_uc_admin_recipes" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#263746;strokeWidth=1.6;" edge="1" parent="1" source="actor_admin" target="uc_admin_recipes">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="association_uc_farmer_products" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#263746;strokeWidth=1.6;" edge="1" parent="1" source="actor_farmer" target="uc_farmer_products">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="association_uc_farmer_orders" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#263746;strokeWidth=1.6;" edge="1" parent="1" source="actor_farmer" target="uc_farmer_orders">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="association_uc_farmer_update" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#263746;strokeWidth=1.6;" edge="1" parent="1" source="actor_farmer" target="uc_farmer_update">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="association_uc_farmer_sales" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#263746;strokeWidth=1.6;" edge="1" parent="1" source="actor_farmer" target="uc_farmer_sales">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

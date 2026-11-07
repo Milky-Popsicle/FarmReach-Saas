@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title description">
+  <title id="title">FarmReach Conceptual Framework</title>
+  <desc id="description">Input, Process, Output, and Evaluation conceptual framework for the FarmReach agricultural marketplace.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto">
+      <path d="M2 2 L11 7 L2 12" fill="none" stroke="#3187d5" stroke-width="2.5"/>
+    </marker>
+    <style>
+      .background { fill: #182638; }
+      .box { fill: #ffffff; stroke: #ffffff; stroke-width: 3; }
+      .heading { fill: #111111; font-family: Georgia, "Times New Roman", serif; font-size: 30px; font-weight: 700; letter-spacing: 1px; }
+      .section { fill: #111111; font-family: Georgia, "Times New Roman", serif; font-size: 20px; font-weight: 700; }
+      .body { fill: #111111; font-family: Georgia, "Times New Roman", serif; font-size: 17px; }
+      .process { fill: #111111; font-family: Georgia, "Times New Roman", serif; font-size: 22px; }
+      .arrow { fill: none; stroke: #3187d5; stroke-width: 4; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect width="1600" height="900" class="background"/>
+
+  <rect x="35" y="35" width="590" height="830" rx="8" class="box"/>
+  <text x="330" y="82" text-anchor="middle" class="heading">INPUT</text>
+
+  <text x="70" y="128" class="section">System Requirements Determination</text>
+  <text x="80" y="169" class="body">
+    <tspan x="80" dy="0">Buyer</tspan>
+    <tspan x="100" dy="25">- Browse and search agricultural products</tspan>
+    <tspan x="100" dy="25">- Compare prices; use the cart and place orders</tspan>
+    <tspan x="100" dy="25">- Track order status</tspan>
+    <tspan x="80" dy="34">Farmer</tspan>
+    <tspan x="100" dy="25">- Manage product listings, stock, orders, and sales</tspan>
+    <tspan x="80" dy="34">Administrator</tspan>
+    <tspan x="100" dy="25">- Manage dashboard, announcements, and recipes</tspan>
+    <tspan x="80" dy="34">Data Requirements</tspan>
+    <tspan x="100" dy="25">- User information, products, orders, payments,</tspan>
+    <tspan x="120" dy="23">notifications, recipes, and announcements</tspan>
+  </text>
+
+  <text x="70" y="510" class="section">Hardware Requirements</text>
+  <text x="90" y="548" class="body">
+    <tspan x="90" dy="0">- Computer or laptop</tspan>
+    <tspan x="90" dy="26">- Internet connection</tspan>
+  </text>
+
+  <text x="70" y="640" class="section">Software and Development Tools</text>
+  <text x="90" y="678" class="body">
+    <tspan x="90" dy="0">- PHP 8.4+ and Laravel 13</tspan>
+    <tspan x="90" dy="25">- Blade; HTML, CSS, and JavaScript</tspan>
+    <tspan x="90" dy="25">- MySQL 8.x</tspan>
+    <tspan x="90" dy="25">- Composer and Node.js/npm</tspan>
+    <tspan x="90" dy="25">- Vite (project build tooling)</tspan>
+  </text>
+
+  <rect x="680" y="35" width="330" height="830" rx="8" class="box"/>
+  <text x="845" y="82" text-anchor="middle" class="heading">PROCESS</text>
+  <text x="845" y="290" text-anchor="middle" class="process">
+    <tspan x="845" dy="0">Use Case Diagram</tspan>
+    <tspan x="845" dy="78">Class Diagram</tspan>
+    <tspan x="845" dy="78">Sequence Diagram</tspan>
+    <tspan x="845" dy="78">Flowchart Diagram</tspan>
+  </text>
+
+  <rect x="1060" y="35" width="505" height="375" rx="8" class="box"/>
+  <text x="1312" y="82" text-anchor="middle" class="heading">OUTPUT</text>
+  <text x="1312" y="235" text-anchor="middle" class="section">FarmReach Cloud: A SaaS-Driven</text>
+  <text x="1312" y="270" text-anchor="middle" class="section">Agricultural Marketplace and</text>
+  <text x="1312" y="305" text-anchor="middle" class="section">Order Management System</text>
+
+  <rect x="1060" y="500" width="505" height="365" rx="8" class="box"/>
+  <text x="1312" y="548" text-anchor="middle" class="heading">EVALUATION</text>
+  <text x="1312" y="650" text-anchor="middle" class="section">Respondent Evaluation</text>
+  <text x="1312" y="700" text-anchor="middle" class="body">
+    <tspan x="1312" dy="0">21 respondents: 10 farmers, 10 buyers,</tspan>
+    <tspan x="1312" dy="30">and 1 administrator</tspan>
+    <tspan x="1312" dy="42">25-item Likert-scale questionnaire</tspan>
+  </text>
+
+  <path d="M625 450 L663 450" class="arrow"/>
+  <path d="M1010 225 L1043 225" class="arrow"/>
+  <path d="M1312 410 L1312 483" class="arrow"/>
+</svg>

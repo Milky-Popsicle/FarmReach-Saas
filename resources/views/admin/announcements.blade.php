@@ -48,7 +48,7 @@
             </div>
 
             <button type="submit" class="btn btn-farm-primary fw-bold px-4">
-                <i class="bi bi-plus-lg me-1"></i> + Add Announcement
+                <i class="bi bi-plus-lg me-1"></i> Add Announcement
             </button>
         </form>
     </div>

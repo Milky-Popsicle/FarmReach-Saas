@@ -1,0 +1,60 @@
+flowchart LR
+  Admin["Actor: Admin"]
+  Farmer["Actor: Farmer"]
+  Buyer["Actor: Buyer"]
+
+  subgraph FarmReach["FarmReach: Digital Crop Marketplace"]
+    direction TB
+    UC_Auth(["Sign in / register"])
+    UC_Profile(["Manage own profile"])
+    UC_Notifications(["View and manage notifications"])
+    UC_Dashboard(["View admin dashboard"])
+    UC_Announcements(["Manage announcements"])
+    UC_RecipesAdmin(["Manage recipes"])
+    UC_Browse(["Browse and search marketplace"])
+    UC_Compare(["Compare prices"])
+    UC_RecipesBuyer(["View recipes and ingredient matches"])
+    UC_AnnouncementsBuyer(["View announcements"])
+    UC_Cart(["Manage session cart"])
+    UC_Order(["Place order"])
+    UC_BuyerOrders(["View, cancel, or reorder own orders"])
+    UC_Products(["Manage crop listings and stock"])
+    UC_FarmerOrders(["Review incoming orders and update status"])
+    UC_Sales(["View sales history"])
+    UCN_Notes["Note: Checkout requires authentication, not a buyer-only role. Payment is recorded as pending; no gateway charge is implemented."]
+  end
+
+  Admin --- UC_Auth
+  Admin --- UC_Profile
+  Admin --- UC_Notifications
+  Admin --- UC_Dashboard
+  Admin --- UC_Announcements
+  Admin --- UC_RecipesAdmin
+
+  Farmer --- UC_Auth
+  Farmer --- UC_Profile
+  Farmer --- UC_Notifications
+  Farmer --- UC_Browse
+  Farmer --- UC_Products
+  Farmer --- UC_FarmerOrders
+  Farmer --- UC_Sales
+
+  Buyer --- UC_Auth
+  Buyer --- UC_Profile
+  Buyer --- UC_Notifications
+  Buyer --- UC_Browse
+  Buyer --- UC_Compare
+  Buyer --- UC_RecipesBuyer
+  Buyer --- UC_AnnouncementsBuyer
+  Buyer --- UC_Cart
+  Buyer --- UC_Order
+  Buyer --- UC_BuyerOrders
+  UC_Order -. "<<include>>" .-> UC_Cart
+  UC_Order -.-> UCN_Notes
+
+  classDef actor fill:#FFFFFF,stroke:#465B70,color:#18212B
+  classDef usecase fill:#F4F8F1,stroke:#4B6B50,color:#18212B
+  classDef note fill:#FFF9E8,stroke:#B58B2A,color:#18212B
+  class Admin,Farmer,Buyer actor
+  class UC_Auth,UC_Profile,UC_Notifications,UC_Dashboard,UC_Announcements,UC_RecipesAdmin,UC_Browse,UC_Compare,UC_RecipesBuyer,UC_AnnouncementsBuyer,UC_Cart,UC_Order,UC_BuyerOrders,UC_Products,UC_FarmerOrders,UC_Sales usecase
+  class UCN_Notes note

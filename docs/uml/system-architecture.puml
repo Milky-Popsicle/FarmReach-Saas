@@ -1,0 +1,59 @@
+@startuml
+left to right direction
+skinparam shadowing false
+skinparam componentStyle rectangle
+
+actor "User\n(Admin / Farmer / Buyer)" as User
+
+node "Client" {
+  component "Web browser" as Browser
+}
+
+node "FarmReach application\nLaravel 13 / PHP >= 8.4" {
+  component "Web UI\nBlade views\nTailwind CSS 4 + JavaScript" as UI
+  component "HTTP routes\nweb.php / api.php" as Routes
+  component "Authentication\nand role middleware" as Auth
+  component "Controllers\nMarketplace, Cart, Orders,\nAdmin, Auth, API" as Controllers
+  component "Eloquent models\nand business rules" as Models
+  component "Laravel session\n(cart state)" as Session
+  component "Sanctum\n(API user endpoint)" as Sanctum
+  component "Laravel database\nnotifications" as Notify
+  component "Broadcast event / listener code\n(not registered in bootstrap)" as BroadcastCode
+}
+
+database "Production (Railway): MySQL\nLocal/default config: SQLite\nOther drivers are configured" as DB
+component "Public file storage\nProduct, recipe, avatar uploads" as Storage
+component "Laravel Reverb\nPrivate notification broadcasts\nwhen configured" as Reverb
+component "Configured mail transport\nPassword reset email\n(provider not verified)" as Mail
+
+User -- Browser
+Browser <--> UI : HTML, CSS, JavaScript
+Browser --> Routes : Web requests
+Browser --> Routes : JSON API requests
+Routes --> Auth : Protected web routes
+Auth --> Controllers : Authorized requests
+Routes --> Controllers : Public web / API routes
+Controllers --> Models : Application operations
+Controllers <--> Session : Session cart
+Models <--> DB : Eloquent queries / transactions
+Controllers --> Storage : Product, recipe, and avatar uploads
+Routes --> Sanctum : auth:sanctum on /api/user
+Sanctum --> Controllers : Authenticated API identity
+Controllers --> Notify : Create database notifications
+Notify --> DB : Persist notifications
+BroadcastCode ..> Notify : Intended trigger: NotificationSent listener
+BroadcastCode ..> Reverb : Broadcast event; not wired
+Controllers --> Mail : Request password reset email
+
+note bottom of DB
+  config/database.php defaults to SQLite and defines MySQL,
+  MariaDB, PostgreSQL, and SQL Server. Railway production was
+  verified on 2026-11-07 to use MySQL via DB_CONNECTION.
+end note
+
+note bottom of Reverb
+  Reverb is a declared dependency and configured connection.
+  The default broadcaster is null; the notification listener
+  is not registered in bootstrap.
+end note
+@enduml

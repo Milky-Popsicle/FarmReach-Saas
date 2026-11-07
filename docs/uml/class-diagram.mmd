@@ -1,0 +1,137 @@
+classDiagram
+  class User {
+    +bigint id
+    +string name
+    +string email
+    +string? phone_number
+    +enum role
+    +string password
+    +text? address
+    +string? gender
+    +date? birthday
+    +text? bio
+    +string? avatar_path
+    +isAdmin() bool
+    +isFarmer() bool
+    +isBuyer() bool
+  }
+  class Category {
+    +bigint id
+    +string name
+    +string slug
+    +string? icon
+    +text? description
+    +products() HasMany
+    +recipeIngredients() HasMany
+  }
+  class Product {
+    +bigint id
+    +bigint user_id
+    +bigint? category_id
+    +string name
+    +text? description
+    +decimal price
+    +int quantity
+    +decimal? kilograms
+    +string unit
+    +string? image_path
+    +bool is_active
+    +datetime? low_stock_notified_at
+    +farmer() BelongsTo
+    +category() BelongsTo
+    +orderItems() HasMany
+    +cartItemPayload(quantity, orderType) array
+    +syncLowStockNotification() void
+  }
+  class Order {
+    +bigint id
+    +string order_number
+    +bigint buyer_id
+    +bigint farmer_id
+    +enum order_type
+    +decimal total_amount
+    +enum delivery_method
+    +text? delivery_address
+    +decimal shipping_fee
+    +string status
+    +text? notes
+    +buyer() BelongsTo
+    +farmer() BelongsTo
+    +items() HasMany
+    +payment() HasOne
+    +isBulk() bool
+  }
+  class OrderItem {
+    +bigint id
+    +bigint order_id
+    +bigint product_id
+    +int quantity
+    +decimal unit_price
+    +decimal subtotal
+    +order() BelongsTo
+    +product() BelongsTo
+  }
+  class Payment {
+    +bigint id
+    +bigint order_id
+    +enum payment_method
+    +enum payment_status
+    +string? reference_number
+    +decimal amount
+    +datetime? payment_date
+    +order() BelongsTo
+  }
+  class Recipe {
+    +bigint id
+    +string title
+    +string slug
+    +text? description
+    +longtext? instructions
+    +string? prep_time
+    +string? image_path
+    +ingredients() HasMany
+  }
+  class RecipeIngredient {
+    +bigint id
+    +bigint recipe_id
+    +string name
+    +string? quantity_description
+    +bigint? category_id
+    +recipe() BelongsTo
+    +category() BelongsTo
+    +getAvailableProducts() Collection
+  }
+  class Announcement {
+    +bigint id
+    +bigint user_id
+    +string title
+    +string? location
+    +string? event_date
+    +text description
+    +bool is_active
+    +author() BelongsTo
+  }
+  class ActivityLog {
+    +bigint id
+    +bigint user_id
+    +string action
+    +text? description
+    +string? ip_address
+    +user() BelongsTo
+    +log(userId, action, description) ActivityLog
+  }
+
+  User "1" --> "0..*" Product : farmer
+  Category "0..1" --> "0..*" Product : category
+  User "1" --> "0..*" Order : buyer
+  User "1" --> "0..*" Order : farmer
+  Order "1" *-- "0..*" OrderItem : contains
+  Product "1" --> "0..*" OrderItem : referenced by
+  Order "1" --> "0..1" Payment : hasOne in model
+  Recipe "1" *-- "0..*" RecipeIngredient : contains
+  Category "0..1" --> "0..*" RecipeIngredient : category
+  User "1" --> "0..*" Announcement : authors
+  User "0..1" --> "0..*" ActivityLog : recorded for
+
+  note for User "Admin, Farmer, and Buyer are role values on User, not subclasses."
+  note for Payment "Payment data only; no gateway integration is present."
