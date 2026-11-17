@@ -156,7 +156,7 @@ class AuthController extends Controller
 
         try {
             $sms->send($phone, "Your FarmReach Cloud password reset code is {$code}. It expires in 5 minutes. Do not share this code.");
-        } catch (\\Throwable $exception) {
+        } catch (\Throwable $exception) {
             Log::warning('Password recovery SMS could not be submitted.', [
                 'exception' => $exception::class,
             ]);
@@ -270,7 +270,7 @@ class AuthController extends Controller
 
         try {
             $sms->send($phone, "Your new FarmReach Cloud password reset code is {$code}. It expires in 5 minutes. Do not share this code.");
-        } catch (\\Throwable $exception) {
+        } catch (\Throwable $exception) {
             Log::warning('Password recovery SMS resend could not be submitted.', [
                 'exception' => $exception::class,
             ]);
