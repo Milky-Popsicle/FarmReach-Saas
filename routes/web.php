@@ -32,10 +32,17 @@ Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->n
 Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])
     ->middleware('throttle:5,1')
     ->name('password.email');
-Route::get('/reset-password/{token}', [AuthController::class, 'showResetForm'])->name('password.reset');
-Route::post('/reset-password', [AuthController::class, 'resetPassword'])
-    ->middleware('throttle:10,1')
-    ->name('password.update');
+Route::get('/forgot-password/verify', [AuthController::class, 'showVerifyPasswordOtp'])->name('password.sms.verify');
+Route::post('/forgot-password/verify', [AuthController::class, 'verifyPasswordOtp'])
+    ->middleware('throttle:5,1')
+    ->name('password.sms.verify.submit');
+Route::post('/forgot-password/resend', [AuthController::class, 'resendPasswordOtp'])
+    ->middleware('throttle:2,1')
+    ->name('password.sms.resend');
+Route::get('/forgot-password/reset', [AuthController::class, 'showSmsResetForm'])->name('password.sms.reset');
+Route::post('/forgot-password/reset', [AuthController::class, 'resetPasswordWithSms'])
+    ->middleware('throttle:5,1')
+    ->name('password.sms.reset.submit');
 
 // Profile (All logged-in users)
 Route::middleware('auth')->group(function () {
