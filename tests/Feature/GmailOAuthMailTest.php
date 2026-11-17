@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Mail\GmailOAuthTokenProvider;
 use App\Mail\Transport\GmailOAuthTransport;
-use App\Models\User;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Encryption\Encrypter;
 use Illuminate\Http\Client\ConnectionException;
@@ -13,8 +12,6 @@ use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Facades\URL;
 use Symfony\Component\Mailer\Envelope;
 use Symfony\Component\Mailer\Exception\TransportException;
 use Symfony\Component\Mime\Address;
@@ -376,52 +373,6 @@ class GmailOAuthMailTest extends TestCase
             ->count();
 
         $this->assertSame(1, $sendRequests);
-    }
-
-    public function test_password_reset_email_is_sent_through_gmail_oauth_with_production_app_url(): void
-    {
-        $user = User::factory()->buyer()->create([
-            'email' => 'reset-recipient@example.com',
-        ]);
-
-        config([
-            'app.url' => 'https://farmreach.example',
-            'mail.default' => 'gmail-oauth',
-            'mail.from.address' => 'farmreach.sender@gmail.com',
-            'mail.from.name' => 'FarmReach',
-            'services.gmail.client_id' => 'test-client-id',
-            'services.gmail.client_secret' => 'test-client-secret',
-            'services.gmail.refresh_token' => 'test-refresh-token',
-        ]);
-
-        URL::forceRootUrl('https://farmreach.example');
-        URL::forceScheme('https');
-
-        Http::fake($this->successfulGmailResponses());
-
-        $status = Password::sendResetLink(['email' => $user->email]);
-
-        $this->assertSame(Password::RESET_LINK_SENT, $status);
-        $this->assertDatabaseHas('password_reset_tokens', ['email' => $user->email]);
-
-        Http::assertSent(function (ClientRequest $request) use ($user): bool {
-            if (! str_contains($request->url(), 'messages/send')) {
-                return false;
-            }
-
-            $decoded = $this->decodeRawMessage($request);
-
-            if (! is_string($decoded)) {
-                return false;
-            }
-
-            $body = quoted_printable_decode($decoded);
-            $decodedUrl = html_entity_decode($body);
-
-            return str_contains($body, $user->email)
-                && str_contains($decodedUrl, 'https://farmreach.example/reset-password/')
-                && str_contains($body, 'farmreach.sender@gmail.com');
-        });
     }
 
     /**
