@@ -171,7 +171,7 @@ class AuthController extends Controller
 
         try {
             $sms->send($phone, "Your FarmReach Cloud password reset code is {$code}. It expires in 5 minutes. Do not share this code.");
-        } catch (\\Throwable $exception) {
+        } catch (\Throwable $exception) {
             PasswordRecoveryCode::where('user_id', $user->id)->delete();
 
             Log::warning('Password recovery SMS could not be submitted.', [
