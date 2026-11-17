@@ -159,18 +159,6 @@ class AuthController extends Controller
 
         $code = (string) random_int(100000, 999999);
 
-        try {
-            $sms->send($phone, "Your FarmReach Cloud password reset code is {$code}. It expires in 5 minutes. Do not share this code.");
-        } catch (\Throwable $exception) {
-            Log::warning('Password recovery SMS could not be submitted.', [
-                'exception' => $exception::class,
-            ]);
-
-            $request->session()->forget(['password_recovery_started', 'password_recovery_phone_masked']);
-
-            return redirect()->route('password.sms.verify')->with('success', self::GENERIC_RESET_MESSAGE);
-        }
-
         PasswordRecoveryCode::updateOrCreate(
             ['user_id' => $user->id],
             [
@@ -180,6 +168,19 @@ class AuthController extends Controller
                 'verified_at' => null,
             ]
         );
+
+        try {
+            $sms->send($phone, "Your FarmReach Cloud password reset code is {$code}. It expires in 5 minutes. Do not share this code.");
+        } catch (\\Throwable $exception) {
+            PasswordRecoveryCode::where('user_id', $user->id)->delete();
+
+            Log::warning('Password recovery SMS could not be submitted.', [
+                'exception' => $exception::class,
+            ]);
+
+            // Keep the same next screen and response for known and unknown numbers.
+            return redirect()->route('password.sms.verify')->with('success', self::GENERIC_RESET_MESSAGE);
+        }
 
         RateLimiter::hit('password-recovery-resend:'.$user->id.'|'.$request->ip(), 60);
 
@@ -206,6 +207,10 @@ class AuthController extends Controller
         $validated = $request->validate([
             'code' => ['required', 'digits:6'],
         ]);
+
+        if (! $request->session()->boolean('password_recovery_started')) {
+            return redirect()->route('password.request')->with('error', self::INVALID_RESET_MESSAGE);
+        }
 
         $userId = $request->session()->get('password_recovery_user_id');
         $recovery = $userId ? PasswordRecoveryCode::where('user_id', $userId)->first() : null;
