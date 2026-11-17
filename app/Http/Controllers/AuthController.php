@@ -144,16 +144,21 @@ class AuthController extends Controller
 
         RateLimiter::hit($key, 60);
 
-                $phoneVariants = PhilippineMobileNumber::variants($phone);
-        $digitsOnlyPhone = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone_number, '+', ''), ' ', ''), '-', ''), '(', ''), ')', ''), '.', '')";
-        $placeholders = implode(',', array_fill(0, count($phoneVariants), '?'));
-
-        // Existing registrations may contain spaces, dashes, parentheses, or periods.
-        // Compare their punctuation-free digits as well as common canonical formats.
+        $phoneVariants = PhilippineMobileNumber::variants($phone);
         $user = User::query()
             ->whereIn('phone_number', $phoneVariants)
-            ->orWhereRaw("{$digitsOnlyPhone} IN ({$placeholders})", $phoneVariants)
             ->first();
+
+        if (! $user) {
+            $digitsOnlyPhone = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone_number, '+', ''), ' ', ''), '-', ''), '(', ''), ')', ''), '.', '')";
+            $placeholders = implode(',', array_fill(0, count($phoneVariants), '?'));
+
+            // Existing registrations may contain spaces, dashes, parentheses, or periods.
+            // Use a fallback comparison only when canonical indexed lookup finds no account.
+            $user = User::query()
+                ->whereRaw("{$digitsOnlyPhone} IN ({$placeholders})", $phoneVariants)
+                ->first();
+        }
         $request->session()->regenerate();
 
         // Use the same response and next screen for known and unknown numbers
