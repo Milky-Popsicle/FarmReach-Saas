@@ -175,6 +175,8 @@ class AuthController extends Controller
             ]
         );
 
+        RateLimiter::hit('password-recovery-resend:'.$user->id.'|'.$request->ip(), 60);
+
         $request->session()->put('password_recovery_user_id', $user->id);
         $request->session()->forget(['password_recovery_verified_at']);
 
