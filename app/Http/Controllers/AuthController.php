@@ -168,8 +168,7 @@ class AuthController extends Controller
 
             $request->session()->forget(['password_recovery_started', 'password_recovery_phone_masked']);
 
-            return back()->with('error', self::DELIVERY_FAILED_MESSAGE)
-                ->withInput($request->only('phone_number'));
+            return redirect()->route('password.sms.verify')->with('success', self::GENERIC_RESET_MESSAGE);
         }
 
         PasswordRecoveryCode::updateOrCreate(
@@ -252,7 +251,7 @@ class AuthController extends Controller
         $key = 'password-recovery-resend:'.$user->id.'|'.$request->ip();
 
         if (RateLimiter::tooManyAttempts($key, 1)) {
-            return back()->with('error', self::RESET_THROTTLED_MESSAGE);
+            return back()->with('success', self::GENERIC_RESET_MESSAGE);
         }
 
         RateLimiter::hit($key, 60);
@@ -270,7 +269,7 @@ class AuthController extends Controller
                 'exception' => $exception::class,
             ]);
 
-            return back()->with('error', self::DELIVERY_FAILED_MESSAGE);
+            return back()->with('success', self::GENERIC_RESET_MESSAGE);
         }
 
         PasswordRecoveryCode::updateOrCreate(
@@ -285,7 +284,7 @@ class AuthController extends Controller
 
         $request->session()->forget('password_recovery_verified_at');
 
-        return back()->with('success', 'A new verification code has been sent.');
+        return back()->with('success', self::GENERIC_RESET_MESSAGE);
     }
 
     public function showSmsResetForm(Request $request): View|RedirectResponse
