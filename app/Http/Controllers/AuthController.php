@@ -3,13 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
+use App\Models\PasswordRecoveryCode;
 use App\Models\User;
+use App\Services\InfobipSmsService;
+use App\Support\PhilippineMobileNumber;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -17,15 +21,15 @@ use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 
 class AuthController extends Controller
 {
-    private const GENERIC_RESET_MESSAGE = 'If an account with that email exists, password reset instructions have been sent.';
+    private const GENERIC_RESET_MESSAGE = 'If an account matches that mobile number, a verification code has been sent.';
 
-    private const DELIVERY_FAILED_MESSAGE = 'We could not send the password reset email right now. Please try again in a few minutes.';
+    private const DELIVERY_FAILED_MESSAGE = 'We could not send a verification code right now. Please try again in a few minutes.';
 
-    private const RESET_THROTTLED_MESSAGE = 'If you do not receive the email, please wait a minute before requesting another reset link.';
+    private const RESET_THROTTLED_MESSAGE = 'Please wait 60 seconds before requesting another verification code.';
 
-    private const PHONE_RECOVERY_MESSAGE = 'Password recovery is currently available by email only. Phone recovery requires SMS verification, which is not currently enabled.';
+    private const PHONE_RECOVERY_MESSAGE = 'Enter a valid Philippine mobile number in 09XXXXXXXXX format.';
 
-    private const INVALID_RESET_MESSAGE = 'This password reset link is invalid or has expired. Please request a new one.';
+    private const INVALID_RESET_MESSAGE = 'This verification code is invalid or has expired. Please request a new one.';
 
     public function showLogin()
     {
@@ -114,114 +118,232 @@ class AuthController extends Controller
         return redirect()->route('login')->with('info', 'You have been logged out.');
     }
 
-    public function showForgotPassword()
+    public function showForgotPassword(): View
     {
         return view('auth.forgot-password');
     }
 
-    public function sendResetLink(Request $request): RedirectResponse
+    public function sendResetLink(Request $request, InfobipSmsService $sms): RedirectResponse
     {
         $validated = $request->validate([
-            'login_id' => ['required', 'string', 'email', 'max:190'],
+            'phone_number' => ['required', 'string', 'max:30'],
         ], [
-            'login_id.required' => 'Enter your registered email address.',
-            'login_id.email' => self::PHONE_RECOVERY_MESSAGE,
+            'phone_number.required' => 'Enter your registered mobile number.',
         ]);
 
-        $email = $validated['login_id'];
+        $phone = PhilippineMobileNumber::normalize($validated['phone_number']);
+
+        if ($phone === null) {
+            return back()->withErrors(['phone_number' => self::PHONE_RECOVERY_MESSAGE])
+                ->withInput($request->only('phone_number'));
+        }
+
+        $key = 'password-recovery-request:'.hash('sha256', $phone.'|'.$request->ip());
+
+        if (RateLimiter::tooManyAttempts($key, 3)) {
+            return back()->with('success', self::GENERIC_RESET_MESSAGE);
+        }
+
+        RateLimiter::hit($key, 60);
+
+        $user = User::whereIn('phone_number', PhilippineMobileNumber::variants($phone))->first();
+
+        if (! $user) {
+            return back()->with('success', self::GENERIC_RESET_MESSAGE);
+        }
+
+        $code = (string) random_int(100000, 999999);
 
         try {
-            $status = Password::sendResetLink(['email' => $email]);
-        } catch (TransportExceptionInterface $exception) {
-            $this->logPasswordResetFailure($exception, 'transport');
-
-            return back()
-                ->with('error', self::DELIVERY_FAILED_MESSAGE)
-                ->withInput($request->only('login_id'));
-        } catch (\Throwable $exception) {
-            $this->logPasswordResetFailure($exception, 'unexpected');
-
-            return back()
-                ->with('error', self::DELIVERY_FAILED_MESSAGE)
-                ->withInput($request->only('login_id'));
-        }
-
-        if ($status === Password::RESET_LINK_SENT) {
-            $user = User::where('email', $email)->first();
-
-            if ($user) {
-                ActivityLog::log($user->id, 'Password Reset Requested', "Password reset link requested for {$user->name}.");
-            }
-        }
-
-        if ($status === Password::RESET_THROTTLED) {
-            return back()->with('success', self::RESET_THROTTLED_MESSAGE);
-        }
-
-        return back()->with('success', self::GENERIC_RESET_MESSAGE);
-    }
-
-    private function logPasswordResetFailure(\Throwable $exception, string $type): void
-    {
-        Log::error('Password reset email delivery failed.', [
-            'type' => $type,
-            'exception' => $exception::class,
-            'mailer' => (string) config('mail.default'),
-            'code' => $exception->getCode(),
-        ]);
-    }
-
-    public function showResetForm(Request $request, string $token): View|RedirectResponse
-    {
-        $email = $request->string('email')->toString();
-        $user = User::where('email', $email)->first();
-
-        if (! $user || ! Password::broker()->tokenExists($user, $token)) {
-            return redirect()->route('password.request')->withErrors([
-                'email' => self::INVALID_RESET_MESSAGE,
+            $sms->send($phone, "Your FarmReach Cloud password reset code is {$code}. It expires in 5 minutes. Do not share this code.");
+        } catch (\\Throwable $exception) {
+            Log::warning('Password recovery SMS could not be submitted.', [
+                'exception' => $exception::class,
             ]);
+
+            return back()->with('error', self::DELIVERY_FAILED_MESSAGE)
+                ->withInput($request->only('phone_number'));
         }
 
-        return view('auth.reset-password', [
-            'token' => $token,
-            'email' => $email,
-        ]);
-    }
-
-    public function resetPassword(Request $request): RedirectResponse
-    {
-        $request->validate([
-            'token' => ['required', 'string'],
-            'email' => ['required', 'string', 'email', 'max:190'],
-            'password' => ['required', 'string', 'min:6', 'confirmed'],
-        ], [
-            'email.required' => 'Enter the email address associated with the reset link.',
-            'password.required' => 'Enter a new password.',
-            'password.min' => 'The new password must be at least 6 characters.',
-            'password.confirmed' => 'The password confirmation does not match.',
-        ]);
-
-        $status = Password::reset(
-            $request->only('email', 'password', 'password_confirmation', 'token'),
-            function (User $user, string $password): void {
-                $user->forceFill([
-                    'password' => Hash::make($password),
-                    'remember_token' => Str::random(60),
-                ])->save();
-
-                ActivityLog::log($user->id, 'Password Reset', 'Password was reset using the recovery link.');
-
-                event(new PasswordReset($user));
-            }
+        PasswordRecoveryCode::updateOrCreate(
+            ['user_id' => $user->id],
+            [
+                'otp_hash' => Hash::make($code),
+                'attempts' => 0,
+                'expires_at' => now()->addMinutes(5),
+                'verified_at' => null,
+            ]
         );
 
-        if ($status === Password::PASSWORD_RESET) {
-            return redirect()->route('login')->with('success', 'Your password has been reset. You can now sign in with your new password.');
+        $request->session()->put('password_recovery_user_id', $user->id);
+        $request->session()->forget(['password_recovery_verified_at']);
+
+        ActivityLog::log($user->id, 'Password Reset OTP Requested', 'A password recovery code was requested.');
+
+        return redirect()->route('password.sms.verify')->with('success', self::GENERIC_RESET_MESSAGE);
+    }
+
+    public function showVerifyPasswordOtp(Request $request): View|RedirectResponse
+    {
+        $userId = $request->session()->get('password_recovery_user_id');
+        $recovery = $userId ? PasswordRecoveryCode::where('user_id', $userId)->first() : null;
+
+        if (! $recovery || $recovery->expires_at->isPast()) {
+            $request->session()->forget(['password_recovery_user_id', 'password_recovery_verified_at']);
+
+            return redirect()->route('password.request')->with('error', self::INVALID_RESET_MESSAGE);
         }
 
-        return back()->withErrors([
-            'email' => self::INVALID_RESET_MESSAGE,
-        ])->withInput($request->only('email'));
+        $user = User::find($userId);
+
+        if (! $user) {
+            $request->session()->forget(['password_recovery_user_id', 'password_recovery_verified_at']);
+
+            return redirect()->route('password.request')->with('error', self::INVALID_RESET_MESSAGE);
+        }
+
+        return view('auth.verify-password-otp', [
+            'maskedPhone' => PhilippineMobileNumber::mask(
+                PhilippineMobileNumber::normalize($user->phone_number ?? '') ?? '+639000000000'
+            ),
+        ]);
+    }
+
+    public function verifyPasswordOtp(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'code' => ['required', 'digits:6'],
+        ]);
+
+        $userId = $request->session()->get('password_recovery_user_id');
+        $recovery = $userId ? PasswordRecoveryCode::where('user_id', $userId)->first() : null;
+
+        if (! $recovery || $recovery->expires_at->isPast() || $recovery->verified_at !== null) {
+            $request->session()->forget(['password_recovery_user_id', 'password_recovery_verified_at']);
+
+            return redirect()->route('password.request')->withErrors(['code' => self::INVALID_RESET_MESSAGE]);
+        }
+
+        if ($recovery->attempts >= 5) {
+            $recovery->delete();
+            $request->session()->forget(['password_recovery_user_id', 'password_recovery_verified_at']);
+
+            return redirect()->route('password.request')->withErrors(['code' => 'Too many incorrect attempts. Request a new code.']);
+        }
+
+        if (! Hash::check($validated['code'], $recovery->otp_hash)) {
+            $recovery->increment('attempts');
+
+            return back()->withErrors(['code' => 'The verification code is incorrect or has expired.']);
+        }
+
+        $recovery->update(['verified_at' => now()]);
+        $request->session()->put('password_recovery_verified_at', now()->timestamp);
+
+        return redirect()->route('password.sms.reset');
+    }
+
+    public function resendPasswordOtp(Request $request, InfobipSmsService $sms): RedirectResponse
+    {
+        $userId = $request->session()->get('password_recovery_user_id');
+        $user = $userId ? User::find($userId) : null;
+
+        if (! $user || ! $user->phone_number) {
+            $request->session()->forget(['password_recovery_user_id', 'password_recovery_verified_at']);
+
+            return redirect()->route('password.request')->with('error', self::INVALID_RESET_MESSAGE);
+        }
+
+        $key = 'password-recovery-resend:'.$user->id.'|'.$request->ip();
+
+        if (RateLimiter::tooManyAttempts($key, 1)) {
+            return back()->with('error', self::RESET_THROTTLED_MESSAGE);
+        }
+
+        RateLimiter::hit($key, 60);
+        $code = (string) random_int(100000, 999999);
+        $phone = PhilippineMobileNumber::normalize($user->phone_number);
+
+        if ($phone === null) {
+            return redirect()->route('password.request')->with('error', self::PHONE_RECOVERY_MESSAGE);
+        }
+
+        try {
+            $sms->send($phone, "Your new FarmReach Cloud password reset code is {$code}. It expires in 5 minutes. Do not share this code.");
+        } catch (\\Throwable $exception) {
+            Log::warning('Password recovery SMS resend could not be submitted.', [
+                'exception' => $exception::class,
+            ]);
+
+            return back()->with('error', self::DELIVERY_FAILED_MESSAGE);
+        }
+
+        PasswordRecoveryCode::updateOrCreate(
+            ['user_id' => $user->id],
+            [
+                'otp_hash' => Hash::make($code),
+                'attempts' => 0,
+                'expires_at' => now()->addMinutes(5),
+                'verified_at' => null,
+            ]
+        );
+
+        $request->session()->forget('password_recovery_verified_at');
+
+        return back()->with('success', 'A new verification code has been sent.');
+    }
+
+    public function showSmsResetForm(Request $request): View|RedirectResponse
+    {
+        if (! $this->hasVerifiedRecoverySession($request)) {
+            return redirect()->route('password.request')->with('error', self::INVALID_RESET_MESSAGE);
+        }
+
+        return view('auth.reset-password-sms');
+    }
+
+    public function resetPasswordWithSms(Request $request): RedirectResponse
+    {
+        if (! $this->hasVerifiedRecoverySession($request)) {
+            $request->session()->forget(['password_recovery_user_id', 'password_recovery_verified_at']);
+
+            return redirect()->route('password.request')->with('error', self::INVALID_RESET_MESSAGE);
+        }
+
+        $validated = $request->validate([
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $userId = $request->session()->get('password_recovery_user_id');
+        $user = User::findOrFail($userId);
+
+        $user->forceFill([
+            'password' => Hash::make($validated['password']),
+            'remember_token' => Str::random(60),
+        ])->save();
+
+        PasswordRecoveryCode::where('user_id', $user->id)->delete();
+        ActivityLog::log($user->id, 'Password Reset', 'Password was reset after SMS OTP verification.');
+
+        event(new PasswordReset($user));
+
+        $request->session()->forget(['password_recovery_user_id', 'password_recovery_verified_at']);
+        $request->session()->regenerate();
+
+        return redirect()->route('login')->with('success', 'Your password has been reset. You can now sign in with your new password.');
+    }
+
+    private function hasVerifiedRecoverySession(Request $request): bool
+    {
+        $userId = $request->session()->get('password_recovery_user_id');
+        $verifiedAt = $request->session()->get('password_recovery_verified_at');
+        $recovery = $userId ? PasswordRecoveryCode::where('user_id', $userId)->first() : null;
+
+        return $recovery !== null
+            && $recovery->verified_at !== null
+            && $recovery->expires_at->isFuture()
+            && is_numeric($verifiedAt)
+            && (int) $verifiedAt >= now()->subMinutes(5)->timestamp;
     }
 
     public function editProfile()
