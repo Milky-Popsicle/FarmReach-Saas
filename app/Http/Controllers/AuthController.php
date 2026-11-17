@@ -144,6 +144,18 @@ class AuthController extends Controller
 
         RateLimiter::hit($key, 60);
 
+        // Apply a destination-wide cooldown so changing IP addresses cannot
+        // trigger repeated SMS messages to the same normalized mobile number.
+        $destinationKey = $this->passwordRecoverySmsRateLimitKey($phone);
+
+        if (RateLimiter::tooManyAttempts($destinationKey, 1)) {
+            return back()->with('success', self::GENERIC_RESET_MESSAGE);
+        }
+
+        // Count every valid destination attempt, including unknown accounts and
+        // temporary provider failures, to keep the response and SMS rate uniform.
+        RateLimiter::hit($destinationKey, 60);
+
         $phoneVariants = PhilippineMobileNumber::variants($phone);
         $user = User::query()
             ->whereIn('phone_number', $phoneVariants)
@@ -193,8 +205,6 @@ class AuthController extends Controller
                 'verified_at' => null,
             ]
         );
-
-        RateLimiter::hit('password-recovery-resend:'.$user->id.'|'.$request->ip(), 60);
 
         $request->session()->put('password_recovery_user_id', $user->id);
 
@@ -265,19 +275,22 @@ class AuthController extends Controller
             return back()->with('success', self::GENERIC_RESET_MESSAGE);
         }
 
-        $key = 'password-recovery-resend:'.$user->id.'|'.$request->ip();
-
-        if (RateLimiter::tooManyAttempts($key, 1)) {
-            return back()->with('success', self::GENERIC_RESET_MESSAGE);
-        }
-
-        RateLimiter::hit($key, 60);
-        $code = (string) random_int(100000, 999999);
         $phone = PhilippineMobileNumber::normalize($user->phone_number);
 
         if ($phone === null) {
             return redirect()->route('password.request')->with('error', self::PHONE_RECOVERY_MESSAGE);
         }
+
+        // Initial requests and resends share one cooldown per normalized
+        // destination, regardless of which IP address makes the request.
+        $destinationKey = $this->passwordRecoverySmsRateLimitKey($phone);
+
+        if (RateLimiter::tooManyAttempts($destinationKey, 1)) {
+            return back()->with('success', self::GENERIC_RESET_MESSAGE);
+        }
+
+        RateLimiter::hit($destinationKey, 60);
+        $code = (string) random_int(100000, 999999);
 
         try {
             $sms->send($phone, "Your new FarmReach Cloud password reset code is {$code}. It expires in 5 minutes. Do not share this code.");
@@ -342,6 +355,11 @@ class AuthController extends Controller
         $request->session()->regenerate();
 
         return redirect()->route('login')->with('success', 'Your password has been reset. You can now sign in with your new password.');
+    }
+
+    private function passwordRecoverySmsRateLimitKey(string $normalizedPhone): string
+    {
+        return 'password-recovery-sms-destination:'.hash('sha256', $normalizedPhone);
     }
 
     private function hasVerifiedRecoverySession(Request $request): bool
