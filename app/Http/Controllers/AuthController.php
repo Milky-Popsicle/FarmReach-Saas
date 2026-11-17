@@ -267,16 +267,6 @@ class AuthController extends Controller
             return redirect()->route('password.request')->with('error', self::PHONE_RECOVERY_MESSAGE);
         }
 
-        try {
-            $sms->send($phone, "Your new FarmReach Cloud password reset code is {$code}. It expires in 5 minutes. Do not share this code.");
-        } catch (\Throwable $exception) {
-            Log::warning('Password recovery SMS resend could not be submitted.', [
-                'exception' => $exception::class,
-            ]);
-
-            return back()->with('success', self::GENERIC_RESET_MESSAGE);
-        }
-
         PasswordRecoveryCode::updateOrCreate(
             ['user_id' => $user->id],
             [
@@ -286,6 +276,16 @@ class AuthController extends Controller
                 'verified_at' => null,
             ]
         );
+
+        try {
+            $sms->send($phone, "Your new FarmReach Cloud password reset code is {$code}. It expires in 5 minutes. Do not share this code.");
+        } catch (\Throwable $exception) {
+            Log::warning('Password recovery SMS resend could not be submitted.', [
+                'exception' => $exception::class,
+            ]);
+
+            return back()->with('success', self::GENERIC_RESET_MESSAGE);
+        }
 
         $request->session()->forget('password_recovery_verified_at');
 
