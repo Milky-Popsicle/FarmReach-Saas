@@ -40,7 +40,7 @@ class SmsPasswordRecoveryTest extends TestCase
     public function test_verified_otp_allows_password_reset_and_is_consumed(): void
     {
         $user = User::factory()->buyer()->create(['password' => Hash::make('old-password')]);
-        $this->withSession(['password_recovery_user_id' => $user->id]);
+        $this->withSession(['password_recovery_started' => true, 'password_recovery_user_id' => $user->id]);
         PasswordRecoveryCode::create([
             'user_id' => $user->id,
             'otp_hash' => Hash::make('123456'),
@@ -89,7 +89,7 @@ class SmsPasswordRecoveryTest extends TestCase
         ]);
 
         $this->post(route('password.sms.verify.submit'), ['code' => '123456'])
-            ->assertRedirect(route('password.request'));
+            ->assertSessionHasErrors('code');
         $this->assertTrue(Hash::check('old-password', $user->fresh()->password));
     }
 
