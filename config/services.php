@@ -36,6 +36,12 @@ return [
         'api_uri' => env('GMAIL_OAUTH_API_URI', 'https://gmail.googleapis.com/gmail/v1'),
     ],
 
+    'infobip' => [
+        'base_url' => env('INFOBIP_BASE_URL'),
+        'api_key' => env('INFOBIP_API_KEY'),
+        'sender' => env('INFOBIP_SENDER', 'InfoSMS'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
