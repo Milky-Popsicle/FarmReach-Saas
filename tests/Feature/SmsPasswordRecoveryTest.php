@@ -170,6 +170,33 @@ class SmsPasswordRecoveryTest extends TestCase
         Http::assertSentCount(1);
     }
 
+
+    public function test_resend_sms_failure_keeps_the_existing_otp_valid(): void
+    {
+        $user = User::factory()->farmer()->create(['phone_number' => '09171234567']);
+        $existingCode = PasswordRecoveryCode::create([
+            'user_id' => $user->id,
+            'otp_hash' => Hash::make('123456'),
+            'attempts' => 0,
+            'expires_at' => now()->addMinutes(5),
+        ]);
+
+        $this->withSession([
+            'password_recovery_started' => true,
+            'password_recovery_user_id' => $user->id,
+        ]);
+
+        Http::fake([
+            'test.api.infobip.com/sms/3/messages' => Http::response(['error' => 'unavailable'], 503),
+        ]);
+
+        $this->from(route('password.sms.verify'))
+            ->post(route('password.sms.resend'))
+            ->assertRedirect(route('password.sms.verify'));
+
+        $this->assertTrue(Hash::check('123456', $existingCode->fresh()->otp_hash));
+    }
+
     public function test_sms_delivery_failure_does_not_leave_a_valid_recovery_code(): void
     {
         $user = User::factory()->farmer()->create(['phone_number' => '09171234567']);

@@ -159,6 +159,17 @@ class AuthController extends Controller
 
         $code = (string) random_int(100000, 999999);
 
+        try {
+            $sms->send($phone, "Your FarmReach Cloud password reset code is {$code}. It expires in 5 minutes. Do not share this code.");
+        } catch (\Throwable $exception) {
+            Log::warning('Password recovery SMS could not be submitted.', [
+                'exception' => $exception::class,
+            ]);
+
+            // Keep the same next screen and response for known and unknown numbers.
+            return redirect()->route('password.sms.verify')->with('success', self::GENERIC_RESET_MESSAGE);
+        }
+
         PasswordRecoveryCode::updateOrCreate(
             ['user_id' => $user->id],
             [
@@ -168,19 +179,6 @@ class AuthController extends Controller
                 'verified_at' => null,
             ]
         );
-
-        try {
-            $sms->send($phone, "Your FarmReach Cloud password reset code is {$code}. It expires in 5 minutes. Do not share this code.");
-        } catch (\Throwable $exception) {
-            PasswordRecoveryCode::where('user_id', $user->id)->delete();
-
-            Log::warning('Password recovery SMS could not be submitted.', [
-                'exception' => $exception::class,
-            ]);
-
-            // Keep the same next screen and response for known and unknown numbers.
-            return redirect()->route('password.sms.verify')->with('success', self::GENERIC_RESET_MESSAGE);
-        }
 
         RateLimiter::hit('password-recovery-resend:'.$user->id.'|'.$request->ip(), 60);
 
@@ -267,16 +265,6 @@ class AuthController extends Controller
             return redirect()->route('password.request')->with('error', self::PHONE_RECOVERY_MESSAGE);
         }
 
-        PasswordRecoveryCode::updateOrCreate(
-            ['user_id' => $user->id],
-            [
-                'otp_hash' => Hash::make($code),
-                'attempts' => 0,
-                'expires_at' => now()->addMinutes(5),
-                'verified_at' => null,
-            ]
-        );
-
         try {
             $sms->send($phone, "Your new FarmReach Cloud password reset code is {$code}. It expires in 5 minutes. Do not share this code.");
         } catch (\Throwable $exception) {
@@ -286,6 +274,16 @@ class AuthController extends Controller
 
             return back()->with('success', self::GENERIC_RESET_MESSAGE);
         }
+
+        PasswordRecoveryCode::updateOrCreate(
+            ['user_id' => $user->id],
+            [
+                'otp_hash' => Hash::make($code),
+                'attempts' => 0,
+                'expires_at' => now()->addMinutes(5),
+                'verified_at' => null,
+            ]
+        );
 
         $request->session()->forget('password_recovery_verified_at');
 
