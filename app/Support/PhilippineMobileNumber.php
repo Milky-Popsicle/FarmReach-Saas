@@ -38,6 +38,7 @@ class PhilippineMobileNumber
 
         return array_values(array_unique([
             $digits,
+            '+'.$digits,
             '0'.substr($digits, 2),
             substr($digits, 2),
         ]));
