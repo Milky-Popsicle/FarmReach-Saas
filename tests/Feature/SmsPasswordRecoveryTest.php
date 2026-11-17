@@ -42,6 +42,39 @@ class SmsPasswordRecoveryTest extends TestCase
         );
     }
 
+    public function test_sms_sends_are_throttled_per_destination_across_ip_addresses(): void
+    {
+        User::factory()->farmer()->create(['phone_number' => '09171234567']);
+
+        Http::fake([
+            'test.api.infobip.com/sms/3/messages' => Http::response([
+                'messages' => [['messageId' => 'test-message-id']],
+            ], 200),
+        ]);
+
+        $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.10'])
+            ->from(route('password.request'))
+            ->post(route('password.email'), ['phone_number' => '09171234567'])
+            ->assertRedirect(route('password.sms.verify'));
+
+        // The resend route must share the destination cooldown even when the
+        // caller changes IP addresses after the initial request.
+        $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.20'])
+            ->from(route('password.sms.verify'))
+            ->post(route('password.sms.resend'))
+            ->assertRedirect(route('password.sms.verify'))
+            ->assertSessionHas('success');
+
+        // A second initial request from yet another IP must also be blocked.
+        $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.30'])
+            ->from(route('password.request'))
+            ->post(route('password.email'), ['phone_number' => '+63 917 123 4567'])
+            ->assertRedirect(route('password.request'))
+            ->assertSessionHas('success');
+
+        Http::assertSentCount(1);
+    }
+
     public function test_recovery_finds_existing_accounts_with_formatted_phone_numbers(): void
     {
         $user = User::factory()->farmer()->create([
