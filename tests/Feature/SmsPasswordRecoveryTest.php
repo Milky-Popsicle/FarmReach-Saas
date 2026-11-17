@@ -42,6 +42,28 @@ class SmsPasswordRecoveryTest extends TestCase
         );
     }
 
+    public function test_recovery_finds_existing_accounts_with_formatted_phone_numbers(): void
+    {
+        $user = User::factory()->farmer()->create([
+            'phone_number' => '0917-123-4567',
+        ]);
+
+        Http::fake([
+            'test.api.infobip.com/sms/3/messages' => Http::response([
+                'messages' => [['messageId' => 'formatted-phone-message-id']],
+            ], 200),
+        ]);
+
+        $this->post(route('password.email'), ['phone_number' => '+63 917 123 4567'])
+            ->assertRedirect(route('password.sms.verify'));
+
+        $this->assertDatabaseHas('password_recovery_codes', ['user_id' => $user->id]);
+
+        Http::assertSent(fn ($request) =>
+            data_get($request->data(), 'messages.0.destinations.0.to') === '+639171234567'
+        );
+    }
+
     public function test_verified_otp_allows_password_reset_and_is_consumed(): void
     {
         $user = User::factory()->buyer()->create(['password' => Hash::make('old-password')]);
