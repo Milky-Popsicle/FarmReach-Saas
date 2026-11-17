@@ -193,7 +193,7 @@ class AuthController extends Controller
 
     public function showVerifyPasswordOtp(Request $request): View|RedirectResponse
     {
-        if (! $request->session()->boolean('password_recovery_started')) {
+        if ($request->session()->get('password_recovery_started') !== true) {
             return redirect()->route('password.request')->with('error', self::INVALID_RESET_MESSAGE);
         }
 
@@ -208,7 +208,7 @@ class AuthController extends Controller
             'code' => ['required', 'digits:6'],
         ]);
 
-        if (! $request->session()->boolean('password_recovery_started')) {
+        if ($request->session()->get('password_recovery_started') !== true) {
             return redirect()->route('password.request')->with('error', self::INVALID_RESET_MESSAGE);
         }
 
@@ -245,7 +245,7 @@ class AuthController extends Controller
 
         // Unknown mobile numbers follow the same generic response and never
         // trigger a second SMS request.
-        if (! $request->session()->boolean('password_recovery_started')) {
+        if ($request->session()->get('password_recovery_started') !== true) {
             return redirect()->route('password.request')->with('error', self::INVALID_RESET_MESSAGE);
         }
 
@@ -338,7 +338,7 @@ class AuthController extends Controller
         $verifiedAt = $request->session()->get('password_recovery_verified_at');
         $recovery = $userId ? PasswordRecoveryCode::where('user_id', $userId)->first() : null;
 
-        return $request->session()->boolean('password_recovery_started')
+        return $request->session()->get('password_recovery_started') === true
             && $recovery !== null
             && $recovery->verified_at !== null
             && $recovery->expires_at->isFuture()
