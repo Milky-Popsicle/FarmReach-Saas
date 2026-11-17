@@ -14,10 +14,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
-use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 
 class AuthController extends Controller
 {
@@ -147,9 +145,16 @@ class AuthController extends Controller
         RateLimiter::hit($key, 60);
 
         $user = User::whereIn('phone_number', PhilippineMobileNumber::variants($phone))->first();
+        $request->session()->regenerate();
+
+        // Use the same response and next screen for known and unknown numbers
+        // so the recovery form does not disclose whether an account exists.
+        $request->session()->put('password_recovery_started', true);
+        $request->session()->put('password_recovery_phone_masked', PhilippineMobileNumber::mask($phone));
+        $request->session()->forget(['password_recovery_user_id', 'password_recovery_verified_at']);
 
         if (! $user) {
-            return back()->with('success', self::GENERIC_RESET_MESSAGE);
+            return redirect()->route('password.sms.verify')->with('success', self::GENERIC_RESET_MESSAGE);
         }
 
         $code = (string) random_int(100000, 999999);
@@ -160,6 +165,8 @@ class AuthController extends Controller
             Log::warning('Password recovery SMS could not be submitted.', [
                 'exception' => $exception::class,
             ]);
+
+            $request->session()->forget(['password_recovery_started', 'password_recovery_phone_masked']);
 
             return back()->with('error', self::DELIVERY_FAILED_MESSAGE)
                 ->withInput($request->only('phone_number'));
@@ -178,7 +185,6 @@ class AuthController extends Controller
         RateLimiter::hit('password-recovery-resend:'.$user->id.'|'.$request->ip(), 60);
 
         $request->session()->put('password_recovery_user_id', $user->id);
-        $request->session()->forget(['password_recovery_verified_at']);
 
         ActivityLog::log($user->id, 'Password Reset OTP Requested', 'A password recovery code was requested.');
 
@@ -187,27 +193,12 @@ class AuthController extends Controller
 
     public function showVerifyPasswordOtp(Request $request): View|RedirectResponse
     {
-        $userId = $request->session()->get('password_recovery_user_id');
-        $recovery = $userId ? PasswordRecoveryCode::where('user_id', $userId)->first() : null;
-
-        if (! $recovery || $recovery->expires_at->isPast()) {
-            $request->session()->forget(['password_recovery_user_id', 'password_recovery_verified_at']);
-
-            return redirect()->route('password.request')->with('error', self::INVALID_RESET_MESSAGE);
-        }
-
-        $user = User::find($userId);
-
-        if (! $user) {
-            $request->session()->forget(['password_recovery_user_id', 'password_recovery_verified_at']);
-
+        if (! $request->session()->boolean('password_recovery_started')) {
             return redirect()->route('password.request')->with('error', self::INVALID_RESET_MESSAGE);
         }
 
         return view('auth.verify-password-otp', [
-            'maskedPhone' => PhilippineMobileNumber::mask(
-                PhilippineMobileNumber::normalize($user->phone_number ?? '') ?? '+639000000000'
-            ),
+            'maskedPhone' => $request->session()->get('password_recovery_phone_masked', 'your registered mobile number'),
         ]);
     }
 
@@ -221,14 +212,12 @@ class AuthController extends Controller
         $recovery = $userId ? PasswordRecoveryCode::where('user_id', $userId)->first() : null;
 
         if (! $recovery || $recovery->expires_at->isPast() || $recovery->verified_at !== null) {
-            $request->session()->forget(['password_recovery_user_id', 'password_recovery_verified_at']);
-
-            return redirect()->route('password.request')->withErrors(['code' => self::INVALID_RESET_MESSAGE]);
+            return back()->withErrors(['code' => self::INVALID_RESET_MESSAGE]);
         }
 
         if ($recovery->attempts >= 5) {
             $recovery->delete();
-            $request->session()->forget(['password_recovery_user_id', 'password_recovery_verified_at']);
+            $request->session()->forget(['password_recovery_started', 'password_recovery_user_id', 'password_recovery_verified_at']);
 
             return redirect()->route('password.request')->withErrors(['code' => 'Too many incorrect attempts. Request a new code.']);
         }
@@ -250,10 +239,14 @@ class AuthController extends Controller
         $userId = $request->session()->get('password_recovery_user_id');
         $user = $userId ? User::find($userId) : null;
 
-        if (! $user || ! $user->phone_number) {
-            $request->session()->forget(['password_recovery_user_id', 'password_recovery_verified_at']);
-
+        // Unknown mobile numbers follow the same generic response and never
+        // trigger a second SMS request.
+        if (! $request->session()->boolean('password_recovery_started')) {
             return redirect()->route('password.request')->with('error', self::INVALID_RESET_MESSAGE);
+        }
+
+        if (! $user || ! $user->phone_number) {
+            return back()->with('success', self::GENERIC_RESET_MESSAGE);
         }
 
         $key = 'password-recovery-resend:'.$user->id.'|'.$request->ip();
@@ -307,7 +300,7 @@ class AuthController extends Controller
     public function resetPasswordWithSms(Request $request): RedirectResponse
     {
         if (! $this->hasVerifiedRecoverySession($request)) {
-            $request->session()->forget(['password_recovery_user_id', 'password_recovery_verified_at']);
+            $request->session()->forget(['password_recovery_started', 'password_recovery_user_id', 'password_recovery_verified_at']);
 
             return redirect()->route('password.request')->with('error', self::INVALID_RESET_MESSAGE);
         }
@@ -329,7 +322,7 @@ class AuthController extends Controller
 
         event(new PasswordReset($user));
 
-        $request->session()->forget(['password_recovery_user_id', 'password_recovery_verified_at']);
+        $request->session()->forget(['password_recovery_started', 'password_recovery_phone_masked', 'password_recovery_user_id', 'password_recovery_verified_at']);
         $request->session()->regenerate();
 
         return redirect()->route('login')->with('success', 'Your password has been reset. You can now sign in with your new password.');
@@ -341,7 +334,8 @@ class AuthController extends Controller
         $verifiedAt = $request->session()->get('password_recovery_verified_at');
         $recovery = $userId ? PasswordRecoveryCode::where('user_id', $userId)->first() : null;
 
-        return $recovery !== null
+        return $request->session()->boolean('password_recovery_started')
+            && $recovery !== null
             && $recovery->verified_at !== null
             && $recovery->expires_at->isFuture()
             && is_numeric($verifiedAt)
